@@ -7,6 +7,9 @@ import { GoalForm } from "@/components/dashboard/goal-form";
 import { GoalList } from "@/components/dashboard/goal-list";
 import { GoalProgressModal } from "@/components/dashboard/goal-progress-modal";
 import { HeroSection } from "@/components/dashboard/hero-section";
+import { OnboardingCard } from "@/components/dashboard/onboarding-card";
+import { OnboardingFeatures } from "@/components/dashboard/onboarding-features";
+import { OnboardingFuture } from "@/components/dashboard/onboarding-future";
 import {
   TransactionAdvancedFilters,
   type TransactionSortOption,
@@ -193,12 +196,25 @@ export default function HomePage() {
         <div className="space-y-8 lg:space-y-10">
           <HeroSection />
 
-          <FinanceSummaryCard
-            initialBalance={initialBalance}
-            totalIncome={totalIncome}
-            totalExpense={totalExpense}
-            currentBalance={currentBalance}
-          />
+          <section className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_380px]">
+            <div className="space-y-6">
+              <OnboardingCard />
+              <OnboardingFeatures />
+            </div>
+
+            <div className="xl:sticky xl:top-6 xl:self-start">
+              <OnboardingFuture />
+            </div>
+          </section>
+
+          <section id="resumo-financeiro">
+            <FinanceSummaryCard
+              initialBalance={initialBalance}
+              totalIncome={totalIncome}
+              totalExpense={totalExpense}
+              currentBalance={currentBalance}
+            />
+          </section>
 
           <DashboardInsights insights={insights} />
 
@@ -263,7 +279,7 @@ export default function HomePage() {
           </section>
 
           <section className="grid gap-6 xl:grid-cols-[380px_minmax(0,1fr)] xl:items-start">
-            <aside className="xl:sticky xl:top-6">
+            <aside id="nova-transacao" className="xl:sticky xl:top-6">
               <TransactionForm
                 initialBalance={initialBalance}
                 onUpdateInitialBalance={updateInitialBalance}
