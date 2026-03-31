@@ -3,11 +3,25 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { Transaction } from "@/types/finance";
-import type { TransactionType } from "@/types/transaction";
+import type {
+  TransactionKind,
+  TransactionRecurrenceMode,
+  TransactionRecurrenceType,
+  TransactionType,
+} from "@/types/transaction";
 import {
   getTransactionCategoryLabel,
   TRANSACTION_CATEGORIES,
 } from "@/types/transaction-category";
+import {
+  getTodayDateValue,
+  getTodayRecurrenceDay,
+} from "@/utils/recurring-transactions";
+
+type TransactionEditorKind =
+  | "single"
+  | "installment-template"
+  | "recurring-template";
 
 type TransactionEditModalProps = {
   transaction: Transaction | null;
@@ -19,11 +33,46 @@ type TransactionEditModalProps = {
     amount: number;
     type: TransactionType;
     category: string;
+    transactionKind?: TransactionKind;
+    transactionDate?: string | null;
+    isRecurring: boolean;
+    recurrenceType: TransactionRecurrenceType | null;
+    recurrenceMode?: TransactionRecurrenceMode | null;
+    recurrenceDay: number | null;
+    recurrenceStartDate: string | null;
+    recurrenceEndDate?: string | null;
+    recurrenceMonths?: number | null;
+    installmentCount?: number | null;
+    installmentStartDate?: string | null;
   }) => void;
 };
 
 const fieldClassName =
   "w-full rounded-xl border border-border/70 bg-background px-4 py-3 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15";
+
+function formatDateForInput(dateValue: string | null | undefined) {
+  if (!dateValue) {
+    return getTodayDateValue();
+  }
+
+  return dateValue.slice(0, 10);
+}
+
+function getEditorKind(transaction: Transaction | null): TransactionEditorKind {
+  if (!transaction) {
+    return "single";
+  }
+
+  if (transaction.transactionKind === "installment-template") {
+    return "installment-template";
+  }
+
+  if (transaction.transactionKind === "recurring-template") {
+    return "recurring-template";
+  }
+
+  return "single";
+}
 
 export function TransactionEditModal({
   transaction,
@@ -31,21 +80,33 @@ export function TransactionEditModal({
   onOpenChange,
   onSave,
 }: TransactionEditModalProps) {
-  const [title, setTitle] = useState("");
-  const [amount, setAmount] = useState("");
-  const [type, setType] = useState<TransactionType>("expense");
-  const [category, setCategory] = useState("geral");
-
-  useEffect(() => {
-    if (!transaction) {
-      return;
-    }
-
-    setTitle(transaction.title);
-    setAmount(String(transaction.amount));
-    setType(transaction.type);
-    setCategory(transaction.category);
-  }, [transaction]);
+  const [title, setTitle] = useState(transaction?.title ?? "");
+  const [amount, setAmount] = useState(transaction ? String(transaction.amount) : "");
+  const [type, setType] = useState<TransactionType>(transaction?.type ?? "expense");
+  const [category, setCategory] = useState(transaction?.category ?? "geral");
+  const [transactionKind, setTransactionKind] =
+    useState<TransactionEditorKind>(getEditorKind(transaction));
+  const [transactionDate, setTransactionDate] = useState(
+    formatDateForInput(transaction?.createdAt),
+  );
+  const [installmentCount, setInstallmentCount] = useState(
+    String(transaction?.installmentCount ?? 2),
+  );
+  const [installmentStartDate, setInstallmentStartDate] =
+    useState(formatDateForInput(transaction?.installmentStartDate));
+  const [recurrenceDay, setRecurrenceDay] = useState(
+    String(transaction?.recurrenceDay ?? getTodayRecurrenceDay()),
+  );
+  const [recurrenceStartDate, setRecurrenceStartDate] =
+    useState(formatDateForInput(transaction?.recurrenceStartDate));
+  const [recurrenceMode, setRecurrenceMode] =
+    useState<TransactionRecurrenceMode>(transaction?.recurrenceMode ?? "indefinite");
+  const [recurrenceEndDate, setRecurrenceEndDate] = useState(
+    formatDateForInput(transaction?.recurrenceEndDate),
+  );
+  const [recurrenceMonths, setRecurrenceMonths] = useState(
+    String(transaction?.recurrenceMonths ?? 3),
+  );
 
   useEffect(() => {
     if (!open) {
@@ -73,12 +134,13 @@ export function TransactionEditModal({
     return null;
   }
 
+  const isRecurringInstance = transaction.transactionKind === "recurring-instance";
+  const isInstallmentInstance =
+    transaction.transactionKind === "installment-instance";
+  const isGeneratedInstance = isRecurringInstance || isInstallmentInstance;
+
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
-    if (!transaction) {
-      return;
-    }
 
     const parsedAmount = Number(amount);
     const normalizedTitle = title.trim();
@@ -93,12 +155,115 @@ export function TransactionEditModal({
       return;
     }
 
+    if (isGeneratedInstance) {
+      onSave({
+        id: transaction.id,
+        title: normalizedTitle,
+        amount: parsedAmount,
+        type,
+        category: normalizedCategory,
+        transactionKind: transaction.transactionKind,
+        isRecurring: false,
+        recurrenceType: null,
+        recurrenceDay: null,
+        recurrenceStartDate: null,
+      });
+
+      onOpenChange(false);
+      return;
+    }
+
+    if (transactionKind === "single") {
+      const normalizedTransactionDate = transactionDate.trim();
+
+      if (!normalizedTransactionDate) {
+        return;
+      }
+
+      onSave({
+        id: transaction.id,
+        title: normalizedTitle,
+        amount: parsedAmount,
+        type,
+        category: normalizedCategory,
+        transactionKind: "single",
+        transactionDate: normalizedTransactionDate,
+        isRecurring: false,
+        recurrenceType: null,
+        recurrenceDay: null,
+        recurrenceStartDate: null,
+      });
+
+      onOpenChange(false);
+      return;
+    }
+
+    if (transactionKind === "installment-template") {
+      const parsedInstallmentCount = Number(installmentCount);
+      const normalizedInstallmentStartDate = installmentStartDate.trim();
+
+      if (
+        Number.isNaN(parsedInstallmentCount) ||
+        parsedInstallmentCount < 2 ||
+        !normalizedInstallmentStartDate
+      ) {
+        return;
+      }
+
+      onSave({
+        id: transaction.id,
+        title: normalizedTitle,
+        amount: parsedAmount,
+        type,
+        category: normalizedCategory,
+        transactionKind: "installment-template",
+        isRecurring: false,
+        recurrenceType: null,
+        recurrenceDay: null,
+        recurrenceStartDate: null,
+        installmentCount: parsedInstallmentCount,
+        installmentStartDate: normalizedInstallmentStartDate,
+      });
+
+      onOpenChange(false);
+      return;
+    }
+
+    const parsedRecurrenceDay = Number(recurrenceDay);
+    const parsedRecurrenceMonths = Number(recurrenceMonths);
+    const normalizedRecurrenceStartDate = recurrenceStartDate.trim();
+    const normalizedRecurrenceEndDate = recurrenceEndDate.trim();
+
+    if (
+      Number.isNaN(parsedRecurrenceDay) ||
+      parsedRecurrenceDay < 1 ||
+      parsedRecurrenceDay > 31 ||
+      !normalizedRecurrenceStartDate ||
+      (recurrenceMode === "until-date" &&
+        (!normalizedRecurrenceEndDate ||
+          normalizedRecurrenceEndDate < normalizedRecurrenceStartDate)) ||
+      (recurrenceMode === "for-months" &&
+        (Number.isNaN(parsedRecurrenceMonths) || parsedRecurrenceMonths < 1))
+    ) {
+      return;
+    }
+
     onSave({
       id: transaction.id,
       title: normalizedTitle,
       amount: parsedAmount,
       type,
       category: normalizedCategory,
+      transactionKind: "recurring-template",
+      isRecurring: true,
+      recurrenceType: "monthly",
+      recurrenceMode,
+      recurrenceDay: parsedRecurrenceDay,
+      recurrenceStartDate: normalizedRecurrenceStartDate,
+      recurrenceEndDate:
+        recurrenceMode === "until-date" ? normalizedRecurrenceEndDate : null,
+      recurrenceMonths:
+        recurrenceMode === "for-months" ? parsedRecurrenceMonths : null,
     });
 
     onOpenChange(false);
@@ -106,7 +271,7 @@ export function TransactionEditModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 py-6">
-      <div className="w-full max-w-xl rounded-[1.75rem] border border-border/70 bg-card shadow-2xl">
+      <div className="w-full max-w-2xl rounded-[1.75rem] border border-border/70 bg-card shadow-2xl">
         <div className="flex items-start justify-between border-b border-border/60 px-6 py-5">
           <div className="space-y-2">
             <p className="text-sm font-medium uppercase tracking-[0.18em] text-muted-foreground">
@@ -116,7 +281,8 @@ export function TransactionEditModal({
               Atualizar transação
             </h3>
             <p className="text-sm leading-6 text-muted-foreground">
-              Ajuste os dados da movimentação sem sair do extrato.
+              Ajuste os dados sem sair da dashboard, mantendo clareza entre item
+              único, parcelado e recorrente.
             </p>
           </div>
 
@@ -131,6 +297,75 @@ export function TransactionEditModal({
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5 px-6 py-6">
+          {!isGeneratedInstance ? (
+            <div className="space-y-3 rounded-2xl border border-border/60 bg-background/60 p-4">
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-foreground">
+                  Tipo do lançamento
+                </p>
+                <p className="text-sm leading-6 text-muted-foreground">
+                  Escolha o comportamento correto desta transação para refletir o
+                  domínio atual do Finly.
+                </p>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-3">
+                {(
+                  [
+                    {
+                      value: "single",
+                      title: "Único",
+                      description: "Lançamento pontual com data específica.",
+                    },
+                    {
+                      value: "installment-template",
+                      title: "Parcelado",
+                      description: "Gera parcelas mensais futuras.",
+                    },
+                    {
+                      value: "recurring-template",
+                      title: "Recorrente",
+                      description: "Repete mensalmente com fim opcional.",
+                    },
+                  ] satisfies Array<{
+                    value: TransactionEditorKind;
+                    title: string;
+                    description: string;
+                  }>
+                ).map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setTransactionKind(option.value)}
+                    className={`rounded-2xl border px-4 py-4 text-left transition ${
+                      transactionKind === option.value
+                        ? "border-primary bg-primary/10"
+                        : "border-border/70 bg-card/80 hover:border-border"
+                    }`}
+                  >
+                    <p className="text-sm font-semibold text-foreground">
+                      {option.title}
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                      {option.description}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-border/60 bg-background/60 p-4">
+              <p className="text-sm font-medium text-foreground">
+                Lançamento gerado automaticamente
+              </p>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                {isInstallmentInstance
+                  ? "Esta transação é uma parcela gerada a partir de um plano parcelado. A configuração das parcelas deve ser ajustada no modelo original."
+                  : "Esta transação é uma instância mensal gerada a partir de um modelo recorrente. A configuração da recorrência deve ser ajustada no modelo original."}
+              </p>
+            </div>
+          )}
+
           <div className="space-y-2">
             <label
               htmlFor="edit-transaction-title"
@@ -212,6 +447,202 @@ export function TransactionEditModal({
               </select>
             </div>
           </div>
+
+          {!isGeneratedInstance && transactionKind === "single" ? (
+            <div className="space-y-2 rounded-2xl border border-border/60 bg-background/60 p-4">
+              <label
+                htmlFor="edit-transaction-date"
+                className="text-sm font-medium text-foreground"
+              >
+                Data
+              </label>
+
+              <input
+                id="edit-transaction-date"
+                type="date"
+                value={transactionDate}
+                onChange={(event) => setTransactionDate(event.target.value)}
+                className={fieldClassName}
+              />
+            </div>
+          ) : null}
+
+          {!isGeneratedInstance && transactionKind === "installment-template" ? (
+            <div className="space-y-4 rounded-2xl border border-border/60 bg-background/60 p-4">
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-foreground">
+                  Parcelamento
+                </p>
+                <p className="text-sm leading-6 text-muted-foreground">
+                  Ajuste a quantidade e a primeira parcela. O Finly recalcula as
+                  parcelas futuras automaticamente.
+                </p>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <label
+                    htmlFor="edit-transaction-installment-count"
+                    className="text-sm font-medium text-foreground"
+                  >
+                    Quantidade de parcelas
+                  </label>
+
+                  <input
+                    id="edit-transaction-installment-count"
+                    type="number"
+                    min="2"
+                    value={installmentCount}
+                    onChange={(event) =>
+                      setInstallmentCount(event.target.value)
+                    }
+                    className={fieldClassName}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label
+                    htmlFor="edit-transaction-installment-start-date"
+                    className="text-sm font-medium text-foreground"
+                  >
+                    Data da primeira parcela
+                  </label>
+
+                  <input
+                    id="edit-transaction-installment-start-date"
+                    type="date"
+                    value={installmentStartDate}
+                    onChange={(event) =>
+                      setInstallmentStartDate(event.target.value)
+                    }
+                    className={fieldClassName}
+                  />
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {!isGeneratedInstance && transactionKind === "recurring-template" ? (
+            <div className="space-y-4 rounded-2xl border border-border/60 bg-background/60 p-4">
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-foreground">
+                  Recorrência
+                </p>
+                <p className="text-sm leading-6 text-muted-foreground">
+                  Atualize o dia da recorrência, a data de início e o modo de
+                  duração.
+                </p>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <label
+                    htmlFor="edit-transaction-recurrence-day"
+                    className="text-sm font-medium text-foreground"
+                  >
+                    Dia da recorrência
+                  </label>
+
+                  <input
+                    id="edit-transaction-recurrence-day"
+                    type="number"
+                    min="1"
+                    max="31"
+                    value={recurrenceDay}
+                    onChange={(event) => setRecurrenceDay(event.target.value)}
+                    className={fieldClassName}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label
+                    htmlFor="edit-transaction-recurrence-start-date"
+                    className="text-sm font-medium text-foreground"
+                  >
+                    Data de início
+                  </label>
+
+                  <input
+                    id="edit-transaction-recurrence-start-date"
+                    type="date"
+                    value={recurrenceStartDate}
+                    onChange={(event) =>
+                      setRecurrenceStartDate(event.target.value)
+                    }
+                    className={fieldClassName}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label
+                  htmlFor="edit-transaction-recurrence-mode"
+                  className="text-sm font-medium text-foreground"
+                >
+                  Modo da recorrência
+                </label>
+
+                <select
+                  id="edit-transaction-recurrence-mode"
+                  value={recurrenceMode}
+                  onChange={(event) =>
+                    setRecurrenceMode(
+                      event.target.value as TransactionRecurrenceMode,
+                    )
+                  }
+                  className={fieldClassName}
+                >
+                  <option value="indefinite">Indefinido</option>
+                  <option value="until-date">Até data</option>
+                  <option value="for-months">Por quantidade de meses</option>
+                </select>
+              </div>
+
+              {recurrenceMode === "until-date" ? (
+                <div className="space-y-2">
+                  <label
+                    htmlFor="edit-transaction-recurrence-end-date"
+                    className="text-sm font-medium text-foreground"
+                  >
+                    Data final
+                  </label>
+
+                  <input
+                    id="edit-transaction-recurrence-end-date"
+                    type="date"
+                    min={recurrenceStartDate}
+                    value={recurrenceEndDate}
+                    onChange={(event) =>
+                      setRecurrenceEndDate(event.target.value)
+                    }
+                    className={fieldClassName}
+                  />
+                </div>
+              ) : null}
+
+              {recurrenceMode === "for-months" ? (
+                <div className="space-y-2">
+                  <label
+                    htmlFor="edit-transaction-recurrence-months"
+                    className="text-sm font-medium text-foreground"
+                  >
+                    Quantidade de meses
+                  </label>
+
+                  <input
+                    id="edit-transaction-recurrence-months"
+                    type="number"
+                    min="1"
+                    value={recurrenceMonths}
+                    onChange={(event) =>
+                      setRecurrenceMonths(event.target.value)
+                    }
+                    className={fieldClassName}
+                  />
+                </div>
+              ) : null}
+            </div>
+          ) : null}
 
           <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
             <Button

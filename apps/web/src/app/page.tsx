@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { DashboardInsights } from "@/components/dashboard/dashboard-insights";
 import { FinanceSummaryCard } from "@/components/dashboard/finance-summary-card";
+import { FinancialForecastCard } from "@/components/dashboard/financial-forecast-card";
 import { GoalForm } from "@/components/dashboard/goal-form";
 import { GoalList } from "@/components/dashboard/goal-list";
 import { GoalProgressModal } from "@/components/dashboard/goal-progress-modal";
@@ -10,6 +11,7 @@ import { HeroSection } from "@/components/dashboard/hero-section";
 import { OnboardingCard } from "@/components/dashboard/onboarding-card";
 import { OnboardingFeatures } from "@/components/dashboard/onboarding-features";
 import { OnboardingFuture } from "@/components/dashboard/onboarding-future";
+import { UpcomingTransactions } from "@/components/dashboard/upcoming-transactions";
 import {
   TransactionAdvancedFilters,
   type TransactionSortOption,
@@ -19,12 +21,16 @@ import { TransactionFilterTabs } from "@/components/dashboard/transaction-filter
 import { TransactionForm } from "@/components/dashboard/transaction-form";
 import { TransactionList } from "@/components/dashboard/transaction-list";
 import { PageContainer } from "@/components/layout/page-container";
-import { useLocalFinance } from "@/hooks/use-local-finance";
+import {
+  type LocalFinanceTransactionInput,
+  useLocalFinance,
+} from "@/hooks/use-local-finance";
 import { useLocalGoals } from "@/hooks/use-local-goals";
 import type { Transaction, TransactionFilter } from "@/types/finance";
 import type { Goal } from "@/types/goal";
 import { getTransactionCategoryLabel } from "@/types/transaction-category";
 import { getDashboardInsights } from "@/utils/dashboard-insights";
+import { getUpcomingTransactionsByMonth } from "@/utils/upcoming-transactions";
 
 const DEFAULT_CATEGORY_FILTER = "all";
 const DEFAULT_SORT_OPTION: TransactionSortOption = "newest";
@@ -71,10 +77,13 @@ export default function HomePage() {
     totalIncome,
     totalExpense,
     transactions,
+    postedTransactions,
+    getNextRecurringOccurrence,
     updateInitialBalance,
     addTransaction,
     updateTransaction,
     removeTransaction,
+    createPreviewProfile,
     isLoaded: isFinanceLoaded,
   } = useLocalFinance();
 
@@ -97,11 +106,14 @@ export default function HomePage() {
   const [editingTransaction, setEditingTransaction] =
     useState<Transaction | null>(null);
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
+  const [previewTransactions, setPreviewTransactions] = useState<Transaction[] | null>(
+    null,
+  );
 
   const filteredTransactions = useMemo(() => {
     const normalizedSearchTerm = normalizeSearchValue(searchTerm);
 
-    const filteredItems = transactions.filter((transaction) => {
+    const filteredItems = postedTransactions.filter((transaction) => {
       const matchesType =
         transactionFilter === "all" || transaction.type === transactionFilter;
       const matchesCategory =
@@ -128,26 +140,52 @@ export default function HomePage() {
     });
 
     return sortTransactions(filteredItems, sortOption);
-  }, [transactions, transactionFilter, categoryFilter, searchTerm, sortOption]);
+  }, [
+    postedTransactions,
+    transactionFilter,
+    categoryFilter,
+    searchTerm,
+    sortOption,
+  ]);
 
   const insights = useMemo(
     () =>
       getDashboardInsights({
-        transactions,
+        transactions: postedTransactions,
         goals,
         totalIncome,
         totalExpense,
         currentBalance,
       }),
-    [transactions, goals, totalIncome, totalExpense, currentBalance],
+    [postedTransactions, goals, totalIncome, totalExpense, currentBalance],
   );
+
+  const projectionTransactions = previewTransactions ?? transactions;
+
+  const upcomingTransactions = useMemo(() => {
+    return getUpcomingTransactionsByMonth({
+      transactions: projectionTransactions,
+      monthsAhead: 3,
+      referenceDate: new Date(),
+    });
+  }, [projectionTransactions]);
+
+  const forecast = useMemo(() => {
+    const nextMonthGroup = upcomingTransactions[0];
+
+    return {
+      totalIncome: nextMonthGroup?.totalIncome ?? 0,
+      totalExpense: nextMonthGroup?.totalExpense ?? 0,
+      projectedBalance: currentBalance + (nextMonthGroup?.projectedBalance ?? 0),
+    };
+  }, [currentBalance, upcomingTransactions]);
 
   const hasActiveAdvancedFilters =
     searchTerm.trim().length > 0 ||
     categoryFilter !== DEFAULT_CATEGORY_FILTER ||
     sortOption !== DEFAULT_SORT_OPTION;
 
-  const hasAnyTransaction = transactions.length > 0;
+  const hasAnyTransaction = postedTransactions.length > 0;
   const emptyStateTitle = hasAnyTransaction
     ? "Nenhum resultado para os filtros aplicados"
     : "Nenhuma transação cadastrada";
@@ -166,6 +204,35 @@ export default function HomePage() {
 
   function handleOpenEditModal(transaction: Transaction) {
     setEditingTransaction(transaction);
+  }
+
+  function handlePreviewTransaction(input: LocalFinanceTransactionInput) {
+    const previewProfile = createPreviewProfile(input);
+    setPreviewTransactions(previewProfile?.transactions ?? null);
+  }
+
+  function handleClearPreview() {
+    setPreviewTransactions(null);
+  }
+
+  function handleUpdateInitialBalance(value: number) {
+    updateInitialBalance(value);
+    setPreviewTransactions(null);
+  }
+
+  function handleAddTransaction(input: LocalFinanceTransactionInput) {
+    addTransaction(input);
+    setPreviewTransactions(null);
+  }
+
+  function handleUpdateTransaction(input: Parameters<typeof updateTransaction>[0]) {
+    updateTransaction(input);
+    setPreviewTransactions(null);
+  }
+
+  function handleRemoveTransaction(id: string) {
+    removeTransaction(id);
+    setPreviewTransactions(null);
   }
 
   function handleEditModalChange(open: boolean) {
@@ -217,6 +284,14 @@ export default function HomePage() {
           </section>
 
           <DashboardInsights insights={insights} />
+
+          <FinancialForecastCard
+            totalIncome={forecast.totalIncome}
+            totalExpense={forecast.totalExpense}
+            projectedBalance={forecast.projectedBalance}
+          />
+
+          <UpcomingTransactions monthGroups={upcomingTransactions} />
 
           <section className="space-y-6 rounded-[2rem] border border-border/70 bg-card/70 p-5 shadow-sm sm:p-6 lg:p-7">
             <div className="flex flex-col gap-5 border-b border-border/60 pb-6 sm:flex-row sm:items-end sm:justify-between">
@@ -282,8 +357,11 @@ export default function HomePage() {
             <aside id="nova-transacao" className="xl:sticky xl:top-6">
               <TransactionForm
                 initialBalance={initialBalance}
-                onUpdateInitialBalance={updateInitialBalance}
-                onAddTransaction={addTransaction}
+                onUpdateInitialBalance={handleUpdateInitialBalance}
+                onAddTransaction={handleAddTransaction}
+                onPreviewTransaction={handlePreviewTransaction}
+                onClearPreview={handleClearPreview}
+                isPreviewActive={previewTransactions !== null}
               />
             </aside>
 
@@ -326,7 +404,7 @@ export default function HomePage() {
                   sortValue={sortOption}
                   onSortChange={setSortOption}
                   resultCount={filteredTransactions.length}
-                  totalCount={transactions.length}
+                  totalCount={postedTransactions.length}
                   hasActiveFilters={
                     transactionFilter !== "all" || hasActiveAdvancedFilters
                   }
@@ -336,7 +414,8 @@ export default function HomePage() {
                 <TransactionList
                   transactions={filteredTransactions}
                   onEditTransaction={handleOpenEditModal}
-                  onRemoveTransaction={removeTransaction}
+                  onRemoveTransaction={handleRemoveTransaction}
+                  getNextRecurringOccurrence={getNextRecurringOccurrence}
                   emptyStateTitle={emptyStateTitle}
                   emptyStateDescription={emptyStateDescription}
                 />
@@ -347,13 +426,15 @@ export default function HomePage() {
       </PageContainer>
 
       <TransactionEditModal
+        key={editingTransaction?.id ?? "transaction-edit-modal"}
         transaction={editingTransaction}
         open={Boolean(editingTransaction)}
         onOpenChange={handleEditModalChange}
-        onSave={updateTransaction}
+        onSave={handleUpdateTransaction}
       />
 
       <GoalProgressModal
+        key={selectedGoal?.id ?? "goal-progress-modal"}
         goal={selectedGoal}
         open={Boolean(selectedGoal)}
         onOpenChange={handleGoalModalChange}

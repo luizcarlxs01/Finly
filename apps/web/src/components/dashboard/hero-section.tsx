@@ -33,6 +33,7 @@ export function HeroSection() {
           <div className="flex flex-col gap-3 sm:flex-row">
             <Button
               size="lg"
+              nativeButton={false}
               render={
                 <a href="#nova-transacao" aria-label="Ir para nova transação" />
               }
@@ -45,6 +46,7 @@ export function HeroSection() {
             <Button
               size="lg"
               variant="outline"
+              nativeButton={false}
               render={
                 <a
                   href="#resumo-financeiro"

@@ -20,15 +20,9 @@ export function GoalProgressModal({
   onOpenChange,
   onSave,
 }: GoalProgressModalProps) {
-  const [currentAmount, setCurrentAmount] = useState("");
-
-  useEffect(() => {
-    if (!goal) {
-      return;
-    }
-
-    setCurrentAmount(String(goal.currentAmount));
-  }, [goal]);
+  const [currentAmount, setCurrentAmount] = useState(
+    goal ? String(goal.currentAmount) : "",
+  );
 
   useEffect(() => {
     if (!open) {

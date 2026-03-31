@@ -1,8 +1,6 @@
 import type { LocalFinanceProfile } from "@/types/local-finance-profile";
-import {
-  DEFAULT_TRANSACTION_CATEGORY,
-  TRANSACTION_CATEGORIES,
-} from "@/types/transaction-category";
+import type { Transaction } from "@/types/transaction";
+import { normalizeTransaction } from "@/utils/transaction-normalization";
 
 const STORAGE_KEY = "finly_local_finance_profile";
 
@@ -10,24 +8,6 @@ const defaultProfile: LocalFinanceProfile = {
   initialBalance: 0,
   transactions: [],
 };
-
-function normalizeTransactionCategory(category: unknown) {
-  if (typeof category !== "string") {
-    return DEFAULT_TRANSACTION_CATEGORY;
-  }
-
-  const normalizedCategory = category.trim().toLowerCase();
-
-  if (!normalizedCategory) {
-    return DEFAULT_TRANSACTION_CATEGORY;
-  }
-
-  return TRANSACTION_CATEGORIES.includes(
-    normalizedCategory as (typeof TRANSACTION_CATEGORIES)[number],
-  )
-    ? normalizedCategory
-    : DEFAULT_TRANSACTION_CATEGORY;
-}
 
 export function getLocalFinanceProfile(): LocalFinanceProfile {
   if (typeof window === "undefined") {
@@ -46,10 +26,9 @@ export function getLocalFinanceProfile(): LocalFinanceProfile {
     return {
       initialBalance: Number(parsedValue.initialBalance ?? 0),
       transactions: Array.isArray(parsedValue.transactions)
-        ? parsedValue.transactions.map((transaction) => ({
-            ...transaction,
-            category: normalizeTransactionCategory(transaction.category),
-          }))
+        ? parsedValue.transactions.map((transaction) =>
+            normalizeTransaction(transaction as Transaction),
+          )
         : [],
     };
   } catch {
