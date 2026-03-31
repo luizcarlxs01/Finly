@@ -1,16 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { DashboardEntryHeader } from "@/components/dashboard/dashboard-entry-header";
 import { DashboardInsights } from "@/components/dashboard/dashboard-insights";
 import { FinanceSummaryCard } from "@/components/dashboard/finance-summary-card";
 import { FinancialForecastCard } from "@/components/dashboard/financial-forecast-card";
 import { GoalForm } from "@/components/dashboard/goal-form";
 import { GoalList } from "@/components/dashboard/goal-list";
 import { GoalProgressModal } from "@/components/dashboard/goal-progress-modal";
-import { HeroSection } from "@/components/dashboard/hero-section";
-import { OnboardingCard } from "@/components/dashboard/onboarding-card";
-import { OnboardingFeatures } from "@/components/dashboard/onboarding-features";
-import { OnboardingFuture } from "@/components/dashboard/onboarding-future";
 import { UpcomingTransactions } from "@/components/dashboard/upcoming-transactions";
 import {
   TransactionAdvancedFilters,
@@ -65,6 +62,50 @@ function sortTransactions<
   });
 }
 
+function isDateFuture(dateValue?: string | null) {
+  if (!dateValue) {
+    return false;
+  }
+
+  const today = new Date();
+  const todayValue = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate(),
+  );
+
+  const [year, month, day] = dateValue.split("-").map(Number);
+  const targetDate = new Date(year, month - 1, day);
+
+  return targetDate.getTime() > todayValue.getTime();
+}
+
+function buildStatementTransactions(
+  transactions: Transaction[],
+  postedTransactions: Transaction[],
+) {
+  const futureEditableTemplates = transactions.filter((transaction) => {
+    if (transaction.transactionKind === "installment-template") {
+      return isDateFuture(transaction.installmentStartDate);
+    }
+
+    if (transaction.transactionKind === "recurring-template") {
+      return isDateFuture(transaction.recurrenceStartDate);
+    }
+
+    return false;
+  });
+
+  const merged = [...postedTransactions, ...futureEditableTemplates];
+  const uniqueById = new Map<string, Transaction>();
+
+  for (const transaction of merged) {
+    uniqueById.set(transaction.id, transaction);
+  }
+
+  return Array.from(uniqueById.values());
+}
+
 const currencyFormatter = new Intl.NumberFormat("pt-BR", {
   style: "currency",
   currency: "BRL",
@@ -106,14 +147,17 @@ export default function HomePage() {
   const [editingTransaction, setEditingTransaction] =
     useState<Transaction | null>(null);
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
-  const [previewTransactions, setPreviewTransactions] = useState<Transaction[] | null>(
-    null,
-  );
+  const [previewTransactions, setPreviewTransactions] =
+    useState<Transaction[] | null>(null);
+
+  const statementTransactions = useMemo(() => {
+    return buildStatementTransactions(transactions, postedTransactions);
+  }, [transactions, postedTransactions]);
 
   const filteredTransactions = useMemo(() => {
     const normalizedSearchTerm = normalizeSearchValue(searchTerm);
 
-    const filteredItems = postedTransactions.filter((transaction) => {
+    const filteredItems = statementTransactions.filter((transaction) => {
       const matchesType =
         transactionFilter === "all" || transaction.type === transactionFilter;
       const matchesCategory =
@@ -141,7 +185,7 @@ export default function HomePage() {
 
     return sortTransactions(filteredItems, sortOption);
   }, [
-    postedTransactions,
+    statementTransactions,
     transactionFilter,
     categoryFilter,
     searchTerm,
@@ -185,7 +229,7 @@ export default function HomePage() {
     categoryFilter !== DEFAULT_CATEGORY_FILTER ||
     sortOption !== DEFAULT_SORT_OPTION;
 
-  const hasAnyTransaction = postedTransactions.length > 0;
+  const hasAnyTransaction = statementTransactions.length > 0;
   const emptyStateTitle = hasAnyTransaction
     ? "Nenhum resultado para os filtros aplicados"
     : "Nenhuma transação cadastrada";
@@ -260,21 +304,25 @@ export default function HomePage() {
   return (
     <>
       <PageContainer>
-        <div className="space-y-8 lg:space-y-10">
-          <HeroSection />
+        <div className="space-y-10 2xl:space-y-12">
+          <DashboardEntryHeader />
 
-          <section className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_380px]">
-            <div className="space-y-6">
-              <OnboardingCard />
-              <OnboardingFeatures />
+          <section id="resumo-financeiro" className="space-y-6">
+            <div className="space-y-3">
+              <p className="text-sm font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                Área operacional
+              </p>
+              <div className="space-y-2">
+                <h2 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+                  Seu panorama financeiro em uma leitura mais clara
+                </h2>
+                <p className="max-w-3xl text-sm leading-6 text-muted-foreground sm:text-base">
+                  Veja seu saldo atual, acompanhe o que vem pela frente e gerencie
+                  seu extrato sem misturar previsão com histórico.
+                </p>
+              </div>
             </div>
 
-            <div className="xl:sticky xl:top-6 xl:self-start">
-              <OnboardingFuture />
-            </div>
-          </section>
-
-          <section id="resumo-financeiro">
             <FinanceSummaryCard
               initialBalance={initialBalance}
               totalIncome={totalIncome}
@@ -283,78 +331,39 @@ export default function HomePage() {
             />
           </section>
 
-          <DashboardInsights insights={insights} />
-
-          <FinancialForecastCard
-            totalIncome={forecast.totalIncome}
-            totalExpense={forecast.totalExpense}
-            projectedBalance={forecast.projectedBalance}
-          />
-
-          <UpcomingTransactions monthGroups={upcomingTransactions} />
-
-          <section className="space-y-6 rounded-[2rem] border border-border/70 bg-card/70 p-5 shadow-sm sm:p-6 lg:p-7">
-            <div className="flex flex-col gap-5 border-b border-border/60 pb-6 sm:flex-row sm:items-end sm:justify-between">
-              <div className="space-y-2">
-                <p className="text-sm font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                  Metas
-                </p>
-                <h2 className="text-2xl font-semibold tracking-tight text-foreground">
-                  Planejamento financeiro local
-                </h2>
-                <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-                  Cadastre objetivos, acompanhe progresso manual e visualize o
-                  quanto ainda falta para concluir cada meta.
-                </p>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-3">
-                <div className="rounded-2xl border border-border/70 bg-background/70 px-4 py-3">
-                  <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                    Metas ativas
-                  </p>
-                  <p className="mt-1 text-2xl font-semibold text-foreground">
-                    {goals.length}
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-border/70 bg-background/70 px-4 py-3">
-                  <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                    Acumulado
-                  </p>
-                  <p className="mt-1 text-xl font-semibold text-foreground">
-                    {currencyFormatter.format(totalGoalProgress)}
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-border/70 bg-background/70 px-4 py-3">
-                  <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                    Restante
-                  </p>
-                  <p className="mt-1 text-xl font-semibold text-foreground">
-                    {currencyFormatter.format(remainingGoalAmount)}
-                  </p>
-                </div>
-              </div>
+          <section className="grid gap-6 2xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+            <div className="min-w-0">
+              <DashboardInsights insights={insights} />
             </div>
 
-            <div className="grid gap-6 xl:grid-cols-[380px_minmax(0,1fr)] xl:items-start">
-              <aside className="xl:sticky xl:top-6">
-                <GoalForm onAddGoal={addGoal} />
-              </aside>
-
-              <div className="space-y-5">
-                <GoalList
-                  goals={goals}
-                  onUpdateProgress={setSelectedGoal}
-                  onRemoveGoal={removeGoal}
-                />
-              </div>
+            <div className="min-w-0">
+              <FinancialForecastCard
+                totalIncome={forecast.totalIncome}
+                totalExpense={forecast.totalExpense}
+                projectedBalance={forecast.projectedBalance}
+              />
             </div>
           </section>
 
-          <section className="grid gap-6 xl:grid-cols-[380px_minmax(0,1fr)] xl:items-start">
-            <aside id="nova-transacao" className="xl:sticky xl:top-6">
+          <section className="space-y-6">
+            <div className="space-y-2">
+              <p className="text-sm font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                Agenda financeira
+              </p>
+              <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+                Acompanhe um mês por vez, com mais foco
+              </h2>
+              <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
+                Navegue pelos próximos meses para entender parcelas, recorrências
+                e saldo previsto sem precisar percorrer uma tela extensa.
+              </p>
+            </div>
+
+            <UpcomingTransactions monthGroups={upcomingTransactions} />
+          </section>
+
+          <section className="grid gap-6 2xl:grid-cols-[minmax(320px,360px)_minmax(0,1fr)] 2xl:items-start">
+            <aside id="nova-transacao" className="min-w-0 2xl:sticky 2xl:top-6">
               <TransactionForm
                 initialBalance={initialBalance}
                 onUpdateInitialBalance={handleUpdateInitialBalance}
@@ -365,60 +374,168 @@ export default function HomePage() {
               />
             </aside>
 
-            <div className="rounded-[2rem] border border-border/70 bg-card/70 p-5 shadow-sm sm:p-6 lg:p-7">
-              <div className="flex flex-col gap-5 border-b border-border/60 pb-6 sm:flex-row sm:items-end sm:justify-between">
-                <div className="space-y-2">
-                  <p className="text-sm font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                    Extrato
-                  </p>
-                  <h2 className="text-2xl font-semibold tracking-tight text-foreground">
-                    Histórico de transações
-                  </h2>
-                  <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-                    Visualize suas movimentações com mais clareza, mantendo foco
-                    em leitura rápida, contexto e organização.
-                  </p>
+            <div className="min-w-0 rounded-[2rem] border border-border/70 bg-card/70 p-5 shadow-sm sm:p-6 lg:p-7">
+              <div className="space-y-6 border-b border-border/60 pb-6">
+                <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+                  <div className="min-w-0 space-y-2">
+                    <p className="text-sm font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                      Extrato
+                    </p>
+                    <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+                      Histórico de transações
+                    </h2>
+                    <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+                      Consulte o que já aconteceu, filtre com rapidez e mantenha a
+                      leitura do seu histórico separada da agenda futura.
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-border/70 bg-background/70 px-4 py-3">
+                    <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                      Itens exibidos
+                    </p>
+                    <p className="mt-1 text-2xl font-semibold text-foreground">
+                      {filteredTransactions.length}
+                    </p>
+                  </div>
                 </div>
 
-                <div className="rounded-2xl border border-border/70 bg-background/70 px-4 py-3">
-                  <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                    Itens exibidos
-                  </p>
-                  <p className="mt-1 text-2xl font-semibold text-foreground">
-                    {filteredTransactions.length}
-                  </p>
+                <div className="grid gap-3 xl:grid-cols-3">
+                  <div className="rounded-2xl border border-border/70 bg-background/70 px-4 py-3">
+                    <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                      Papel do extrato
+                    </p>
+                    <p className="mt-1 text-sm text-foreground">
+                      Mostrar o histórico real das suas movimentações
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-border/70 bg-background/70 px-4 py-3">
+                    <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                      Leitura
+                    </p>
+                    <p className="mt-1 text-sm text-foreground">
+                      Filtre por tipo, categoria, texto e ordenação
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-border/70 bg-background/70 px-4 py-3">
+                    <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                      Separação
+                    </p>
+                    <p className="mt-1 text-sm text-foreground">
+                      A agenda mostra previsão; o extrato mostra histórico
+                    </p>
+                  </div>
                 </div>
               </div>
 
               <div className="mt-6 space-y-5">
-                <TransactionFilterTabs
-                  value={transactionFilter}
-                  onChange={setTransactionFilter}
-                />
+                <div className="rounded-[1.5rem] border border-border/70 bg-background/50 p-4 sm:p-5">
+                  <div className="space-y-4">
+                    <div className="space-y-1">
+                      <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                        Controles do extrato
+                      </p>
+                      <h3 className="text-lg font-semibold text-foreground">
+                        Refine sua visualização antes de analisar a lista
+                      </h3>
+                    </div>
 
-                <TransactionAdvancedFilters
-                  searchValue={searchTerm}
-                  onSearchChange={setSearchTerm}
-                  categoryValue={categoryFilter}
-                  onCategoryChange={setCategoryFilter}
-                  sortValue={sortOption}
-                  onSortChange={setSortOption}
-                  resultCount={filteredTransactions.length}
-                  totalCount={postedTransactions.length}
-                  hasActiveFilters={
-                    transactionFilter !== "all" || hasActiveAdvancedFilters
-                  }
-                  onClearFilters={handleClearAdvancedFilters}
-                />
+                    <TransactionFilterTabs
+                      value={transactionFilter}
+                      onChange={setTransactionFilter}
+                    />
 
-                <TransactionList
-                  transactions={filteredTransactions}
-                  onEditTransaction={handleOpenEditModal}
-                  onRemoveTransaction={handleRemoveTransaction}
-                  getNextRecurringOccurrence={getNextRecurringOccurrence}
-                  emptyStateTitle={emptyStateTitle}
-                  emptyStateDescription={emptyStateDescription}
-                />
+                    <TransactionAdvancedFilters
+                      searchValue={searchTerm}
+                      onSearchChange={setSearchTerm}
+                      categoryValue={categoryFilter}
+                      onCategoryChange={setCategoryFilter}
+                      sortValue={sortOption}
+                      onSortChange={setSortOption}
+                      resultCount={filteredTransactions.length}
+                      totalCount={statementTransactions.length}
+                      hasActiveFilters={
+                        transactionFilter !== "all" || hasActiveAdvancedFilters
+                      }
+                      onClearFilters={handleClearAdvancedFilters}
+                    />
+                  </div>
+                </div>
+
+                <div className="rounded-[1.5rem] border border-border/70 bg-background/35 p-3 sm:p-4">
+                  <TransactionList
+                    transactions={filteredTransactions}
+                    onEditTransaction={handleOpenEditModal}
+                    onRemoveTransaction={handleRemoveTransaction}
+                    getNextRecurringOccurrence={getNextRecurringOccurrence}
+                    emptyStateTitle={emptyStateTitle}
+                    emptyStateDescription={emptyStateDescription}
+                  />
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="rounded-[2rem] border border-border/70 bg-card/70 p-5 shadow-sm sm:p-6 lg:p-7">
+            <div className="space-y-6">
+              <div className="flex flex-col gap-5 border-b border-border/60 pb-6 lg:flex-row lg:items-end lg:justify-between">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                    Metas
+                  </p>
+                  <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+                    Planejamento financeiro local
+                  </h2>
+                  <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+                    Cadastre objetivos, acompanhe o progresso manualmente e visualize
+                    quanto ainda falta para concluir cada meta.
+                  </p>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-2xl border border-border/70 bg-background/70 px-4 py-3">
+                    <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                      Metas ativas
+                    </p>
+                    <p className="mt-1 text-2xl font-semibold text-foreground">
+                      {goals.length}
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-border/70 bg-background/70 px-4 py-3">
+                    <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                      Acumulado
+                    </p>
+                    <p className="mt-1 text-xl font-semibold text-foreground">
+                      {currencyFormatter.format(totalGoalProgress)}
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-border/70 bg-background/70 px-4 py-3">
+                    <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                      Restante
+                    </p>
+                    <p className="mt-1 text-xl font-semibold text-foreground">
+                      {currencyFormatter.format(remainingGoalAmount)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-6 2xl:grid-cols-[minmax(320px,360px)_minmax(0,1fr)] 2xl:items-start">
+                <aside className="min-w-0 2xl:sticky 2xl:top-6">
+                  <GoalForm onAddGoal={addGoal} />
+                </aside>
+
+                <div className="min-w-0 space-y-5">
+                  <GoalList
+                    goals={goals}
+                    onUpdateProgress={setSelectedGoal}
+                    onRemoveGoal={removeGoal}
+                  />
+                </div>
               </div>
             </div>
           </section>

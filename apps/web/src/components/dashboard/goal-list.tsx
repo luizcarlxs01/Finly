@@ -1,5 +1,7 @@
 "use client";
 
+import { CalendarDays, Pencil, Trash2 } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { Goal } from "@/types/goal";
@@ -60,7 +62,7 @@ export function GoalList({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {goals.map((goal) => {
         const progress = getGoalProgress(goal);
         const remainingAmount = getRemainingAmount(goal);
@@ -68,85 +70,107 @@ export function GoalList({
         return (
           <Card
             key={goal.id}
-            className="rounded-[1.5rem] border-border/70 bg-card/95 shadow-sm"
+            className="rounded-[1.5rem] border border-border/70 bg-card/95 shadow-sm transition-colors hover:bg-card"
           >
-            <CardContent className="space-y-5 p-6">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                <div className="space-y-2">
-                  <h3 className="text-lg font-semibold text-foreground">
-                    {goal.title}
-                  </h3>
+            <CardContent className="space-y-5 p-5 sm:p-6">
+              <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                <div className="min-w-0 flex-1 space-y-3">
+                  <div className="space-y-1">
+                    <h3 className="truncate text-lg font-semibold text-foreground">
+                      {goal.title}
+                    </h3>
 
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="inline-flex rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
-                      {getGoalCategoryLabel(goal.category)}
-                    </span>
-
-                    {goal.deadline ? (
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="inline-flex rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
-                        Prazo: {dateFormatter.format(new Date(goal.deadline))}
+                        {getGoalCategoryLabel(goal.category)}
                       </span>
-                    ) : null}
+
+                      {goal.deadline ? (
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+                          <CalendarDays className="size-3.5" />
+                          Prazo: {dateFormatter.format(new Date(goal.deadline))}
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 rounded-[1.25rem] border border-border/60 bg-background/60 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-medium text-foreground">
+                        Progresso da meta
+                      </p>
+                      <p className="text-sm font-semibold text-foreground">
+                        {progress.toFixed(0)}%
+                      </p>
+                    </div>
+
+                    <div className="h-3 overflow-hidden rounded-full bg-muted">
+                      <div
+                        className="h-full rounded-full bg-primary transition-[width]"
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+
+                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                      <div className="rounded-2xl border border-border/70 bg-card/80 p-4">
+                        <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                          Valor alvo
+                        </p>
+                        <p className="mt-2 text-base font-semibold text-foreground">
+                          {currencyFormatter.format(goal.targetAmount)}
+                        </p>
+                      </div>
+
+                      <div className="rounded-2xl border border-border/70 bg-card/80 p-4">
+                        <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                          Valor atual
+                        </p>
+                        <p className="mt-2 text-base font-semibold text-foreground">
+                          {currencyFormatter.format(goal.currentAmount)}
+                        </p>
+                      </div>
+
+                      <div className="rounded-2xl border border-border/70 bg-card/80 p-4">
+                        <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                          Restante
+                        </p>
+                        <p className="mt-2 text-base font-semibold text-foreground">
+                          {currencyFormatter.format(remainingAmount)}
+                        </p>
+                      </div>
+
+                      <div className="rounded-2xl border border-border/70 bg-card/80 p-4">
+                        <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                          Concluído
+                        </p>
+                        <p className="mt-2 text-base font-semibold text-foreground">
+                          {progress.toFixed(0)}%
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-2 sm:flex-row">
+                <div className="flex shrink-0 flex-col gap-2 sm:flex-row xl:flex-col">
                   <Button
                     type="button"
                     variant="outline"
-                    className="rounded-xl"
+                    className="rounded-2xl"
                     onClick={() => onUpdateProgress(goal)}
                   >
+                    <Pencil className="size-4" />
                     Atualizar progresso
                   </Button>
 
                   <Button
                     type="button"
                     variant="destructive"
-                    className="rounded-xl"
+                    className="rounded-2xl"
                     onClick={() => onRemoveGoal(goal.id)}
                   >
+                    <Trash2 className="size-4" />
                     Remover
                   </Button>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <div className="h-3 overflow-hidden rounded-full bg-muted">
-                  <div
-                    className="h-full rounded-full bg-primary transition-[width]"
-                    style={{ width: `${progress}%` }}
-                  />
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                  <div className="rounded-2xl border border-border/70 bg-background/70 p-4">
-                    <p className="text-sm text-muted-foreground">Valor alvo</p>
-                    <p className="mt-2 text-lg font-semibold text-foreground">
-                      {currencyFormatter.format(goal.targetAmount)}
-                    </p>
-                  </div>
-
-                  <div className="rounded-2xl border border-border/70 bg-background/70 p-4">
-                    <p className="text-sm text-muted-foreground">Valor atual</p>
-                    <p className="mt-2 text-lg font-semibold text-foreground">
-                      {currencyFormatter.format(goal.currentAmount)}
-                    </p>
-                  </div>
-
-                  <div className="rounded-2xl border border-border/70 bg-background/70 p-4">
-                    <p className="text-sm text-muted-foreground">Restante</p>
-                    <p className="mt-2 text-lg font-semibold text-foreground">
-                      {currencyFormatter.format(remainingAmount)}
-                    </p>
-                  </div>
-
-                  <div className="rounded-2xl border border-border/70 bg-background/70 p-4">
-                    <p className="text-sm text-muted-foreground">Concluído</p>
-                    <p className="mt-2 text-lg font-semibold text-foreground">
-                      {progress.toFixed(0)}%
-                    </p>
-                  </div>
                 </div>
               </div>
             </CardContent>

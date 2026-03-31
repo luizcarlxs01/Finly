@@ -1,5 +1,7 @@
 "use client";
 
+import { CalendarClock, Pencil, Trash2 } from "lucide-react";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -81,7 +83,7 @@ export function TransactionList({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {transactions.map((transaction) => {
         const recurringSummary = formatRecurringSummary(transaction);
         const nextRecurringOccurrence = getNextRecurringOccurrence(transaction);
@@ -89,95 +91,125 @@ export function TransactionList({
         return (
           <Card
             key={transaction.id}
-            className="rounded-[1.5rem] border-border/70 bg-card/95 shadow-sm transition hover:border-border"
+            className="rounded-[1.5rem] border border-border/70 bg-card/95 shadow-sm transition-colors hover:bg-card"
           >
-            <CardContent className="flex flex-col gap-5 p-6 lg:flex-row lg:items-center lg:justify-between">
-              <div className="space-y-3">
-                <div className="space-y-1">
-                  <h3 className="text-lg font-semibold text-foreground">
-                    {transaction.title}
-                  </h3>
+            <CardContent className="p-5 sm:p-6">
+              <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+                <div className="min-w-0 flex-1 space-y-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0 space-y-1">
+                      <h3 className="truncate text-lg font-semibold text-foreground">
+                        {transaction.title}
+                      </h3>
 
-                  <p className="text-sm text-muted-foreground">
-                    {dateFormatter.format(new Date(transaction.createdAt))}
-                  </p>
-                </div>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <CalendarClock className="size-4 shrink-0" />
+                        <span className="truncate">
+                          {dateFormatter.format(new Date(transaction.createdAt))}
+                        </span>
+                      </div>
+                    </div>
 
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="inline-flex rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
-                    {getTransactionTypeLabel(transaction.type)}
-                  </span>
-
-                  <span className="inline-flex rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
-                    {getTransactionCategoryLabel(transaction.category)}
-                  </span>
-
-                  {transaction.transactionKind === "recurring-template" ? (
-                    <Badge
-                      variant="outline"
-                      className="h-auto rounded-full px-3 py-1"
-                    >
-                      Modelo recorrente
-                    </Badge>
-                  ) : null}
-
-                  {transaction.transactionKind === "recurring-instance" ? (
-                    <Badge
-                      variant="secondary"
-                      className="h-auto rounded-full px-3 py-1"
-                    >
-                      Lançamento gerado
-                    </Badge>
-                  ) : null}
-
-                  {recurringSummary ? (
-                    <Badge
-                      variant="outline"
-                      className="h-auto rounded-full px-3 py-1"
-                    >
-                      {recurringSummary}
-                    </Badge>
-                  ) : null}
-                </div>
-
-                {transaction.transactionKind === "recurring-template" &&
-                nextRecurringOccurrence ? (
-                  <p className="text-sm text-muted-foreground">
-                    Próxima ocorrência:{" "}
-                    {formatRecurringDate(nextRecurringOccurrence)}
-                  </p>
-                ) : null}
-
-                {transaction.transactionKind === "recurring-instance" &&
-                transaction.recurringOccurrenceDate ? (
-                  <div className="space-y-1 text-sm text-muted-foreground">
-                    <p>
-                      Competência gerada:{" "}
-                      {formatRecurringDate(transaction.recurringOccurrenceDate)}
-                    </p>
-
-                    {nextRecurringOccurrence ? (
-                      <p>
-                        Próximo lançamento:{" "}
-                        {formatRecurringDate(nextRecurringOccurrence)}
+                    <div className="shrink-0">
+                      <p
+                        className={`text-xl font-semibold sm:text-right ${
+                          transaction.type === "income"
+                            ? "text-green-700"
+                            : "text-red-700"
+                        }`}
+                      >
+                        {currencyFormatter.format(transaction.amount)}
                       </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span
+                      className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${
+                        transaction.type === "income"
+                          ? "bg-green-100 text-green-800"
+                          : "bg-red-100 text-red-800"
+                      }`}
+                    >
+                      {getTransactionTypeLabel(transaction.type)}
+                    </span>
+
+                    <span className="inline-flex rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+                      {getTransactionCategoryLabel(transaction.category)}
+                    </span>
+
+                    {transaction.transactionKind === "recurring-template" ? (
+                      <Badge
+                        variant="outline"
+                        className="h-auto rounded-full px-3 py-1"
+                      >
+                        Modelo recorrente
+                      </Badge>
+                    ) : null}
+
+                    {transaction.transactionKind === "recurring-instance" ? (
+                      <Badge
+                        variant="secondary"
+                        className="h-auto rounded-full px-3 py-1"
+                      >
+                        Lançamento gerado
+                      </Badge>
+                    ) : null}
+
+                    {recurringSummary ? (
+                      <Badge
+                        variant="outline"
+                        className="h-auto rounded-full px-3 py-1"
+                      >
+                        {recurringSummary}
+                      </Badge>
                     ) : null}
                   </div>
-                ) : null}
-              </div>
 
-              <div className="flex flex-col gap-3 sm:items-end">
-                <span className="text-xl font-semibold text-foreground sm:min-w-36 sm:text-right">
-                  {currencyFormatter.format(transaction.amount)}
-                </span>
+                  {transaction.transactionKind === "recurring-template" &&
+                  nextRecurringOccurrence ? (
+                    <div className="rounded-2xl border border-border/60 bg-background/60 px-4 py-3">
+                      <p className="text-sm text-muted-foreground">
+                        Próxima ocorrência:{" "}
+                        <span className="font-medium text-foreground">
+                          {formatRecurringDate(nextRecurringOccurrence)}
+                        </span>
+                      </p>
+                    </div>
+                  ) : null}
 
-                <div className="flex flex-col gap-2 sm:flex-row">
+                  {transaction.transactionKind === "recurring-instance" &&
+                  transaction.recurringOccurrenceDate ? (
+                    <div className="rounded-2xl border border-border/60 bg-background/60 px-4 py-3">
+                      <div className="space-y-1 text-sm text-muted-foreground">
+                        <p>
+                          Competência gerada:{" "}
+                          <span className="font-medium text-foreground">
+                            {formatRecurringDate(transaction.recurringOccurrenceDate)}
+                          </span>
+                        </p>
+
+                        {nextRecurringOccurrence ? (
+                          <p>
+                            Próximo lançamento:{" "}
+                            <span className="font-medium text-foreground">
+                              {formatRecurringDate(nextRecurringOccurrence)}
+                            </span>
+                          </p>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="flex shrink-0 flex-col gap-2 sm:flex-row xl:flex-col">
                   <Button
                     type="button"
                     variant="outline"
                     onClick={() => onEditTransaction(transaction)}
-                    className="h-10 rounded-xl"
+                    className="h-10 rounded-2xl"
                   >
+                    <Pencil className="size-4" />
                     Editar
                   </Button>
 
@@ -185,8 +217,9 @@ export function TransactionList({
                     type="button"
                     variant="destructive"
                     onClick={() => onRemoveTransaction(transaction.id)}
-                    className="h-10 rounded-xl"
+                    className="h-10 rounded-2xl"
                   >
+                    <Trash2 className="size-4" />
                     Remover
                   </Button>
                 </div>
