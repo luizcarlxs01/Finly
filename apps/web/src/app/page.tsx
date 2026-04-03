@@ -1,22 +1,17 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { DashboardEntryHeader } from "@/components/dashboard/dashboard-entry-header";
-import { DashboardInsights } from "@/components/dashboard/dashboard-insights";
-import { FinanceSummaryCard } from "@/components/dashboard/finance-summary-card";
-import { FinancialForecastCard } from "@/components/dashboard/financial-forecast-card";
-import { GoalForm } from "@/components/dashboard/goal-form";
-import { GoalList } from "@/components/dashboard/goal-list";
-import { GoalProgressModal } from "@/components/dashboard/goal-progress-modal";
-import { UpcomingTransactions } from "@/components/dashboard/upcoming-transactions";
 import {
-  TransactionAdvancedFilters,
-  type TransactionSortOption,
-} from "@/components/dashboard/transaction-advanced-filters";
+  AppFloatingHeader,
+  type DashboardView,
+} from "@/components/layout/app-floating-header";
+import { DashboardShell } from "@/components/dashboard/dashboard-shell";
+import { DashboardHomeView } from "@/components/dashboard/views/dashboard-home-view";
+import { DashboardTransactionsView } from "@/components/dashboard/views/dashboard-transactions-view";
+import { DashboardGoalsView } from "@/components/dashboard/views/dashboard-goals-view";
+import { DashboardInsightsView } from "@/components/dashboard/views/dashboard-insights-view";
+import { GoalProgressModal } from "@/components/dashboard/goal-progress-modal";
 import { TransactionEditModal } from "@/components/dashboard/transaction-edit-modal";
-import { TransactionFilterTabs } from "@/components/dashboard/transaction-filter-tabs";
-import { TransactionForm } from "@/components/dashboard/transaction-form";
-import { TransactionList } from "@/components/dashboard/transaction-list";
 import { PageContainer } from "@/components/layout/page-container";
 import {
   type LocalFinanceTransactionInput,
@@ -28,6 +23,7 @@ import type { Goal } from "@/types/goal";
 import { getTransactionCategoryLabel } from "@/types/transaction-category";
 import { getDashboardInsights } from "@/utils/dashboard-insights";
 import { getUpcomingTransactionsByMonth } from "@/utils/upcoming-transactions";
+import type { TransactionSortOption } from "@/components/dashboard/transaction-advanced-filters";
 
 const DEFAULT_CATEGORY_FILTER = "all";
 const DEFAULT_SORT_OPTION: TransactionSortOption = "newest";
@@ -138,6 +134,7 @@ export default function HomePage() {
     removeGoal,
   } = useLocalGoals();
 
+  const [activeView, setActiveView] = useState<DashboardView>("home");
   const [transactionFilter, setTransactionFilter] =
     useState<TransactionFilter>("all");
   const [searchTerm, setSearchTerm] = useState("");
@@ -291,6 +288,10 @@ export default function HomePage() {
     }
   }
 
+  function handleGoToTransactionsSection() {
+    setActiveView("transactions");
+  }
+
   if (!isFinanceLoaded || !isGoalsLoaded) {
     return (
       <PageContainer>
@@ -301,244 +302,82 @@ export default function HomePage() {
     );
   }
 
+  const homeView = (
+    <DashboardHomeView onGoToTransactions={handleGoToTransactionsSection} />
+  );
+
+  const transactionsView = (
+    <DashboardTransactionsView
+      initialBalance={initialBalance}
+      totalIncome={totalIncome}
+      totalExpense={totalExpense}
+      currentBalance={currentBalance}
+      transactionFilter={transactionFilter}
+      onTransactionFilterChange={setTransactionFilter}
+      searchTerm={searchTerm}
+      onSearchTermChange={setSearchTerm}
+      categoryFilter={categoryFilter}
+      onCategoryFilterChange={setCategoryFilter}
+      sortOption={sortOption}
+      onSortOptionChange={setSortOption}
+      filteredTransactions={filteredTransactions}
+      statementTransactions={statementTransactions}
+      hasActiveAdvancedFilters={hasActiveAdvancedFilters}
+      onClearAdvancedFilters={handleClearAdvancedFilters}
+      onUpdateInitialBalance={handleUpdateInitialBalance}
+      onAddTransaction={handleAddTransaction}
+      onPreviewTransaction={handlePreviewTransaction}
+      onClearPreview={handleClearPreview}
+      isPreviewActive={previewTransactions !== null}
+      onEditTransaction={handleOpenEditModal}
+      onRemoveTransaction={handleRemoveTransaction}
+      getNextRecurringOccurrence={getNextRecurringOccurrence}
+      emptyStateTitle={emptyStateTitle}
+      emptyStateDescription={emptyStateDescription}
+      forecastTotalIncome={forecast.totalIncome}
+      forecastTotalExpense={forecast.totalExpense}
+      forecastProjectedBalance={forecast.projectedBalance}
+      upcomingMonthGroups={upcomingTransactions}
+    />
+  );
+
+  const goalsView = (
+    <DashboardGoalsView
+      goals={goals}
+      totalGoalProgress={totalGoalProgress}
+      remainingGoalAmount={remainingGoalAmount}
+      currencyFormatter={currencyFormatter}
+      onAddGoal={addGoal}
+      onUpdateProgress={setSelectedGoal}
+      onRemoveGoal={removeGoal}
+    />
+  );
+
+  const insightsView = (
+    <DashboardInsightsView
+      insights={insights}
+      forecastTotalIncome={forecast.totalIncome}
+      forecastTotalExpense={forecast.totalExpense}
+      forecastProjectedBalance={forecast.projectedBalance}
+    />
+  );
+
   return (
     <>
       <PageContainer>
-        <div className="space-y-10 2xl:space-y-12">
-          <DashboardEntryHeader />
+        <div className="space-y-8 2xl:space-y-10">
+          <AppFloatingHeader
+            activeView={activeView}
+            onChangeView={setActiveView}
+          />
 
-          <section id="resumo-financeiro" className="space-y-6">
-            <div className="space-y-3">
-              <p className="text-sm font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                Área operacional
-              </p>
-              <div className="space-y-2">
-                <h2 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-                  Seu panorama financeiro em uma leitura mais clara
-                </h2>
-                <p className="max-w-3xl text-sm leading-6 text-muted-foreground sm:text-base">
-                  Veja seu saldo atual, acompanhe o que vem pela frente e gerencie
-                  seu extrato sem misturar previsão com histórico.
-                </p>
-              </div>
-            </div>
-
-            <FinanceSummaryCard
-              initialBalance={initialBalance}
-              totalIncome={totalIncome}
-              totalExpense={totalExpense}
-              currentBalance={currentBalance}
-            />
-          </section>
-
-          <section className="grid gap-6 2xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-            <div className="min-w-0">
-              <DashboardInsights insights={insights} />
-            </div>
-
-            <div className="min-w-0">
-              <FinancialForecastCard
-                totalIncome={forecast.totalIncome}
-                totalExpense={forecast.totalExpense}
-                projectedBalance={forecast.projectedBalance}
-              />
-            </div>
-          </section>
-
-          <section className="space-y-6">
-            <div className="space-y-2">
-              <p className="text-sm font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                Agenda financeira
-              </p>
-              <h2 className="text-2xl font-semibold tracking-tight text-foreground">
-                Acompanhe um mês por vez, com mais foco
-              </h2>
-              <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-                Navegue pelos próximos meses para entender parcelas, recorrências
-                e saldo previsto sem precisar percorrer uma tela extensa.
-              </p>
-            </div>
-
-            <UpcomingTransactions monthGroups={upcomingTransactions} />
-          </section>
-
-          <section className="grid gap-6 2xl:grid-cols-[minmax(320px,360px)_minmax(0,1fr)] 2xl:items-start">
-            <aside id="nova-transacao" className="min-w-0 2xl:sticky 2xl:top-6">
-              <TransactionForm
-                initialBalance={initialBalance}
-                onUpdateInitialBalance={handleUpdateInitialBalance}
-                onAddTransaction={handleAddTransaction}
-                onPreviewTransaction={handlePreviewTransaction}
-                onClearPreview={handleClearPreview}
-                isPreviewActive={previewTransactions !== null}
-              />
-            </aside>
-
-            <div className="min-w-0 rounded-[2rem] border border-border/70 bg-card/70 p-5 shadow-sm sm:p-6 lg:p-7">
-              <div className="space-y-6 border-b border-border/60 pb-6">
-                <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-                  <div className="min-w-0 space-y-2">
-                    <p className="text-sm font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                      Extrato
-                    </p>
-                    <h2 className="text-2xl font-semibold tracking-tight text-foreground">
-                      Histórico de transações
-                    </h2>
-                    <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-                      Consulte o que já aconteceu, filtre com rapidez e mantenha a
-                      leitura do seu histórico separada da agenda futura.
-                    </p>
-                  </div>
-
-                  <div className="rounded-2xl border border-border/70 bg-background/70 px-4 py-3">
-                    <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                      Itens exibidos
-                    </p>
-                    <p className="mt-1 text-2xl font-semibold text-foreground">
-                      {filteredTransactions.length}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid gap-3 xl:grid-cols-3">
-                  <div className="rounded-2xl border border-border/70 bg-background/70 px-4 py-3">
-                    <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                      Papel do extrato
-                    </p>
-                    <p className="mt-1 text-sm text-foreground">
-                      Mostrar o histórico real das suas movimentações
-                    </p>
-                  </div>
-
-                  <div className="rounded-2xl border border-border/70 bg-background/70 px-4 py-3">
-                    <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                      Leitura
-                    </p>
-                    <p className="mt-1 text-sm text-foreground">
-                      Filtre por tipo, categoria, texto e ordenação
-                    </p>
-                  </div>
-
-                  <div className="rounded-2xl border border-border/70 bg-background/70 px-4 py-3">
-                    <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                      Separação
-                    </p>
-                    <p className="mt-1 text-sm text-foreground">
-                      A agenda mostra previsão; o extrato mostra histórico
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-6 space-y-5">
-                <div className="rounded-[1.5rem] border border-border/70 bg-background/50 p-4 sm:p-5">
-                  <div className="space-y-4">
-                    <div className="space-y-1">
-                      <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                        Controles do extrato
-                      </p>
-                      <h3 className="text-lg font-semibold text-foreground">
-                        Refine sua visualização antes de analisar a lista
-                      </h3>
-                    </div>
-
-                    <TransactionFilterTabs
-                      value={transactionFilter}
-                      onChange={setTransactionFilter}
-                    />
-
-                    <TransactionAdvancedFilters
-                      searchValue={searchTerm}
-                      onSearchChange={setSearchTerm}
-                      categoryValue={categoryFilter}
-                      onCategoryChange={setCategoryFilter}
-                      sortValue={sortOption}
-                      onSortChange={setSortOption}
-                      resultCount={filteredTransactions.length}
-                      totalCount={statementTransactions.length}
-                      hasActiveFilters={
-                        transactionFilter !== "all" || hasActiveAdvancedFilters
-                      }
-                      onClearFilters={handleClearAdvancedFilters}
-                    />
-                  </div>
-                </div>
-
-                <div className="rounded-[1.5rem] border border-border/70 bg-background/35 p-3 sm:p-4">
-                  <TransactionList
-                    transactions={filteredTransactions}
-                    onEditTransaction={handleOpenEditModal}
-                    onRemoveTransaction={handleRemoveTransaction}
-                    getNextRecurringOccurrence={getNextRecurringOccurrence}
-                    emptyStateTitle={emptyStateTitle}
-                    emptyStateDescription={emptyStateDescription}
-                  />
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <section className="rounded-[2rem] border border-border/70 bg-card/70 p-5 shadow-sm sm:p-6 lg:p-7">
-            <div className="space-y-6">
-              <div className="flex flex-col gap-5 border-b border-border/60 pb-6 lg:flex-row lg:items-end lg:justify-between">
-                <div className="space-y-2">
-                  <p className="text-sm font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                    Metas
-                  </p>
-                  <h2 className="text-2xl font-semibold tracking-tight text-foreground">
-                    Planejamento financeiro local
-                  </h2>
-                  <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-                    Cadastre objetivos, acompanhe o progresso manualmente e visualize
-                    quanto ainda falta para concluir cada meta.
-                  </p>
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-3">
-                  <div className="rounded-2xl border border-border/70 bg-background/70 px-4 py-3">
-                    <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                      Metas ativas
-                    </p>
-                    <p className="mt-1 text-2xl font-semibold text-foreground">
-                      {goals.length}
-                    </p>
-                  </div>
-
-                  <div className="rounded-2xl border border-border/70 bg-background/70 px-4 py-3">
-                    <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                      Acumulado
-                    </p>
-                    <p className="mt-1 text-xl font-semibold text-foreground">
-                      {currencyFormatter.format(totalGoalProgress)}
-                    </p>
-                  </div>
-
-                  <div className="rounded-2xl border border-border/70 bg-background/70 px-4 py-3">
-                    <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                      Restante
-                    </p>
-                    <p className="mt-1 text-xl font-semibold text-foreground">
-                      {currencyFormatter.format(remainingGoalAmount)}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid gap-6 2xl:grid-cols-[minmax(320px,360px)_minmax(0,1fr)] 2xl:items-start">
-                <aside className="min-w-0 2xl:sticky 2xl:top-6">
-                  <GoalForm onAddGoal={addGoal} />
-                </aside>
-
-                <div className="min-w-0 space-y-5">
-                  <GoalList
-                    goals={goals}
-                    onUpdateProgress={setSelectedGoal}
-                    onRemoveGoal={removeGoal}
-                  />
-                </div>
-              </div>
-            </div>
-          </section>
+          <DashboardShell
+            activeView={activeView}
+            homeView={homeView}
+            transactionsView={transactionsView}
+            goalsView={goalsView}
+            insightsView={insightsView}
+          />
         </div>
       </PageContainer>
 

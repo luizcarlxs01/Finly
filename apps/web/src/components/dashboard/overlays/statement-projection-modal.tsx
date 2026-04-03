@@ -1,0 +1,182 @@
+"use client";
+
+import { useState } from "react";
+import { BarChart3, ReceiptText, X } from "lucide-react";
+
+import { FinancialForecastCard } from "@/components/dashboard/financial-forecast-card";
+import {
+  TransactionAdvancedFilters,
+  type TransactionSortOption,
+} from "@/components/dashboard/transaction-advanced-filters";
+import { TransactionFilterTabs } from "@/components/dashboard/transaction-filter-tabs";
+import { TransactionList } from "@/components/dashboard/transaction-list";
+import { Button } from "@/components/ui/button";
+import type { Transaction, TransactionFilter } from "@/types/finance";
+
+type StatementProjectionModalProps = {
+  open: boolean;
+  onClose: () => void;
+  transactionFilter: TransactionFilter;
+  onTransactionFilterChange: (filter: TransactionFilter) => void;
+  searchTerm: string;
+  onSearchTermChange: (value: string) => void;
+  categoryFilter: string;
+  onCategoryFilterChange: (value: string) => void;
+  sortOption: TransactionSortOption;
+  onSortOptionChange: (value: TransactionSortOption) => void;
+  filteredTransactions: Transaction[];
+  statementTransactions: Transaction[];
+  hasActiveAdvancedFilters: boolean;
+  onClearAdvancedFilters: () => void;
+  onEditTransaction: (transaction: Transaction) => void;
+  onRemoveTransaction: (id: string) => void;
+  getNextRecurringOccurrence: (transaction: Transaction) => string | null;
+  emptyStateTitle: string;
+  emptyStateDescription: string;
+  forecastTotalIncome: number;
+  forecastTotalExpense: number;
+  forecastProjectedBalance: number;
+};
+
+type StatementProjectionViewMode = "statement" | "projection";
+
+export function StatementProjectionModal({
+  open,
+  onClose,
+  transactionFilter,
+  onTransactionFilterChange,
+  searchTerm,
+  onSearchTermChange,
+  categoryFilter,
+  onCategoryFilterChange,
+  sortOption,
+  onSortOptionChange,
+  filteredTransactions,
+  statementTransactions,
+  hasActiveAdvancedFilters,
+  onClearAdvancedFilters,
+  onEditTransaction,
+  onRemoveTransaction,
+  getNextRecurringOccurrence,
+  emptyStateTitle,
+  emptyStateDescription,
+  forecastTotalIncome,
+  forecastTotalExpense,
+  forecastProjectedBalance,
+}: StatementProjectionModalProps) {
+  const [activeMode, setActiveMode] =
+    useState<StatementProjectionViewMode>("statement");
+
+  if (!open) {
+    return null;
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/45 px-4 py-6 backdrop-blur-sm sm:px-6 lg:px-8">
+      <div className="flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-[2rem] border border-border/70 bg-background shadow-2xl">
+        <div className="flex flex-col gap-4 border-b border-border/60 px-5 py-5 sm:px-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-2">
+            <p className="text-sm font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              Lançamentos
+            </p>
+            <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+              Extrato e projeção
+            </h2>
+            <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+              Alterne entre o histórico das transações e a visão projetada sem
+              sair da tela principal de lançamentos.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant={activeMode === "statement" ? "default" : "outline"}
+              className="rounded-2xl"
+              onClick={() => setActiveMode("statement")}
+            >
+              <ReceiptText className="size-4" />
+              Extrato
+            </Button>
+
+            <Button
+              type="button"
+              variant={activeMode === "projection" ? "default" : "outline"}
+              className="rounded-2xl"
+              onClick={() => setActiveMode("projection")}
+            >
+              <BarChart3 className="size-4" />
+              Projeção
+            </Button>
+
+            <Button
+              type="button"
+              variant="ghost"
+              className="rounded-2xl"
+              onClick={onClose}
+            >
+              <X className="size-4" />
+              Fechar
+            </Button>
+          </div>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
+          {activeMode === "statement" ? (
+            <div className="space-y-5">
+              <div className="rounded-[1.5rem] border border-border/70 bg-card/70 p-4 sm:p-5">
+                <div className="space-y-4">
+                  <div className="space-y-1">
+                    <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                      Controles do extrato
+                    </p>
+                    <h3 className="text-lg font-semibold text-foreground">
+                      Refine sua visualização antes de analisar a lista
+                    </h3>
+                  </div>
+
+                  <TransactionFilterTabs
+                    value={transactionFilter}
+                    onChange={onTransactionFilterChange}
+                  />
+
+                  <TransactionAdvancedFilters
+                    searchValue={searchTerm}
+                    onSearchChange={onSearchTermChange}
+                    categoryValue={categoryFilter}
+                    onCategoryChange={onCategoryFilterChange}
+                    sortValue={sortOption}
+                    onSortChange={onSortOptionChange}
+                    resultCount={filteredTransactions.length}
+                    totalCount={statementTransactions.length}
+                    hasActiveFilters={
+                      transactionFilter !== "all" || hasActiveAdvancedFilters
+                    }
+                    onClearFilters={onClearAdvancedFilters}
+                  />
+                </div>
+              </div>
+
+              <div className="rounded-[1.5rem] border border-border/70 bg-background/35 p-3 sm:p-4">
+                <TransactionList
+                  transactions={filteredTransactions}
+                  onEditTransaction={onEditTransaction}
+                  onRemoveTransaction={onRemoveTransaction}
+                  getNextRecurringOccurrence={getNextRecurringOccurrence}
+                  emptyStateTitle={emptyStateTitle}
+                  emptyStateDescription={emptyStateDescription}
+                />
+              </div>
+            </div>
+          ) : (
+            <FinancialForecastCard
+              totalIncome={forecastTotalIncome}
+              totalExpense={forecastTotalExpense}
+              projectedBalance={forecastProjectedBalance}
+            />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
