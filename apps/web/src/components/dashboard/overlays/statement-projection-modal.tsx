@@ -75,16 +75,12 @@ export function StatementProjectionModal({
     <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/45 px-4 py-6 backdrop-blur-sm sm:px-6 lg:px-8">
       <div className="flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-[2rem] border border-border/70 bg-background shadow-2xl">
         <div className="flex flex-col gap-4 border-b border-border/60 px-5 py-5 sm:px-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-2">
-            <p className="text-sm font-medium uppercase tracking-[0.18em] text-muted-foreground">
-              Lançamentos
-            </p>
+          <div className="space-y-1">
             <h2 className="text-2xl font-semibold tracking-tight text-foreground">
-              Extrato e projeção
+              Extrato
             </h2>
             <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-              Alterne entre o histórico das transações e a visão projetada sem
-              sair da tela principal de lançamentos.
+              Veja seu histórico e acompanhe os próximos movimentos.
             </p>
           </div>
 
@@ -96,7 +92,7 @@ export function StatementProjectionModal({
               onClick={() => setActiveMode("statement")}
             >
               <ReceiptText className="size-4" />
-              Extrato
+              Histórico
             </Button>
 
             <Button
@@ -106,7 +102,7 @@ export function StatementProjectionModal({
               onClick={() => setActiveMode("projection")}
             >
               <BarChart3 className="size-4" />
-              Projeção
+              Previsão
             </Button>
 
             <Button
@@ -123,17 +119,12 @@ export function StatementProjectionModal({
 
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
           {activeMode === "statement" ? (
-            <div className="space-y-5">
-              <div className="rounded-[1.5rem] border border-border/70 bg-card/70 p-4 sm:p-5">
-                <div className="space-y-4">
-                  <div className="space-y-1">
-                    <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                      Controles do extrato
-                    </p>
-                    <h3 className="text-lg font-semibold text-foreground">
-                      Refine sua visualização antes de analisar a lista
-                    </h3>
-                  </div>
+            <div className="space-y-4">
+              <div className="rounded-[1.5rem] border border-border/60 bg-card/70 p-4 sm:p-5">
+                <div className="space-y-3">
+                  <h3 className="text-base font-semibold text-foreground">
+                    Histórico
+                  </h3>
 
                   <TransactionFilterTabs
                     value={transactionFilter}
@@ -157,7 +148,7 @@ export function StatementProjectionModal({
                 </div>
               </div>
 
-              <div className="rounded-[1.5rem] border border-border/70 bg-background/35 p-3 sm:p-4">
+              <div className="rounded-[1.5rem] border border-border/60 bg-background/35 p-3 sm:p-4">
                 <TransactionList
                   transactions={filteredTransactions}
                   onEditTransaction={onEditTransaction}

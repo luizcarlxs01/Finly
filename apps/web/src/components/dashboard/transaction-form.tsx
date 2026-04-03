@@ -38,6 +38,7 @@ type TransactionFormProps = {
   onPreviewTransaction: (input: LocalFinanceTransactionInput) => void;
   onClearPreview: () => void;
   isPreviewActive: boolean;
+  showPreviewNotice?: boolean;
 };
 
 const inputClassName =
@@ -50,6 +51,7 @@ export function TransactionForm({
   onPreviewTransaction,
   onClearPreview,
   isPreviewActive,
+  showPreviewNotice = true,
 }: TransactionFormProps) {
   const [balanceInput, setBalanceInput] = useState(String(initialBalance));
   const [title, setTitle] = useState("");
@@ -224,29 +226,25 @@ export function TransactionForm({
   }
 
   return (
-    <div className="space-y-6">
-      <Card className="rounded-[1.75rem] border-border/70 bg-card/95 shadow-sm">
-        <CardHeader className="space-y-2 pb-4">
-          <p className="text-sm font-medium uppercase tracking-[0.18em] text-muted-foreground">
-            Base financeira
-          </p>
-          <CardTitle className="text-2xl font-semibold tracking-tight">
+    <div className="space-y-5">
+      <Card className="rounded-[1.5rem] border-border/60 bg-card/95 shadow-sm">
+        <CardHeader className="space-y-1 pb-3">
+          <CardTitle className="text-xl font-semibold tracking-tight">
             Saldo inicial
           </CardTitle>
-          <p className="text-sm leading-6 text-muted-foreground">
-            Defina o ponto de partida para a leitura correta da sua situação
-            financeira.
+          <p className="text-sm text-muted-foreground">
+            Defina o valor de partida da sua visão financeira.
           </p>
         </CardHeader>
 
-        <CardContent className="space-y-4">
-          <div className="rounded-2xl border border-border/60 bg-background/60 p-4">
+        <CardContent className="space-y-3">
+          <div className="rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
             <div className="space-y-2">
               <label
                 htmlFor="initial-balance"
                 className="text-sm font-medium text-foreground"
               >
-                Informe seu saldo atual
+                Saldo atual
               </label>
 
               <input
@@ -261,38 +259,34 @@ export function TransactionForm({
             </div>
           </div>
 
-          <Button onClick={handleSaveInitialBalance} className="h-11 w-full rounded-2xl">
+          <Button
+            onClick={handleSaveInitialBalance}
+            className="h-11 w-full rounded-2xl"
+          >
             Salvar saldo inicial
           </Button>
         </CardContent>
       </Card>
 
-      <Card className="rounded-[1.75rem] border-border/70 bg-card/95 shadow-sm">
-        <CardHeader className="space-y-2 pb-4">
-          <p className="text-sm font-medium uppercase tracking-[0.18em] text-muted-foreground">
+      <Card className="rounded-[1.5rem] border-border/60 bg-card/95 shadow-sm">
+        <CardHeader className="space-y-1 pb-4">
+          <CardTitle className="text-xl font-semibold tracking-tight">
             Novo lançamento
-          </p>
-          <CardTitle className="text-2xl font-semibold tracking-tight">
-            Registrar transação
           </CardTitle>
-          <p className="text-sm leading-6 text-muted-foreground">
-            Escolha o tipo de lançamento e preencha apenas o necessário para
-            manter sua agenda financeira mais clara.
+          <p className="text-sm text-muted-foreground">
+            Preencha só o necessário para registrar sua movimentação.
           </p>
         </CardHeader>
 
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-5">
-            <section className="space-y-3 rounded-[1.5rem] border border-border/60 bg-background/60 p-4">
+            <section className="space-y-3 rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
               <div className="space-y-1">
-                <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                  Etapa 1
-                </p>
                 <h3 className="text-base font-semibold text-foreground">
-                  Tipo do lançamento
+                  Como esse lançamento funciona
                 </h3>
-                <p className="text-sm leading-6 text-muted-foreground">
-                  Defina se este item será único, parcelado ou recorrente.
+                <p className="text-sm text-muted-foreground">
+                  Escolha se ele é único, parcelado ou recorrente.
                 </p>
               </div>
 
@@ -303,7 +297,7 @@ export function TransactionForm({
                   className={`rounded-[1.25rem] border px-4 py-4 text-left transition ${
                     transactionKind === "single"
                       ? "border-primary bg-primary/10"
-                      : "border-border/70 bg-card/80 hover:border-border"
+                      : "border-border/60 bg-card/75 hover:border-border"
                   }`}
                 >
                   <div className="flex items-start gap-3">
@@ -311,9 +305,11 @@ export function TransactionForm({
                       <CircleDollarSign className="size-5" />
                     </span>
                     <div>
-                      <p className="text-sm font-semibold text-foreground">Único</p>
+                      <p className="text-sm font-semibold text-foreground">
+                        Único
+                      </p>
                       <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                        Lançamento pontual com uma data específica.
+                        Para um lançamento em uma data específica.
                       </p>
                     </div>
                   </div>
@@ -325,7 +321,7 @@ export function TransactionForm({
                   className={`rounded-[1.25rem] border px-4 py-4 text-left transition ${
                     transactionKind === "installment-template"
                       ? "border-primary bg-primary/10"
-                      : "border-border/70 bg-card/80 hover:border-border"
+                      : "border-border/60 bg-card/75 hover:border-border"
                   }`}
                 >
                   <div className="flex items-start gap-3">
@@ -337,7 +333,7 @@ export function TransactionForm({
                         Parcelado
                       </p>
                       <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                        Gera parcelas mensais futuras a partir da primeira data.
+                        Para dividir o valor em parcelas mensais.
                       </p>
                     </div>
                   </div>
@@ -349,7 +345,7 @@ export function TransactionForm({
                   className={`rounded-[1.25rem] border px-4 py-4 text-left transition ${
                     transactionKind === "recurring-template"
                       ? "border-primary bg-primary/10"
-                      : "border-border/70 bg-card/80 hover:border-border"
+                      : "border-border/60 bg-card/75 hover:border-border"
                   }`}
                 >
                   <div className="flex items-start gap-3">
@@ -361,7 +357,7 @@ export function TransactionForm({
                         Recorrente
                       </p>
                       <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                        Repete mensalmente com duração definida ou indefinida.
+                        Para algo que se repete mês a mês.
                       </p>
                     </div>
                   </div>
@@ -369,16 +365,13 @@ export function TransactionForm({
               </div>
             </section>
 
-            <section className="space-y-4 rounded-[1.5rem] border border-border/60 bg-background/60 p-4">
+            <section className="space-y-4 rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
               <div className="space-y-1">
-                <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                  Etapa 2
-                </p>
                 <h3 className="text-base font-semibold text-foreground">
-                  Dados principais
+                  Informações principais
                 </h3>
-                <p className="text-sm leading-6 text-muted-foreground">
-                  Preencha as informações básicas para identificar a movimentação.
+                <p className="text-sm text-muted-foreground">
+                  Preencha os dados para identificar esse lançamento.
                 </p>
               </div>
 
@@ -425,7 +418,7 @@ export function TransactionForm({
                     htmlFor="transaction-type"
                     className="text-sm font-medium text-foreground"
                   >
-                    Tipo
+                    Entrada ou saída
                   </label>
 
                   <select
@@ -467,11 +460,8 @@ export function TransactionForm({
             </section>
 
             {transactionKind === "single" ? (
-              <section className="space-y-3 rounded-[1.5rem] border border-border/60 bg-background/60 p-4">
+              <section className="space-y-3 rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
                 <div className="space-y-1">
-                  <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                    Etapa 3
-                  </p>
                   <h3 className="text-base font-semibold text-foreground">
                     Data do lançamento
                   </h3>
@@ -500,17 +490,13 @@ export function TransactionForm({
             ) : null}
 
             {transactionKind === "installment-template" ? (
-              <section className="space-y-4 rounded-[1.5rem] border border-border/60 bg-background/60 p-4">
+              <section className="space-y-4 rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
                 <div className="space-y-1">
-                  <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                    Etapa 3
-                  </p>
                   <h3 className="text-base font-semibold text-foreground">
                     Parcelamento
                   </h3>
-                  <p className="text-sm leading-6 text-muted-foreground">
-                    O Finly vai gerar automaticamente as próximas parcelas mês a
-                    mês a partir da primeira data informada.
+                  <p className="text-sm text-muted-foreground">
+                    Escolha a quantidade de parcelas e a data da primeira.
                   </p>
                 </div>
 
@@ -541,7 +527,7 @@ export function TransactionForm({
                       htmlFor="transaction-installment-start-date"
                       className="text-sm font-medium text-foreground"
                     >
-                      Data da primeira parcela
+                      Primeira parcela
                     </label>
 
                     <div className="relative">
@@ -563,17 +549,13 @@ export function TransactionForm({
             ) : null}
 
             {transactionKind === "recurring-template" ? (
-              <section className="space-y-4 rounded-[1.5rem] border border-border/60 bg-background/60 p-4">
+              <section className="space-y-4 rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
                 <div className="space-y-1">
-                  <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                    Etapa 3
-                  </p>
                   <h3 className="text-base font-semibold text-foreground">
                     Recorrência
                   </h3>
-                  <p className="text-sm leading-6 text-muted-foreground">
-                    Configure a recorrência mensal e escolha se ela segue sem
-                    fim, até uma data ou por uma quantidade de meses.
+                  <p className="text-sm text-muted-foreground">
+                    Defina quando esse lançamento se repete e por quanto tempo.
                   </p>
                 </div>
 
@@ -627,7 +609,7 @@ export function TransactionForm({
                     htmlFor="transaction-recurrence-mode"
                     className="text-sm font-medium text-foreground"
                   >
-                    Modo da recorrência
+                    Até quando repetir
                   </label>
 
                   <select
@@ -696,22 +678,19 @@ export function TransactionForm({
               </section>
             ) : null}
 
-            <section className="space-y-3 rounded-[1.5rem] border border-border/60 bg-background/60 p-4">
+            <section className="space-y-3 rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
               <div className="space-y-1">
-                <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                  Etapa final
-                </p>
                 <h3 className="text-base font-semibold text-foreground">
-                  Revisar e agir
+                  Confirmar
                 </h3>
-                <p className="text-sm leading-6 text-muted-foreground">
-                  Você pode salvar diretamente ou simular o impacto antes de decidir.
+                <p className="text-sm text-muted-foreground">
+                  Você pode salvar direto ou simular antes.
                 </p>
               </div>
 
               <div className="space-y-3">
                 <Button type="submit" className="h-11 w-full rounded-2xl">
-                  Adicionar transação
+                  Adicionar lançamento
                 </Button>
 
                 <Button
@@ -725,19 +704,18 @@ export function TransactionForm({
                 </Button>
               </div>
 
-              {isPreviewActive ? (
-                <div className="rounded-2xl border border-amber-200 bg-amber-50/80 p-4">
+              {showPreviewNotice && isPreviewActive ? (
+                <div className="rounded-[1.25rem] border border-amber-200 bg-amber-50/75 p-4">
                   <p className="text-sm font-medium text-foreground">
-                    Simulação ativa na projeção
+                    Simulação ativa
                   </p>
-                  <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                    A previsão mensal e os próximos lançamentos estão exibindo o
-                    impacto desse item sem salvar nada.
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    A previsão já está mostrando esse impacto sem salvar nada.
                   </p>
                   <Button
                     type="button"
                     variant="ghost"
-                    className="mt-3 h-10 rounded-xl px-0 text-amber-900 hover:bg-transparent"
+                    className="mt-2 h-10 rounded-xl px-0 text-amber-900 hover:bg-transparent"
                     onClick={onClearPreview}
                   >
                     Limpar simulação
