@@ -4,8 +4,6 @@ export type DashboardHomeViewProps = {
   onGoToTransactions: () => void;
 };
 
-export function DashboardHomeView({
-  onGoToTransactions: _onGoToTransactions,
-}: DashboardHomeViewProps) {
+export function DashboardHomeView({}: DashboardHomeViewProps) {
   return <DashboardEntryHeader />;
 }

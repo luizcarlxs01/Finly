@@ -690,7 +690,7 @@ export function TransactionForm({
 
               <div className="space-y-3">
                 <Button type="submit" className="h-11 w-full rounded-2xl">
-                  Adicionar lançamento
+                  Salvar lançamento
                 </Button>
 
                 <Button

@@ -270,9 +270,9 @@ export function TransactionEditModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 py-6">
-      <div className="w-full max-w-2xl rounded-[1.75rem] border border-border/70 bg-card shadow-2xl">
-        <div className="flex items-start justify-between border-b border-border/60 px-6 py-5">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 p-0 sm:items-center sm:px-4 sm:py-6">
+      <div className="w-full max-h-[min(100dvh-0.5rem,96vh)] overflow-hidden rounded-t-[1.75rem] border border-border/70 bg-card shadow-2xl sm:max-h-[92vh] sm:max-w-2xl sm:rounded-[1.75rem]">
+        <div className="flex items-start justify-between border-b border-border/60 px-4 py-4 sm:px-6 sm:py-5">
           <div className="space-y-2">
             <p className="text-sm font-medium uppercase tracking-[0.18em] text-muted-foreground">
               Editar lançamento
@@ -296,7 +296,10 @@ export function TransactionEditModal({
           </Button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5 px-6 py-6">
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-5 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6"
+        >
           {!isGeneratedInstance ? (
             <div className="space-y-3 rounded-2xl border border-border/60 bg-background/60 p-4">
               <div className="space-y-1">

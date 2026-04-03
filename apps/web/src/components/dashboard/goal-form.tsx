@@ -67,32 +67,25 @@ export function GoalForm({ onAddGoal }: GoalFormProps) {
   }
 
   return (
-    <Card className="rounded-[1.75rem] border-border/70 bg-card/95 shadow-sm">
-      <CardHeader className="space-y-2 pb-4">
-        <p className="text-sm font-medium uppercase tracking-[0.18em] text-muted-foreground">
+    <Card className="rounded-[1.5rem] border-border/60 bg-card/95 shadow-sm">
+      <CardHeader className="space-y-1 pb-4">
+        <CardTitle className="text-xl font-semibold tracking-tight">
           Nova meta
-        </p>
-        <CardTitle className="text-2xl font-semibold tracking-tight">
-          Criar meta financeira
         </CardTitle>
-        <p className="text-sm leading-6 text-muted-foreground">
-          Defina um objetivo local para acompanhar aportes manuais e evolução do
-          seu planejamento financeiro.
+        <p className="text-sm text-muted-foreground">
+          Crie um objetivo para acompanhar sua evolução.
         </p>
       </CardHeader>
 
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-5">
-          <section className="space-y-4 rounded-[1.5rem] border border-border/60 bg-background/60 p-4">
+          <section className="space-y-4 rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
             <div className="space-y-1">
-              <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                Etapa 1
-              </p>
               <h3 className="text-base font-semibold text-foreground">
-                Identificação da meta
+                Sua meta
               </h3>
-              <p className="text-sm leading-6 text-muted-foreground">
-                Dê um nome claro para o objetivo que você quer acompanhar.
+              <p className="text-sm text-muted-foreground">
+                Escolha um nome claro para o seu objetivo.
               </p>
             </div>
 
@@ -101,7 +94,7 @@ export function GoalForm({ onAddGoal }: GoalFormProps) {
                 htmlFor="goal-title"
                 className="text-sm font-medium text-foreground"
               >
-                Título da meta
+                Título
               </label>
 
               <div className="relative">
@@ -118,16 +111,13 @@ export function GoalForm({ onAddGoal }: GoalFormProps) {
             </div>
           </section>
 
-          <section className="space-y-4 rounded-[1.5rem] border border-border/60 bg-background/60 p-4">
+          <section className="space-y-4 rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
             <div className="space-y-1">
-              <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                Etapa 2
-              </p>
               <h3 className="text-base font-semibold text-foreground">
-                Valores da meta
+                Valores
               </h3>
-              <p className="text-sm leading-6 text-muted-foreground">
-                Informe quanto você quer atingir e, se quiser, quanto já acumulou.
+              <p className="text-sm text-muted-foreground">
+                Informe quanto quer alcançar e quanto já juntou.
               </p>
             </div>
 
@@ -178,16 +168,13 @@ export function GoalForm({ onAddGoal }: GoalFormProps) {
             </div>
           </section>
 
-          <section className="space-y-4 rounded-[1.5rem] border border-border/60 bg-background/60 p-4">
+          <section className="space-y-4 rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
             <div className="space-y-1">
-              <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                Etapa 3
-              </p>
               <h3 className="text-base font-semibold text-foreground">
-                Contexto da meta
+                Categoria e prazo
               </h3>
-              <p className="text-sm leading-6 text-muted-foreground">
-                Relacione a meta a uma categoria e, se quiser, defina um prazo.
+              <p className="text-sm text-muted-foreground">
+                Se quiser, escolha uma categoria e defina uma data.
               </p>
             </div>
 
@@ -238,21 +225,18 @@ export function GoalForm({ onAddGoal }: GoalFormProps) {
             </div>
           </section>
 
-          <section className="space-y-3 rounded-[1.5rem] border border-border/60 bg-background/60 p-4">
+          <section className="space-y-3 rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
             <div className="space-y-1">
-              <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                Etapa final
-              </p>
               <h3 className="text-base font-semibold text-foreground">
                 Salvar meta
               </h3>
-              <p className="text-sm leading-6 text-muted-foreground">
-                Depois de salvar, você poderá atualizar o progresso manualmente.
+              <p className="text-sm text-muted-foreground">
+                Depois você pode atualizar o progresso quando quiser.
               </p>
             </div>
 
             <Button type="submit" className="h-11 w-full rounded-2xl">
-              Adicionar meta
+              Salvar meta
             </Button>
           </section>
         </form>

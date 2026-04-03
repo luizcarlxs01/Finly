@@ -198,7 +198,7 @@ export function DashboardTransactionsView({
                         <p className="text-sm font-medium text-foreground">
                           {isPreviewActive
                             ? "Simulação ativa"
-                            : "Faça uma simulação"}
+                            : "Simule antes de salvar"}
                         </p>
                         <p className="mt-1 text-sm text-muted-foreground">
                           {isPreviewActive

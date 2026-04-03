@@ -72,18 +72,15 @@ export function GoalProgressModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 py-6">
-      <div className="w-full max-w-lg rounded-[1.75rem] border border-border/70 bg-card shadow-2xl">
-        <div className="flex items-start justify-between border-b border-border/60 px-6 py-5">
-          <div className="space-y-2">
-            <p className="text-sm font-medium uppercase tracking-[0.18em] text-muted-foreground">
-              Progresso da meta
-            </p>
-            <h3 className="text-2xl font-semibold tracking-tight text-foreground">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 p-0 sm:items-center sm:px-4 sm:py-6">
+      <div className="w-full max-h-[min(100dvh-0.5rem,96vh)] overflow-hidden rounded-t-[1.75rem] border border-border/70 bg-card shadow-2xl sm:max-h-[92vh] sm:max-w-lg sm:rounded-[1.75rem]">
+        <div className="flex items-start justify-between border-b border-border/60 px-4 py-4 sm:px-6 sm:py-5">
+          <div className="space-y-1">
+            <h3 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
               Atualizar progresso
             </h3>
             <p className="text-sm leading-6 text-muted-foreground">
-              Ajuste manualmente o valor acumulado da meta selecionada.
+              Ajuste o valor que você já guardou nessa meta.
             </p>
           </div>
 
@@ -97,8 +94,11 @@ export function GoalProgressModal({
           </Button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5 px-6 py-6">
-          <div className="rounded-2xl border border-border/70 bg-background/70 p-4">
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-5 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6"
+        >
+          <div className="rounded-[1.25rem] border border-border/60 bg-background/60 p-4">
             <p className="text-sm text-muted-foreground">Meta</p>
             <p className="mt-1 text-lg font-semibold text-foreground">
               {goal.title}
@@ -135,7 +135,7 @@ export function GoalProgressModal({
             </Button>
 
             <Button type="submit" className="rounded-xl">
-              Salvar progresso
+              Salvar
             </Button>
           </div>
         </form>

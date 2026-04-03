@@ -2,36 +2,35 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const futureFeatures = [
-  "Conta para acessar seus dados com mais segurança e continuidade",
+  "Conta para acessar seus dados com mais continuidade",
   "Sincronização entre dispositivos",
-  "Recorrência para lançamentos frequentes",
-  "Múltiplos perfis para diferentes contextos financeiros",
+  "Mais flexibilidade para lançamentos recorrentes",
+  "Perfis para diferentes contextos financeiros",
 ];
 
 export function OnboardingFuture() {
   return (
-    <Card className="rounded-[2rem] border-border/70 bg-card/95 shadow-sm">
-      <CardHeader className="space-y-4 border-b border-border/60 pb-6">
+    <Card className="rounded-[1.75rem] border-border/60 bg-card/95 shadow-sm">
+      <CardHeader className="space-y-3 border-b border-border/60 pb-5">
         <Badge className="w-fit bg-accent text-accent-foreground hover:bg-accent/90">
-          Em breve
+          Em evolução
         </Badge>
 
-        <div className="space-y-2">
-          <CardTitle className="text-2xl font-semibold tracking-tight text-foreground">
-            O Finly está evoluindo para uma experiência mais completa
+        <div className="space-y-1">
+          <CardTitle className="text-xl font-semibold tracking-tight text-foreground">
+            O Finly ainda pode crescer com você
           </CardTitle>
           <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-            O modo local já resolve o começo. As próximas etapas vão ampliar
-            continuidade, conveniência e personalização.
+            A base já está pronta, e a experiência ainda pode ganhar mais continuidade com o tempo.
           </p>
         </div>
       </CardHeader>
 
-      <CardContent className="grid gap-3 p-6">
+      <CardContent className="grid gap-3 p-5">
         {futureFeatures.map((feature) => (
           <div
             key={feature}
-            className="rounded-2xl border border-dashed border-border/80 bg-background/60 px-4 py-3"
+            className="rounded-[1.25rem] border border-dashed border-border/70 bg-background/55 px-4 py-3"
           >
             <p className="text-sm leading-6 text-foreground/85">{feature}</p>
           </div>

@@ -1,5 +1,3 @@
-import { Lightbulb, Sparkles } from "lucide-react";
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type {
   DashboardInsight,
@@ -18,78 +16,52 @@ const toneClasses: Record<
   }
 > = {
   neutral: {
-    container: "border-border/70 bg-background/70",
+    container: "border-border/60 bg-background/65",
     badge: "bg-muted text-muted-foreground",
   },
   positive: {
-    container: "border-green-200 bg-green-50/60",
+    container: "border-green-200 bg-green-50/55",
     badge: "bg-green-100 text-green-800",
   },
   warning: {
-    container: "border-amber-200 bg-amber-50/70",
+    container: "border-amber-200 bg-amber-50/65",
     badge: "bg-amber-100 text-amber-900",
   },
 };
 
 function getToneLabel(tone: DashboardInsightTone) {
   if (tone === "positive") {
-    return "Positivo";
+    return "Bom sinal";
   }
 
   if (tone === "warning") {
-    return "Atenção";
+    return "Vale atenção";
   }
 
-  return "Neutro";
+  return "No radar";
 }
 
 export function DashboardInsights({ insights }: DashboardInsightsProps) {
   return (
-    <Card className="overflow-hidden rounded-[2rem] border-border/70 bg-card/95 shadow-sm">
-      <CardHeader className="space-y-3 border-b border-border/60 pb-6">
-        <div className="inline-flex w-fit items-center gap-2 rounded-full border border-border/70 bg-background/80 px-3 py-1.5 text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-          <Sparkles className="size-3.5" />
-          Insights
-        </div>
-
-        <div className="space-y-2">
-          <CardTitle className="text-2xl font-semibold tracking-tight">
-            Leitura automática da sua dashboard
-          </CardTitle>
-          <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-            Observações simples e objetivas com base nas movimentações e metas já
-            registradas localmente.
-          </p>
-        </div>
+    <Card className="overflow-hidden rounded-[1.75rem] border-border/60 bg-card/95 shadow-sm">
+      <CardHeader className="space-y-1 pb-4">
+        <CardTitle className="text-xl font-semibold tracking-tight">
+          Leituras rápidas
+        </CardTitle>
+        <p className="text-sm text-muted-foreground">
+          Sinais simples para te ajudar a entender o momento atual.
+        </p>
       </CardHeader>
 
-      <CardContent className="space-y-4 p-6">
-        <div className="rounded-[1.5rem] border border-border/70 bg-background/60 p-4">
-          <div className="flex items-start gap-3">
-            <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-              <Lightbulb className="size-4.5" />
-            </span>
-
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-foreground">
-                O que este bloco mostra
-              </p>
-              <p className="text-sm leading-6 text-muted-foreground">
-                Pequenas leituras automáticas para ajudar você a perceber padrões,
-                riscos e pontos positivos sem precisar interpretar tudo sozinho.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+      <CardContent className="p-5 pt-0">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
           {insights.map((insight) => {
             const toneClass = toneClasses[insight.tone];
 
             return (
               <article
                 key={insight.id}
-                className={`rounded-[1.5rem] border p-5 ${toneClass.container}`}
+                className={`rounded-[1.25rem] border p-4 ${toneClass.container}`}
               >
                 <div className="space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-3">
@@ -98,7 +70,7 @@ export function DashboardInsights({ insights }: DashboardInsightsProps) {
                     </h3>
 
                     <span
-                      className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${toneClass.badge}`}
+                      className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-medium ${toneClass.badge}`}
                     >
                       {getToneLabel(insight.tone)}
                     </span>

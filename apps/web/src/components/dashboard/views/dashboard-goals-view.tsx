@@ -34,42 +34,32 @@ export function DashboardGoalsView({
       <div className="space-y-6">
         <div className="flex flex-col gap-5 border-b border-border/60 pb-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-2">
-            <p className="text-sm font-medium uppercase tracking-[0.18em] text-muted-foreground">
-              Metas
-            </p>
             <h2 className="text-2xl font-semibold tracking-tight text-foreground">
-              Planejamento financeiro local
+              Metas
             </h2>
             <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-              Cadastre objetivos, acompanhe o progresso manualmente e visualize
-              quanto ainda falta para concluir cada meta.
+              Organize seus objetivos e acompanhe o quanto falta para chegar lá.
             </p>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-2xl border border-border/70 bg-background/70 px-4 py-3">
-              <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                Metas ativas
-              </p>
-              <p className="mt-1 text-2xl font-semibold text-foreground">
+            <div className="rounded-[1.25rem] border border-border/60 bg-background/60 px-4 py-3">
+              <p className="text-xs text-muted-foreground">Metas ativas</p>
+              <p className="mt-1 text-xl font-semibold text-foreground">
                 {goals.length}
               </p>
             </div>
 
-            <div className="rounded-2xl border border-border/70 bg-background/70 px-4 py-3">
-              <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                Acumulado
-              </p>
-              <p className="mt-1 text-xl font-semibold text-foreground">
+            <div className="rounded-[1.25rem] border border-border/60 bg-background/60 px-4 py-3">
+              <p className="text-xs text-muted-foreground">Acumulado</p>
+              <p className="mt-1 text-lg font-semibold text-foreground">
                 {currencyFormatter.format(totalGoalProgress)}
               </p>
             </div>
 
-            <div className="rounded-2xl border border-border/70 bg-background/70 px-4 py-3">
-              <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                Restante
-              </p>
-              <p className="mt-1 text-xl font-semibold text-foreground">
+            <div className="rounded-[1.25rem] border border-border/60 bg-background/60 px-4 py-3">
+              <p className="text-xs text-muted-foreground">Falta</p>
+              <p className="mt-1 text-lg font-semibold text-foreground">
                 {currencyFormatter.format(remainingGoalAmount)}
               </p>
             </div>
