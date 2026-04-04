@@ -102,6 +102,24 @@ function buildStatementTransactions(
   return Array.from(uniqueById.values());
 }
 
+function getBalanceFromTransactions(
+  initialBalance: number,
+  transactions: Transaction[],
+) {
+  return transactions.reduce((balance, transaction) => {
+    if (
+      transaction.transactionKind === "recurring-template" ||
+      transaction.transactionKind === "installment-template"
+    ) {
+      return balance;
+    }
+
+    return transaction.type === "income"
+      ? balance + transaction.amount
+      : balance - transaction.amount;
+  }, initialBalance);
+}
+
 const currencyFormatter = new Intl.NumberFormat("pt-BR", {
   style: "currency",
   currency: "BRL",
@@ -202,14 +220,19 @@ export default function HomePage() {
   );
 
   const projectionTransactions = previewTransactions ?? transactions;
+  const projectionCurrentBalance =
+    previewTransactions === null
+      ? currentBalance
+      : getBalanceFromTransactions(initialBalance, previewTransactions);
 
   const upcomingTransactions = useMemo(() => {
     return getUpcomingTransactionsByMonth({
       transactions: projectionTransactions,
       monthsAhead: 3,
       referenceDate: new Date(),
+      baseBalance: projectionCurrentBalance,
     });
-  }, [projectionTransactions]);
+  }, [projectionCurrentBalance, projectionTransactions]);
 
   const forecast = useMemo(() => {
     const nextMonthGroup = upcomingTransactions[0];
@@ -217,9 +240,9 @@ export default function HomePage() {
     return {
       totalIncome: nextMonthGroup?.totalIncome ?? 0,
       totalExpense: nextMonthGroup?.totalExpense ?? 0,
-      projectedBalance: currentBalance + (nextMonthGroup?.projectedBalance ?? 0),
+      projectedBalance: nextMonthGroup?.projectedBalance ?? projectionCurrentBalance,
     };
-  }, [currentBalance, upcomingTransactions]);
+  }, [projectionCurrentBalance, upcomingTransactions]);
 
   const hasActiveAdvancedFilters =
     searchTerm.trim().length > 0 ||
@@ -272,6 +295,10 @@ export default function HomePage() {
   }
 
   function handleRemoveTransaction(id: string) {
+    if (!window.confirm("Tem certeza que deseja remover este lançamento?")) {
+      return;
+    }
+
     removeTransaction(id);
     setPreviewTransactions(null);
   }

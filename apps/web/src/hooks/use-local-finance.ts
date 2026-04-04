@@ -150,7 +150,6 @@ function normalizeTransactionInput(input: LocalFinanceTransactionInput) {
     ? normalizeTransactionRecurrenceStartDate(
         input.recurrenceStartDate,
         getTodayDateValue(),
-        { minimumDate: getTodayDateValue() },
       )
     : null;
 

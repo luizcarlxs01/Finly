@@ -102,7 +102,6 @@ export function TransactionForm({
     const parsedAmount = Number(amount);
     const normalizedTitle = title.trim();
     const normalizedCategory = category.trim();
-    const todayDateValue = getTodayDateValue();
 
     if (
       !normalizedTitle ||
@@ -141,8 +140,7 @@ export function TransactionForm({
       if (
         Number.isNaN(parsedInstallmentCount) ||
         parsedInstallmentCount < 2 ||
-        !normalizedInstallmentStartDate ||
-        normalizedInstallmentStartDate < todayDateValue
+        !normalizedInstallmentStartDate
       ) {
         return null;
       }
@@ -172,7 +170,6 @@ export function TransactionForm({
       parsedRecurrenceDay < 1 ||
       parsedRecurrenceDay > 31 ||
       !normalizedRecurrenceStartDate ||
-      normalizedRecurrenceStartDate < todayDateValue ||
       (recurrenceMode === "until-date" &&
         (!normalizedRecurrenceEndDate ||
           normalizedRecurrenceEndDate < normalizedRecurrenceStartDate)) ||
@@ -535,7 +532,6 @@ export function TransactionForm({
                       <input
                         id="transaction-installment-start-date"
                         type="date"
-                        min={getTodayDateValue()}
                         value={installmentStartDate}
                         onChange={(event) =>
                           setInstallmentStartDate(event.target.value)
@@ -593,7 +589,6 @@ export function TransactionForm({
                       <input
                         id="transaction-recurrence-start-date"
                         type="date"
-                        min={getTodayDateValue()}
                         value={recurrenceStartDate}
                         onChange={(event) =>
                           setRecurrenceStartDate(event.target.value)

@@ -351,10 +351,12 @@ export function getUpcomingTransactionsByMonth({
   transactions,
   monthsAhead = 3,
   referenceDate = new Date(),
+  baseBalance = 0,
 }: {
   transactions: Transaction[];
   monthsAhead?: number;
   referenceDate?: Date;
+  baseBalance?: number;
 }): UpcomingTransactionsMonthGroup[] {
   const monthGroups = buildMonthGroups(referenceDate, monthsAhead);
   const existingProjectedKeys = new Set<string>();
@@ -362,6 +364,8 @@ export function getUpcomingTransactionsByMonth({
   createFutureInstanceItems(transactions, monthGroups, existingProjectedKeys);
   createProjectedRecurringItems(transactions, monthGroups, existingProjectedKeys);
   createProjectedInstallmentItems(transactions, monthGroups, existingProjectedKeys);
+
+  let runningBalance = baseBalance;
 
   return monthGroups.map((group) => {
     const items = [...group.items].sort((left, right) =>
@@ -373,7 +377,8 @@ export function getUpcomingTransactionsByMonth({
     const totalExpense = items
       .filter((item) => item.type === "expense")
       .reduce((total, item) => total + item.amount, 0);
-    const projectedBalance = totalIncome - totalExpense;
+    const projectedBalance = runningBalance + totalIncome - totalExpense;
+    runningBalance = projectedBalance;
     const balanceTone = getMonthBalanceTone({
       totalIncome,
       totalExpense,
