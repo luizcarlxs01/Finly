@@ -102,22 +102,32 @@ function buildStatementTransactions(
   return Array.from(uniqueById.values());
 }
 
-function getBalanceFromTransactions(
+function getPostedTransactions(transactions: Transaction[]) {
+  return transactions.filter(
+    (transaction) =>
+      transaction.transactionKind !== "recurring-template" &&
+      transaction.transactionKind !== "installment-template",
+  );
+}
+
+function getProjectionSnapshot(
   initialBalance: number,
   transactions: Transaction[],
 ) {
-  return transactions.reduce((balance, transaction) => {
-    if (
-      transaction.transactionKind === "recurring-template" ||
-      transaction.transactionKind === "installment-template"
-    ) {
-      return balance;
-    }
+  const postedTransactions = getPostedTransactions(transactions);
+  const totalIncome = postedTransactions
+    .filter((transaction) => transaction.type === "income")
+    .reduce((total, transaction) => total + transaction.amount, 0);
+  const totalExpense = postedTransactions
+    .filter((transaction) => transaction.type === "expense")
+    .reduce((total, transaction) => total + transaction.amount, 0);
 
-    return transaction.type === "income"
-      ? balance + transaction.amount
-      : balance - transaction.amount;
-  }, initialBalance);
+  return {
+    postedTransactions,
+    totalIncome,
+    totalExpense,
+    currentBalance: initialBalance + totalIncome - totalExpense,
+  };
 }
 
 const currencyFormatter = new Intl.NumberFormat("pt-BR", {
@@ -220,29 +230,42 @@ export default function HomePage() {
   );
 
   const projectionTransactions = previewTransactions ?? transactions;
-  const projectionCurrentBalance =
-    previewTransactions === null
-      ? currentBalance
-      : getBalanceFromTransactions(initialBalance, previewTransactions);
+  const projectionSnapshot = useMemo(() => {
+    if (previewTransactions === null) {
+      return {
+        postedTransactions,
+        totalIncome,
+        totalExpense,
+        currentBalance,
+      };
+    }
+
+    return getProjectionSnapshot(initialBalance, previewTransactions);
+  }, [
+    currentBalance,
+    initialBalance,
+    postedTransactions,
+    previewTransactions,
+    totalExpense,
+    totalIncome,
+  ]);
 
   const upcomingTransactions = useMemo(() => {
     return getUpcomingTransactionsByMonth({
       transactions: projectionTransactions,
       monthsAhead: 3,
       referenceDate: new Date(),
-      baseBalance: projectionCurrentBalance,
+      baseBalance: projectionSnapshot.currentBalance,
     });
-  }, [projectionCurrentBalance, projectionTransactions]);
+  }, [projectionSnapshot.currentBalance, projectionTransactions]);
 
   const forecast = useMemo(() => {
-    const nextMonthGroup = upcomingTransactions[0];
-
     return {
-      totalIncome: nextMonthGroup?.totalIncome ?? 0,
-      totalExpense: nextMonthGroup?.totalExpense ?? 0,
-      projectedBalance: nextMonthGroup?.projectedBalance ?? projectionCurrentBalance,
+      totalIncome: projectionSnapshot.totalIncome,
+      totalExpense: projectionSnapshot.totalExpense,
+      projectedBalance: projectionSnapshot.currentBalance,
     };
-  }, [projectionCurrentBalance, upcomingTransactions]);
+  }, [projectionSnapshot]);
 
   const hasActiveAdvancedFilters =
     searchTerm.trim().length > 0 ||

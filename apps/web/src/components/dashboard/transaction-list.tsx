@@ -37,8 +37,56 @@ const recurrenceDateFormatter = new Intl.DateTimeFormat("pt-BR", {
   year: "numeric",
 });
 
+const dateOnlyFormatter = new Intl.DateTimeFormat("pt-BR", {
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+});
+
 function getTransactionTypeLabel(type: Transaction["type"]) {
   return type === "income" ? "Entrada" : "Saída";
+}
+
+function getTransactionKindLabel(transactionKind: Transaction["transactionKind"]) {
+  if (
+    transactionKind === "installment-template" ||
+    transactionKind === "installment-instance"
+  ) {
+    return "Parcelado";
+  }
+
+  if (
+    transactionKind === "recurring-template" ||
+    transactionKind === "recurring-instance"
+  ) {
+    return "Recorrente";
+  }
+
+  return "Único";
+}
+
+function formatRecordedAt(createdAt: string) {
+  const createdAtDate = new Date(createdAt);
+
+  if (Number.isNaN(createdAtDate.getTime())) {
+    return null;
+  }
+
+  const hasSyntheticMiddayTime =
+    createdAtDate.getHours() === 12 &&
+    createdAtDate.getMinutes() === 0 &&
+    createdAtDate.getSeconds() === 0 &&
+    createdAtDate.getMilliseconds() === 0;
+
+  return hasSyntheticMiddayTime
+    ? {
+        value: dateOnlyFormatter.format(createdAtDate),
+        withTime: false,
+      }
+    : {
+        value: dateFormatter.format(createdAtDate),
+        withTime: true,
+      };
 }
 
 function formatRecurringSummary(transaction: Transaction) {
@@ -87,6 +135,7 @@ export function TransactionList({
       {transactions.map((transaction) => {
         const recurringSummary = formatRecurringSummary(transaction);
         const nextRecurringOccurrence = getNextRecurringOccurrence(transaction);
+        const recordedAt = formatRecordedAt(transaction.createdAt);
 
         return (
           <Card
@@ -105,7 +154,11 @@ export function TransactionList({
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <CalendarClock className="size-4 shrink-0" />
                         <span className="truncate">
-                          {dateFormatter.format(new Date(transaction.createdAt))}
+                          {recordedAt?.withTime
+                            ? recordedAt.value
+                            : recordedAt
+                              ? `${recordedAt.value} · sem horário registrado`
+                              : "Data indisponível"}
                         </span>
                       </div>
                     </div>
@@ -137,6 +190,13 @@ export function TransactionList({
                     <span className="inline-flex rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
                       {getTransactionCategoryLabel(transaction.category)}
                     </span>
+
+                    <Badge
+                      variant="outline"
+                      className="h-auto rounded-full px-3 py-1"
+                    >
+                      {getTransactionKindLabel(transaction.transactionKind)}
+                    </Badge>
 
                     {transaction.transactionKind === "recurring-template" ? (
                       <Badge
