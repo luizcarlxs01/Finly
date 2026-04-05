@@ -18,18 +18,18 @@ function formatCurrency(value: number) {
 function getProjectedBalanceTone(projectedBalance: number) {
   if (projectedBalance < 0) {
     return {
-      container: "border-amber-200 bg-amber-50/75",
-      value: "text-amber-900",
-      badge: "bg-amber-100 text-amber-900",
+      container: "border-accent/60 bg-accent/25",
+      value: "text-foreground",
+      badge: "bg-accent/55 text-foreground",
       label: "Atenção",
     };
   }
 
   if (projectedBalance > 0) {
     return {
-      container: "border-green-200 bg-green-50/65",
-      value: "text-green-800",
-      badge: "bg-green-100 text-green-800",
+      container: "border-primary/20 bg-primary/10",
+      value: "text-primary",
+      badge: "bg-primary/15 text-primary",
       label: "Folga",
     };
   }
@@ -89,31 +89,31 @@ export function FinancialForecastCard({
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <div className="rounded-[1.25rem] border border-border/60 bg-background/60 p-4">
+          <div className="rounded-[1.25rem] border border-primary/15 bg-primary/8 p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-xs text-muted-foreground">Entradas</p>
-                <p className="mt-1 text-lg font-semibold text-green-700">
+                <p className="mt-1 text-lg font-semibold text-primary">
                   {formatCurrency(totalIncome)}
                 </p>
               </div>
 
-              <span className="flex size-8 items-center justify-center rounded-2xl bg-green-100 text-green-800">
+              <span className="flex size-8 items-center justify-center rounded-2xl bg-primary/12 text-primary">
                 <ArrowUpRight className="size-4" />
               </span>
             </div>
           </div>
 
-          <div className="rounded-[1.25rem] border border-border/60 bg-background/60 p-4">
+          <div className="rounded-[1.25rem] border border-accent/60 bg-accent/25 p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-xs text-muted-foreground">Saídas</p>
-                <p className="mt-1 text-lg font-semibold text-red-700">
+                <p className="mt-1 text-lg font-semibold text-foreground">
                   {formatCurrency(totalExpense)}
                 </p>
               </div>
 
-              <span className="flex size-8 items-center justify-center rounded-2xl bg-red-100 text-red-800">
+              <span className="flex size-8 items-center justify-center rounded-2xl bg-accent/55 text-foreground">
                 <ArrowDownRight className="size-4" />
               </span>
             </div>

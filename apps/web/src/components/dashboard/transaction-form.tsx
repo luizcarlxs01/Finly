@@ -700,7 +700,7 @@ export function TransactionForm({
               </div>
 
               {showPreviewNotice && isPreviewActive ? (
-                <div className="rounded-[1.25rem] border border-amber-200 bg-amber-50/75 p-4">
+                <div className="rounded-[1.25rem] border border-accent/60 bg-accent/25 p-4">
                   <p className="text-sm font-medium text-foreground">
                     Simulação ativa
                   </p>
@@ -710,7 +710,7 @@ export function TransactionForm({
                   <Button
                     type="button"
                     variant="ghost"
-                    className="mt-2 h-10 rounded-xl px-0 text-amber-900 hover:bg-transparent"
+                    className="mt-2 h-10 rounded-xl px-0 hover:bg-transparent"
                     onClick={onClearPreview}
                   >
                     Limpar simulação

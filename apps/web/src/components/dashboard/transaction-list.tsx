@@ -136,6 +136,7 @@ export function TransactionList({
         const recurringSummary = formatRecurringSummary(transaction);
         const nextRecurringOccurrence = getNextRecurringOccurrence(transaction);
         const recordedAt = formatRecordedAt(transaction.createdAt);
+        const isIncome = transaction.type === "income";
 
         return (
           <Card
@@ -166,9 +167,7 @@ export function TransactionList({
                     <div className="shrink-0">
                       <p
                         className={`text-xl font-semibold sm:text-right ${
-                          transaction.type === "income"
-                            ? "text-green-700"
-                            : "text-red-700"
+                          isIncome ? "text-primary" : "text-foreground"
                         }`}
                       >
                         {currencyFormatter.format(transaction.amount)}
@@ -179,9 +178,9 @@ export function TransactionList({
                   <div className="flex flex-wrap items-center gap-2">
                     <span
                       className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${
-                        transaction.type === "income"
-                          ? "bg-green-100 text-green-800"
-                          : "bg-red-100 text-red-800"
+                        isIncome
+                          ? "bg-primary/12 text-primary"
+                          : "bg-accent/55 text-foreground"
                       }`}
                     >
                       {getTransactionTypeLabel(transaction.type)}

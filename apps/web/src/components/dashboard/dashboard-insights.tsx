@@ -20,12 +20,12 @@ const toneClasses: Record<
     badge: "bg-muted text-muted-foreground",
   },
   positive: {
-    container: "border-green-200 bg-green-50/55",
-    badge: "bg-green-100 text-green-800",
+    container: "border-primary/20 bg-primary/10",
+    badge: "bg-primary/15 text-primary",
   },
   warning: {
-    container: "border-amber-200 bg-amber-50/65",
-    badge: "bg-amber-100 text-amber-900",
+    container: "border-accent/60 bg-accent/25",
+    badge: "bg-accent/55 text-foreground",
   },
 };
 

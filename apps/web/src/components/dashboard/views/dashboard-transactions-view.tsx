@@ -191,7 +191,7 @@ export function DashboardTransactionsView({
                       <div
                         className={`rounded-[1.25rem] border px-4 py-3 ${
                           isPreviewActive
-                            ? "border-amber-200 bg-amber-50/70"
+                            ? "border-accent/60 bg-accent/25"
                             : "border-border/60 bg-card/70"
                         }`}
                       >
@@ -234,33 +234,33 @@ export function DashboardTransactionsView({
                           </div>
                         </div>
 
-                        <div className="rounded-[1.25rem] border border-border/60 bg-card/70 p-4">
+                        <div className="rounded-[1.25rem] border border-primary/15 bg-primary/8 p-4">
                           <div className="flex items-center justify-between gap-3">
                             <div>
                               <p className="text-xs text-muted-foreground">
                                 Entradas
                               </p>
-                              <p className="mt-1 text-lg font-semibold text-green-700">
+                              <p className="mt-1 text-lg font-semibold text-primary">
                                 {currencyFormatter.format(forecastTotalIncome)}
                               </p>
                             </div>
-                            <span className="flex size-9 items-center justify-center rounded-2xl bg-green-100 text-green-800">
+                            <span className="flex size-9 items-center justify-center rounded-2xl bg-primary/12 text-primary">
                               <ArrowUpRight className="size-4.5" />
                             </span>
                           </div>
                         </div>
 
-                        <div className="rounded-[1.25rem] border border-border/60 bg-card/70 p-4">
+                        <div className="rounded-[1.25rem] border border-accent/60 bg-accent/25 p-4">
                           <div className="flex items-center justify-between gap-3">
                             <div>
                               <p className="text-xs text-muted-foreground">
                                 Saídas
                               </p>
-                              <p className="mt-1 text-lg font-semibold text-red-700">
+                              <p className="mt-1 text-lg font-semibold text-foreground">
                                 {currencyFormatter.format(forecastTotalExpense)}
                               </p>
                             </div>
-                            <span className="flex size-9 items-center justify-center rounded-2xl bg-red-100 text-red-800">
+                            <span className="flex size-9 items-center justify-center rounded-2xl bg-accent/55 text-foreground">
                               <ArrowDownRight className="size-4.5" />
                             </span>
                           </div>

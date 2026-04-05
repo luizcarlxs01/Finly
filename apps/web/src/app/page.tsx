@@ -13,6 +13,7 @@ import { DashboardInsightsView } from "@/components/dashboard/views/dashboard-in
 import { GoalProgressModal } from "@/components/dashboard/goal-progress-modal";
 import { TransactionEditModal } from "@/components/dashboard/transaction-edit-modal";
 import { PageContainer } from "@/components/layout/page-container";
+import { ConfirmationModal } from "@/components/ui/confirmation-modal";
 import {
   type LocalFinanceTransactionInput,
   useLocalFinance,
@@ -172,6 +173,8 @@ export default function HomePage() {
   const [editingTransaction, setEditingTransaction] =
     useState<Transaction | null>(null);
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
+  const [pendingRemovalTransactionId, setPendingRemovalTransactionId] =
+    useState<string | null>(null);
   const [previewTransactions, setPreviewTransactions] =
     useState<Transaction[] | null>(null);
 
@@ -318,12 +321,17 @@ export default function HomePage() {
   }
 
   function handleRemoveTransaction(id: string) {
-    if (!window.confirm("Tem certeza que deseja remover este lançamento?")) {
+    setPendingRemovalTransactionId(id);
+  }
+
+  function handleConfirmRemoveTransaction() {
+    if (!pendingRemovalTransactionId) {
       return;
     }
 
-    removeTransaction(id);
+    removeTransaction(pendingRemovalTransactionId);
     setPreviewTransactions(null);
+    setPendingRemovalTransactionId(null);
   }
 
   function handleEditModalChange(open: boolean) {
@@ -445,6 +453,20 @@ export default function HomePage() {
         open={Boolean(selectedGoal)}
         onOpenChange={handleGoalModalChange}
         onSave={updateGoalProgress}
+      />
+
+      <ConfirmationModal
+        open={Boolean(pendingRemovalTransactionId)}
+        title="Remover item"
+        description="Tem certeza que deseja remover este item? Essa ação não pode ser desfeita."
+        cancelLabel="Cancelar"
+        confirmLabel="Remover"
+        onConfirm={handleConfirmRemoveTransaction}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPendingRemovalTransactionId(null);
+          }
+        }}
       />
     </>
   );

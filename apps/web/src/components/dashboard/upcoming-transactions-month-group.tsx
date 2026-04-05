@@ -35,10 +35,10 @@ const toneClasses: Record<
   }
 > = {
   positive: {
-    summaryContainer: "border-green-200 bg-green-50/70",
-    summaryBadge: "bg-green-100 text-green-800",
-    summaryBalance: "text-green-800",
-    balanceCard: "border-green-200/80 bg-green-50/80",
+    summaryContainer: "border-primary/20 bg-primary/10",
+    summaryBadge: "bg-primary/15 text-primary",
+    summaryBalance: "text-primary",
+    balanceCard: "border-primary/20 bg-white/75",
   },
   neutral: {
     summaryContainer: "border-border/70 bg-card/90",
@@ -47,10 +47,10 @@ const toneClasses: Record<
     balanceCard: "border-border/70 bg-card/80",
   },
   warning: {
-    summaryContainer: "border-amber-200 bg-amber-50/80",
-    summaryBadge: "bg-amber-100 text-amber-900",
-    summaryBalance: "text-amber-900",
-    balanceCard: "border-amber-200/80 bg-amber-50/80",
+    summaryContainer: "border-accent/60 bg-accent/25",
+    summaryBadge: "bg-accent/55 text-foreground",
+    summaryBalance: "text-foreground",
+    balanceCard: "border-accent/60 bg-white/70",
   },
 };
 
@@ -118,20 +118,20 @@ export function UpcomingTransactionsMonthGroup({
         </div>
 
         <div className="mt-5 grid gap-3 sm:grid-cols-3">
-          <div className="rounded-2xl border border-border/70 bg-background/75 px-4 py-3">
+          <div className="rounded-2xl border border-primary/15 bg-primary/8 px-4 py-3">
             <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
               Entradas
             </p>
-            <p className="mt-1 text-base font-semibold text-green-700">
+            <p className="mt-1 text-base font-semibold text-primary">
               {currencyFormatter.format(group.totalIncome)}
             </p>
           </div>
 
-          <div className="rounded-2xl border border-border/70 bg-background/75 px-4 py-3">
+          <div className="rounded-2xl border border-accent/60 bg-accent/25 px-4 py-3">
             <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
               Saídas
             </p>
-            <p className="mt-1 text-base font-semibold text-red-700">
+            <p className="mt-1 text-base font-semibold text-foreground">
               {currencyFormatter.format(group.totalExpense)}
             </p>
           </div>
@@ -148,51 +148,55 @@ export function UpcomingTransactionsMonthGroup({
       </div>
 
       <div className="space-y-3">
-        {group.items.map((item) => (
-          <article
-            key={item.id}
-            className="rounded-[1.5rem] border border-border/70 bg-card/90 p-4 shadow-sm transition-colors hover:bg-card"
-          >
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div className="min-w-0 space-y-3">
-                <div className="space-y-1">
-                  <h4 className="truncate text-base font-semibold text-foreground">
-                    {item.title}
-                  </h4>
-                  <p className="text-sm text-muted-foreground">
-                    Competência prevista: {formatCompetency(item.occurrenceDate)}
-                  </p>
+        {group.items.map((item) => {
+          const isIncome = item.type === "income";
+
+          return (
+            <article
+              key={item.id}
+              className="rounded-[1.5rem] border border-border/70 bg-card/90 p-4 shadow-sm transition-colors hover:bg-card"
+            >
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div className="min-w-0 space-y-3">
+                  <div className="space-y-1">
+                    <h4 className="truncate text-base font-semibold text-foreground">
+                      {item.title}
+                    </h4>
+                    <p className="text-sm text-muted-foreground">
+                      Competência prevista: {formatCompetency(item.occurrenceDate)}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span
+                      className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${
+                        isIncome
+                          ? "bg-primary/12 text-primary"
+                          : "bg-accent/55 text-foreground"
+                      }`}
+                    >
+                      {getTypeLabel(item.type)}
+                    </span>
+
+                    <span className="inline-flex rounded-full border border-border/70 bg-background/80 px-3 py-1 text-xs font-medium text-foreground/80">
+                      {item.marker}
+                    </span>
+                  </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2">
-                  <span
-                    className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${
-                      item.type === "income"
-                        ? "bg-green-100 text-green-800"
-                        : "bg-red-100 text-red-800"
+                <div className="shrink-0">
+                  <p
+                    className={`text-lg font-semibold ${
+                      isIncome ? "text-primary" : "text-foreground"
                     }`}
                   >
-                    {getTypeLabel(item.type)}
-                  </span>
-
-                  <span className="inline-flex rounded-full border border-border/70 bg-background/80 px-3 py-1 text-xs font-medium text-foreground/80">
-                    {item.marker}
-                  </span>
+                    {currencyFormatter.format(item.amount)}
+                  </p>
                 </div>
               </div>
-
-              <div className="shrink-0">
-                <p
-                  className={`text-lg font-semibold ${
-                    item.type === "income" ? "text-green-700" : "text-red-700"
-                  }`}
-                >
-                  {currencyFormatter.format(item.amount)}
-                </p>
-              </div>
-            </div>
-          </article>
-        ))}
+            </article>
+          );
+        })}
       </div>
     </section>
   );

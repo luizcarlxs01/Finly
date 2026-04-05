@@ -42,16 +42,16 @@ export function FinanceSummaryCard({
           </p>
         </div>
 
-        <div className="rounded-[1.25rem] border border-border/60 bg-background/65 p-4">
+        <div className="rounded-[1.25rem] border border-primary/15 bg-primary/8 p-4">
           <p className="text-sm text-muted-foreground">Entradas</p>
-          <p className="mt-2 text-xl font-semibold text-green-700">
+          <p className="mt-2 text-xl font-semibold text-primary">
             {formatCurrency(totalIncome)}
           </p>
         </div>
 
-        <div className="rounded-[1.25rem] border border-border/60 bg-background/65 p-4">
+        <div className="rounded-[1.25rem] border border-accent/60 bg-accent/25 p-4">
           <p className="text-sm text-muted-foreground">Saídas</p>
-          <p className="mt-2 text-xl font-semibold text-red-700">
+          <p className="mt-2 text-xl font-semibold text-foreground">
             {formatCurrency(totalExpense)}
           </p>
         </div>
