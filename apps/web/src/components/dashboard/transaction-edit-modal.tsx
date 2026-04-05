@@ -144,6 +144,12 @@ export function TransactionEditModal({
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    const currentTransaction = transaction;
+
+    if (!currentTransaction) {
+      return;
+    }
+
     const parsedAmount = Number(amount);
     const normalizedTitle = title.trim();
     const normalizedCategory = category.trim();
@@ -159,12 +165,12 @@ export function TransactionEditModal({
 
     if (isGeneratedInstance) {
       onSave({
-        id: transaction.id,
+        id: currentTransaction.id,
         title: normalizedTitle,
         amount: parsedAmount,
         type,
         category: normalizedCategory,
-        transactionKind: transaction.transactionKind,
+        transactionKind: currentTransaction.transactionKind,
         isRecurring: false,
         recurrenceType: null,
         recurrenceDay: null,
@@ -183,7 +189,7 @@ export function TransactionEditModal({
       }
 
       onSave({
-        id: transaction.id,
+        id: currentTransaction.id,
         title: normalizedTitle,
         amount: parsedAmount,
         type,
@@ -213,7 +219,7 @@ export function TransactionEditModal({
       }
 
       onSave({
-        id: transaction.id,
+        id: currentTransaction.id,
         title: normalizedTitle,
         amount: parsedAmount,
         type,
@@ -251,7 +257,7 @@ export function TransactionEditModal({
     }
 
     onSave({
-      id: transaction.id,
+      id: currentTransaction.id,
       title: normalizedTitle,
       amount: parsedAmount,
       type,
