@@ -1,37 +1,6 @@
-<<<<<<< HEAD
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-
-import { DashboardHomeView } from "@/components/dashboard/views/dashboard-home-view";
-
-describe("DashboardHomeView", () => {
-  it("deve chamar onGoToTransactions ao clicar no botão principal da hero", async () => {
-    const user = userEvent.setup();
-    const onGoToTransactions = vi.fn();
-
-    render(<DashboardHomeView onGoToTransactions={onGoToTransactions} />);
-
-    await user.click(
-      screen.getByRole("button", { name: /ir para a aba de lançamentos/i }),
-    );
-
-    expect(onGoToTransactions).toHaveBeenCalledTimes(1);
-  });
-
-  it("não deve renderizar os botões antigos da hero", () => {
-    render(<DashboardHomeView onGoToTransactions={vi.fn()} />);
-
-    expect(
-      screen.queryByRole("button", { name: /ver resumo/i }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: /fazer lançamento/i }),
-    ).not.toBeInTheDocument();
-=======
-import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 
 import { DashboardHomeView } from "@/components/dashboard/views/dashboard-home-view";
 
@@ -54,13 +23,17 @@ describe("DashboardHomeView", () => {
     renderDashboardHomeView();
 
     expect(screen.getByText("Finly")).toBeInTheDocument();
-    expect(screen.getByText("Seu financeiro mais claro, simples e organizado.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Seu financeiro mais claro, simples e organizado."),
+    ).toBeInTheDocument();
     expect(screen.getByText("Você já pode usar o Finly agora")).toBeInTheDocument();
     expect(screen.getByText("O que você já pode fazer")).toBeInTheDocument();
-    expect(screen.getByText("O Finly ainda pode crescer com você")).toBeInTheDocument();
+    expect(
+      screen.getByText("O Finly ainda pode crescer com você"),
+    ).toBeInTheDocument();
   });
 
-  it("deve exibir os resumos, cards e links principais da interface atual", () => {
+  it("deve exibir os resumos, cards e a ação principal da interface atual", () => {
     renderDashboardHomeView();
 
     expect(screen.getByText("Veja seu momento")).toBeInTheDocument();
@@ -76,11 +49,10 @@ describe("DashboardHomeView", () => {
       screen.getByText("Sincronização entre dispositivos"),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Ir para o resumo financeiro" }),
-    ).toHaveAttribute("href", "#resumo-financeiro");
-    expect(
-      screen.getByRole("button", { name: "Ir para novo lançamento" }),
-    ).toHaveAttribute("href", "#nova-transacao");
+      screen.getByRole("button", { name: "Ir para a aba de lançamentos" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Começar lançamentos")).toBeInTheDocument();
+    expect(screen.getAllByRole("button")).toHaveLength(1);
   });
 
   it("deve renderizar de forma estavel com as props minimas validas", () => {
@@ -94,21 +66,22 @@ describe("DashboardHomeView", () => {
     expect(screen.getByText("Seguir metas")).toBeInTheDocument();
   });
 
-  it("deve manter a interface observavel estavel ao interagir com os links principais", async () => {
+  it("deve chamar onGoToTransactions ao clicar no botão principal da hero", async () => {
     const user = userEvent.setup();
     const onGoToTransactions = vi.fn();
 
     renderDashboardHomeView({ onGoToTransactions });
 
     await user.click(
-      screen.getByRole("button", { name: "Ir para o resumo financeiro" }),
-    );
-    await user.click(
-      screen.getByRole("button", { name: "Ir para novo lançamento" }),
+      screen.getByRole("button", { name: "Ir para a aba de lançamentos" }),
     );
 
-    expect(onGoToTransactions).not.toHaveBeenCalled();
-    expect(screen.getByText("Seu financeiro mais claro, simples e organizado.")).toBeInTheDocument();
->>>>>>> luiz
+    expect(onGoToTransactions).toHaveBeenCalledTimes(1);
+    expect(
+      screen.queryByRole("button", { name: /ir para o resumo financeiro/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /ir para novo lançamento/i }),
+    ).not.toBeInTheDocument();
   });
 });

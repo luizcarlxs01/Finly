@@ -1,11 +1,11 @@
-import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 
 import { HeroSection } from "@/components/dashboard/hero-section";
 
 describe("HeroSection", () => {
-  it("deve renderizar o bloco principal com os textos e acoes esperadas", () => {
-    render(<HeroSection />);
+  it("deve renderizar o bloco principal com os textos e a ação esperada", () => {
+    render(<HeroSection onStartTransactions={vi.fn()} />);
 
     expect(screen.getByText("Finly")).toBeInTheDocument();
     expect(
@@ -19,15 +19,13 @@ describe("HeroSection", () => {
       ),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Ir para o resumo financeiro" }),
-    ).toHaveAttribute("href", "#resumo-financeiro");
-    expect(
-      screen.getByRole("button", { name: "Ir para novo lançamento" }),
-    ).toHaveAttribute("href", "#nova-transacao");
+      screen.getByRole("button", { name: "Ir para a aba de lançamentos" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Começar lançamentos")).toBeInTheDocument();
   });
 
   it("deve renderizar de forma estavel com os blocos informativos e cards de apoio atuais", () => {
-    render(<HeroSection />);
+    render(<HeroSection onStartTransactions={vi.fn()} />);
 
     expect(screen.getByText("Veja seu momento")).toBeInTheDocument();
     expect(
@@ -46,8 +44,8 @@ describe("HeroSection", () => {
     expect(screen.getByText("Evolução")).toBeInTheDocument();
   });
 
-  it("deve manter renderizacao consistente com o contrato atual sem props externas", () => {
-    render(<HeroSection />);
+  it("deve manter renderizacao consistente com o contrato atual sem props externas adicionais", () => {
+    render(<HeroSection onStartTransactions={vi.fn()} />);
 
     expect(
       screen.getByText("Veja seu panorama logo no começo."),
@@ -58,6 +56,6 @@ describe("HeroSection", () => {
     expect(
       screen.getByText("Acompanhe metas e sinais do seu progresso."),
     ).toBeInTheDocument();
-    expect(screen.getAllByRole("button")).toHaveLength(2);
+    expect(screen.getAllByRole("button")).toHaveLength(1);
   });
 });
