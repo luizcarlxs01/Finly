@@ -3,7 +3,11 @@ import { ArrowRight, CircleDollarSign, Target, Wallet } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-export function HeroSection() {
+type HeroSectionProps = {
+  onStartTransactions: () => void;
+};
+
+export function HeroSection({ onStartTransactions }: HeroSectionProps) {
   return (
     <section className="relative overflow-hidden rounded-[2rem] border border-border/60 bg-gradient-to-br from-background via-background to-muted/35 px-5 py-8 shadow-sm sm:px-6 sm:py-10 lg:px-8 lg:py-12 2xl:px-10 2xl:py-14">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.08),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.06),transparent_28%)]" />
@@ -30,33 +34,14 @@ export function HeroSection() {
 
           <div className="flex flex-col gap-3 sm:flex-row">
             <Button
+              type="button"
               size="lg"
-              nativeButton={false}
-              render={
-                <a
-                  href="#resumo-financeiro"
-                  aria-label="Ir para o resumo financeiro"
-                />
-              }
+              onClick={onStartTransactions}
+              aria-label="Ir para a aba de lançamentos"
               className="min-w-52 rounded-2xl"
             >
-              Ver resumo
+              Começar lançamentos
               <ArrowRight />
-            </Button>
-
-            <Button
-              size="lg"
-              variant="outline"
-              nativeButton={false}
-              render={
-                <a
-                  href="#nova-transacao"
-                  aria-label="Ir para novo lançamento"
-                />
-              }
-              className="min-w-52 rounded-2xl"
-            >
-              Fazer lançamento
             </Button>
           </div>
 

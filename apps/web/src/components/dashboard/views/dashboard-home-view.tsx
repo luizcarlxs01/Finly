@@ -4,6 +4,12 @@ export type DashboardHomeViewProps = {
   onGoToTransactions: () => void;
 };
 
-export function DashboardHomeView({}: DashboardHomeViewProps) {
-  return <DashboardEntryHeader />;
+export function DashboardHomeView({
+  onGoToTransactions,
+}: DashboardHomeViewProps) {
+  function handleStartTransactions() {
+    onGoToTransactions();
+  }
+
+  return <DashboardEntryHeader onStartTransactions={handleStartTransactions} />;
 }
