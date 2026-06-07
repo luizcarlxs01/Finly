@@ -83,4 +83,40 @@ public class ProfileService : IProfileService
             CreatedAt = profile.CreatedAt
         };
     }
+
+    public async Task<ProfileResponseDto> UpdateAsync(
+        Guid userId,
+        Guid profileId,
+        UpdateProfileRequestDto request,
+        CancellationToken cancellationToken = default)
+    {
+        var profile = await _context.FinancialProfiles
+            .FirstOrDefaultAsync(x => x.Id == profileId && x.UserId == userId, cancellationToken);
+
+        if (profile is null)
+            throw new InvalidOperationException("Perfil não encontrado.");
+
+        var name = request.Name.Trim();
+        var description = string.IsNullOrWhiteSpace(request.Description)
+            ? null
+            : request.Description.Trim();
+
+        if (string.IsNullOrWhiteSpace(name))
+            throw new InvalidOperationException("O nome do perfil é obrigatório.");
+
+        profile.Name = name;
+        profile.Description = description;
+        profile.InitialBalance = request.InitialBalance;
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return new ProfileResponseDto
+        {
+            Id = profile.Id,
+            Name = profile.Name,
+            Description = profile.Description,
+            InitialBalance = profile.InitialBalance,
+            CreatedAt = profile.CreatedAt
+        };
+    }
 }

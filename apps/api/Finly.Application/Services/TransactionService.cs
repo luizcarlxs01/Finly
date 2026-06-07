@@ -101,6 +101,68 @@ public class TransactionService : ITransactionService
         return MapToResponse(transaction);
     }
 
+    public async Task<TransactionResponseDto> UpdateAsync(
+        Guid userId,
+        Guid transactionId,
+        UpdateTransactionRequestDto request,
+        CancellationToken cancellationToken = default)
+    {
+        var transaction = await _context.Transactions
+            .Include(x => x.FinancialProfile)
+            .FirstOrDefaultAsync(
+                x => x.Id == transactionId && x.FinancialProfile.UserId == userId,
+                cancellationToken);
+
+        if (transaction is null)
+            throw new InvalidOperationException("Transação não encontrada.");
+
+        var targetProfile = await _context.FinancialProfiles
+            .FirstOrDefaultAsync(
+                x => x.Id == request.FinancialProfileId && x.UserId == userId,
+                cancellationToken);
+
+        if (targetProfile is null)
+            throw new InvalidOperationException("Perfil não encontrado para o usuário informado.");
+
+        var title = request.Title.Trim();
+        var category = request.Category.Trim();
+
+        if (string.IsNullOrWhiteSpace(title))
+            throw new InvalidOperationException("O título da transação é obrigatório.");
+
+        if (request.Amount <= 0)
+            throw new InvalidOperationException("O valor da transação deve ser maior que zero.");
+
+        if (string.IsNullOrWhiteSpace(category))
+            throw new InvalidOperationException("A categoria da transação é obrigatória.");
+
+        if (!Enum.TryParse<TransactionType>(request.Type, true, out var transactionType))
+            throw new InvalidOperationException("O tipo da transação é inválido.");
+
+        if (!Enum.TryParse<TransactionKind>(request.TransactionKind, true, out var transactionKind))
+            throw new InvalidOperationException("O tipo estrutural da transação é inválido.");
+
+        transaction.FinancialProfileId = request.FinancialProfileId;
+        transaction.Title = title;
+        transaction.Amount = request.Amount;
+        transaction.Type = transactionType;
+        transaction.Category = category;
+        transaction.TransactionKind = transactionKind;
+        transaction.TransactionDate = request.TransactionDate;
+        transaction.SourceId = request.SourceId;
+        transaction.InstallmentIndex = request.InstallmentIndex;
+        transaction.InstallmentCount = request.InstallmentCount;
+        transaction.IsRecurring = request.IsRecurring;
+        transaction.RecurrenceStartDate = request.RecurrenceStartDate;
+        transaction.RecurrenceEndDate = request.RecurrenceEndDate;
+        transaction.RecurrenceDay = request.RecurrenceDay;
+        transaction.RecurrenceMonths = request.RecurrenceMonths;
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return MapToResponse(transaction);
+    }
+
     public async Task DeleteAsync(
         Guid userId,
         Guid transactionId,

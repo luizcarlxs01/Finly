@@ -60,6 +60,26 @@ public class ProfilesController : ControllerBase
         }
     }
 
+    [HttpPut("{id:guid}")]
+    public async Task<IActionResult> Update(
+        Guid id,
+        [FromBody] UpdateProfileRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var userId = GetAuthenticatedUserId();
+
+            var updatedProfile = await _profileService.UpdateAsync(userId, id, request, cancellationToken);
+
+            return Ok(updatedProfile);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     private Guid GetAuthenticatedUserId()
     {
         var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);

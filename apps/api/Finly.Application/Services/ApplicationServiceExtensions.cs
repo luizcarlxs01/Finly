@@ -10,6 +10,8 @@ public static class ApplicationServiceExtensions
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IProfileService, ProfileService>();
         services.AddScoped<ITransactionService, TransactionService>();
+        services.AddScoped<IGoalService, GoalService>();
+        services.AddScoped<IDashboardService, DashboardService>();
 
         return services;
     }

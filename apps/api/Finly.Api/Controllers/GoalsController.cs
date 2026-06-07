@@ -1,5 +1,5 @@
 using System.Security.Claims;
-using Finly.Application.DTOs.Transactions;
+using Finly.Application.DTOs.Goals;
 using Finly.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -9,13 +9,13 @@ namespace Finly.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class TransactionsController : ControllerBase
+public class GoalsController : ControllerBase
 {
-    private readonly ITransactionService _transactionService;
+    private readonly IGoalService _goalService;
 
-    public TransactionsController(ITransactionService transactionService)
+    public GoalsController(IGoalService goalService)
     {
-        _transactionService = transactionService;
+        _goalService = goalService;
     }
 
     [HttpGet]
@@ -27,12 +27,9 @@ public class TransactionsController : ControllerBase
         {
             var userId = GetAuthenticatedUserId();
 
-            var transactions = await _transactionService.GetAllAsync(
-                userId,
-                financialProfileId,
-                cancellationToken);
+            var goals = await _goalService.GetAllAsync(userId, financialProfileId, cancellationToken);
 
-            return Ok(transactions);
+            return Ok(goals);
         }
         catch (InvalidOperationException ex)
         {
@@ -45,29 +42,26 @@ public class TransactionsController : ControllerBase
     {
         var userId = GetAuthenticatedUserId();
 
-        var transaction = await _transactionService.GetByIdAsync(userId, id, cancellationToken);
+        var goal = await _goalService.GetByIdAsync(userId, id, cancellationToken);
 
-        if (transaction is null)
-            return NotFound(new { message = "Transação não encontrada." });
+        if (goal is null)
+            return NotFound(new { message = "Meta não encontrada." });
 
-        return Ok(transaction);
+        return Ok(goal);
     }
 
     [HttpPost]
     public async Task<IActionResult> Create(
-        [FromBody] CreateTransactionRequestDto request,
+        [FromBody] CreateGoalRequestDto request,
         CancellationToken cancellationToken)
     {
         try
         {
             var userId = GetAuthenticatedUserId();
 
-            var createdTransaction = await _transactionService.CreateAsync(
-                userId,
-                request,
-                cancellationToken);
+            var createdGoal = await _goalService.CreateAsync(userId, request, cancellationToken);
 
-            return CreatedAtAction(nameof(GetById), new { id = createdTransaction.Id }, createdTransaction);
+            return CreatedAtAction(nameof(GetById), new { id = createdGoal.Id }, createdGoal);
         }
         catch (InvalidOperationException ex)
         {
@@ -78,20 +72,36 @@ public class TransactionsController : ControllerBase
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(
         Guid id,
-        [FromBody] UpdateTransactionRequestDto request,
+        [FromBody] UpdateGoalRequestDto request,
         CancellationToken cancellationToken)
     {
         try
         {
             var userId = GetAuthenticatedUserId();
 
-            var updatedTransaction = await _transactionService.UpdateAsync(
-                userId,
-                id,
-                request,
-                cancellationToken);
+            var updatedGoal = await _goalService.UpdateAsync(userId, id, request, cancellationToken);
 
-            return Ok(updatedTransaction);
+            return Ok(updatedGoal);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpPatch("{id:guid}/progress")]
+    public async Task<IActionResult> UpdateProgress(
+        Guid id,
+        [FromBody] UpdateGoalProgressRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var userId = GetAuthenticatedUserId();
+
+            var updatedGoal = await _goalService.UpdateProgressAsync(userId, id, request, cancellationToken);
+
+            return Ok(updatedGoal);
         }
         catch (InvalidOperationException ex)
         {
@@ -106,7 +116,7 @@ public class TransactionsController : ControllerBase
         {
             var userId = GetAuthenticatedUserId();
 
-            await _transactionService.DeleteAsync(userId, id, cancellationToken);
+            await _goalService.DeleteAsync(userId, id, cancellationToken);
 
             return NoContent();
         }
