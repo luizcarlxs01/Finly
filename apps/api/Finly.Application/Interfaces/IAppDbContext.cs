@@ -9,6 +9,7 @@ public interface IAppDbContext
     DbSet<FinancialProfile> FinancialProfiles { get; }
     DbSet<Transaction> Transactions { get; }
     DbSet<Goal> Goals { get; }
+    DbSet<FinancialRule> FinancialRules { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

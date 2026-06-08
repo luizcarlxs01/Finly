@@ -62,7 +62,8 @@ public class AuthService : IAuthService
             UserId = user.Id,
             Name = "Perfil principal",
             Description = "Perfil criado automaticamente no cadastro.",
-            InitialBalance = 0
+            InitialBalance = 0,
+            IsPrimary = true
         };
 
         _context.FinancialProfiles.Add(defaultProfile);

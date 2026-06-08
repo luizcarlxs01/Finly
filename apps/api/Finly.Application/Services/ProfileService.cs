@@ -20,13 +20,15 @@ public class ProfileService : IProfileService
     {
         return await _context.FinancialProfiles
             .Where(x => x.UserId == userId)
-            .OrderBy(x => x.CreatedAt)
+            .OrderByDescending(x => x.IsPrimary)
+            .ThenBy(x => x.CreatedAt)
             .Select(x => new ProfileResponseDto
             {
                 Id = x.Id,
                 Name = x.Name,
                 Description = x.Description,
                 InitialBalance = x.InitialBalance,
+                IsPrimary = x.IsPrimary,
                 CreatedAt = x.CreatedAt
             })
             .ToListAsync(cancellationToken);
@@ -45,6 +47,7 @@ public class ProfileService : IProfileService
                 Name = x.Name,
                 Description = x.Description,
                 InitialBalance = x.InitialBalance,
+                IsPrimary = x.IsPrimary,
                 CreatedAt = x.CreatedAt
             })
             .FirstOrDefaultAsync(cancellationToken);
@@ -68,7 +71,8 @@ public class ProfileService : IProfileService
             UserId = userId,
             Name = name,
             Description = description,
-            InitialBalance = request.InitialBalance
+            InitialBalance = request.InitialBalance,
+            IsPrimary = false
         };
 
         _context.FinancialProfiles.Add(profile);
@@ -80,6 +84,7 @@ public class ProfileService : IProfileService
             Name = profile.Name,
             Description = profile.Description,
             InitialBalance = profile.InitialBalance,
+            IsPrimary = profile.IsPrimary,
             CreatedAt = profile.CreatedAt
         };
     }
@@ -116,7 +121,26 @@ public class ProfileService : IProfileService
             Name = profile.Name,
             Description = profile.Description,
             InitialBalance = profile.InitialBalance,
+            IsPrimary = profile.IsPrimary,
             CreatedAt = profile.CreatedAt
         };
+    }
+
+    public async Task DeleteAsync(
+        Guid userId,
+        Guid profileId,
+        CancellationToken cancellationToken = default)
+    {
+        var profile = await _context.FinancialProfiles
+            .FirstOrDefaultAsync(x => x.Id == profileId && x.UserId == userId, cancellationToken);
+
+        if (profile is null)
+            throw new InvalidOperationException("Perfil não encontrado.");
+
+        if (profile.IsPrimary)
+            throw new InvalidOperationException("O perfil principal não pode ser excluído.");
+
+        _context.FinancialProfiles.Remove(profile);
+        await _context.SaveChangesAsync(cancellationToken);
     }
 }

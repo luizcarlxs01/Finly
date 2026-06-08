@@ -1,5 +1,5 @@
 using System.Security.Claims;
-using Finly.Application.DTOs.Profiles;
+using Finly.Application.DTOs.Rules;
 using Finly.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -9,23 +9,35 @@ namespace Finly.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class ProfilesController : ControllerBase
+public class FinancialRulesController : ControllerBase
 {
-    private readonly IProfileService _profileService;
+    private readonly IFinancialRuleService _financialRuleService;
 
-    public ProfilesController(IProfileService profileService)
+    public FinancialRulesController(IFinancialRuleService financialRuleService)
     {
-        _profileService = profileService;
+        _financialRuleService = financialRuleService;
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetAll(
+        [FromQuery] Guid financialProfileId,
+        CancellationToken cancellationToken)
     {
-        var userId = GetAuthenticatedUserId();
+        try
+        {
+            var userId = GetAuthenticatedUserId();
 
-        var profiles = await _profileService.GetAllAsync(userId, cancellationToken);
+            var rules = await _financialRuleService.GetAllAsync(
+                userId,
+                financialProfileId,
+                cancellationToken);
 
-        return Ok(profiles);
+            return Ok(rules);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [HttpGet("{id:guid}")]
@@ -33,26 +45,29 @@ public class ProfilesController : ControllerBase
     {
         var userId = GetAuthenticatedUserId();
 
-        var profile = await _profileService.GetByIdAsync(userId, id, cancellationToken);
+        var rule = await _financialRuleService.GetByIdAsync(userId, id, cancellationToken);
 
-        if (profile is null)
-            return NotFound(new { message = "Perfil não encontrado." });
+        if (rule is null)
+            return NotFound(new { message = "Regra não encontrada." });
 
-        return Ok(profile);
+        return Ok(rule);
     }
 
     [HttpPost]
     public async Task<IActionResult> Create(
-        [FromBody] CreateProfileRequestDto request,
+        [FromBody] CreateFinancialRuleRequestDto request,
         CancellationToken cancellationToken)
     {
         try
         {
             var userId = GetAuthenticatedUserId();
 
-            var createdProfile = await _profileService.CreateAsync(userId, request, cancellationToken);
+            var createdRule = await _financialRuleService.CreateAsync(
+                userId,
+                request,
+                cancellationToken);
 
-            return CreatedAtAction(nameof(GetById), new { id = createdProfile.Id }, createdProfile);
+            return CreatedAtAction(nameof(GetById), new { id = createdRule.Id }, createdRule);
         }
         catch (InvalidOperationException ex)
         {
@@ -63,16 +78,20 @@ public class ProfilesController : ControllerBase
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(
         Guid id,
-        [FromBody] UpdateProfileRequestDto request,
+        [FromBody] UpdateFinancialRuleRequestDto request,
         CancellationToken cancellationToken)
     {
         try
         {
             var userId = GetAuthenticatedUserId();
 
-            var updatedProfile = await _profileService.UpdateAsync(userId, id, request, cancellationToken);
+            var updatedRule = await _financialRuleService.UpdateAsync(
+                userId,
+                id,
+                request,
+                cancellationToken);
 
-            return Ok(updatedProfile);
+            return Ok(updatedRule);
         }
         catch (InvalidOperationException ex)
         {
@@ -87,7 +106,7 @@ public class ProfilesController : ControllerBase
         {
             var userId = GetAuthenticatedUserId();
 
-            await _profileService.DeleteAsync(userId, id, cancellationToken);
+            await _financialRuleService.DeleteAsync(userId, id, cancellationToken);
 
             return NoContent();
         }

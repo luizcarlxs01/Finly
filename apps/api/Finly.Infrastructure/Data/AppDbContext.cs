@@ -1,4 +1,5 @@
 using Finly.Application.Interfaces;
+using Finly.Domain.Common;
 using Finly.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,6 +15,7 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<FinancialProfile> FinancialProfiles => Set<FinancialProfile>();
     public DbSet<Transaction> Transactions => Set<Transaction>();
     public DbSet<Goal> Goals => Set<Goal>();
+    public DbSet<FinancialRule> FinancialRules => Set<FinancialRule>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -56,6 +58,9 @@ public class AppDbContext : DbContext, IAppDbContext
 
             entity.Property(x => x.InitialBalance)
                 .HasColumnType("decimal(18,2)");
+
+            entity.Property(x => x.IsPrimary)
+                .IsRequired();
 
             entity.HasOne(x => x.User)
                 .WithMany(x => x.FinancialProfiles)
@@ -107,6 +112,31 @@ public class AppDbContext : DbContext, IAppDbContext
                 .HasForeignKey(x => x.FinancialProfileId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
+
+        modelBuilder.Entity<FinancialRule>(entity =>
+        {
+            entity.ToTable("FinancialRules");
+
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.Title)
+                .IsRequired()
+                .HasMaxLength(150);
+
+            entity.Property(x => x.Amount)
+                .HasColumnType("decimal(18,2)");
+
+            entity.Property(x => x.DayOfMonth)
+                .IsRequired();
+
+            entity.Property(x => x.IsActive)
+                .IsRequired();
+
+            entity.HasOne(x => x.FinancialProfile)
+                .WithMany(x => x.FinancialRules)
+                .HasForeignKey(x => x.FinancialProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
     }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
@@ -125,12 +155,12 @@ public class AppDbContext : DbContext, IAppDbContext
     {
         var entries = ChangeTracker
             .Entries()
-            .Where(entry => entry.Entity is Finly.Domain.Common.BaseEntity &&
+            .Where(entry => entry.Entity is BaseEntity &&
                             (entry.State == EntityState.Added || entry.State == EntityState.Modified));
 
         foreach (var entry in entries)
         {
-            var entity = (Finly.Domain.Common.BaseEntity)entry.Entity;
+            var entity = (BaseEntity)entry.Entity;
 
             if (entry.State == EntityState.Added)
             {

@@ -11,4 +11,6 @@ public interface IProfileService
     Task<ProfileResponseDto> CreateAsync(Guid userId, CreateProfileRequestDto request, CancellationToken cancellationToken = default);
 
     Task<ProfileResponseDto> UpdateAsync(Guid userId, Guid profileId, UpdateProfileRequestDto request, CancellationToken cancellationToken = default);
+
+    Task DeleteAsync(Guid userId, Guid profileId, CancellationToken cancellationToken = default);
 }

@@ -4,6 +4,7 @@ using Finly.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Finly.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260607194243_AddIsPrimaryToFinancialProfile")]
+    partial class AddIsPrimaryToFinancialProfile
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -57,60 +60,6 @@ namespace Finly.Infrastructure.Data.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("FinancialProfiles", (string)null);
-                });
-
-            modelBuilder.Entity("Finly.Domain.Entities.FinancialRule", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<decimal>("Amount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("DayOfMonth")
-                        .HasColumnType("int");
-
-                    b.Property<DateOnly?>("EndDate")
-                        .HasColumnType("date");
-
-                    b.Property<Guid>("FinancialProfileId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<DateOnly?>("LastProcessedDate")
-                        .HasColumnType("date");
-
-                    b.Property<int?>("RecurrenceMode")
-                        .HasColumnType("int");
-
-                    b.Property<int>("RuleType")
-                        .HasColumnType("int");
-
-                    b.Property<DateOnly>("StartDate")
-                        .HasColumnType("date");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<int?>("TotalMonths")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("FinancialProfileId");
-
-                    b.ToTable("FinancialRules", (string)null);
                 });
 
             modelBuilder.Entity("Finly.Domain.Entities.Goal", b =>
@@ -266,17 +215,6 @@ namespace Finly.Infrastructure.Data.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Finly.Domain.Entities.FinancialRule", b =>
-                {
-                    b.HasOne("Finly.Domain.Entities.FinancialProfile", "FinancialProfile")
-                        .WithMany("FinancialRules")
-                        .HasForeignKey("FinancialProfileId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("FinancialProfile");
-                });
-
             modelBuilder.Entity("Finly.Domain.Entities.Goal", b =>
                 {
                     b.HasOne("Finly.Domain.Entities.FinancialProfile", "FinancialProfile")
@@ -301,8 +239,6 @@ namespace Finly.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("Finly.Domain.Entities.FinancialProfile", b =>
                 {
-                    b.Navigation("FinancialRules");
-
                     b.Navigation("Goals");
 
                     b.Navigation("Transactions");
