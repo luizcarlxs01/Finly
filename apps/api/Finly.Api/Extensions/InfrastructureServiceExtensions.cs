@@ -12,7 +12,8 @@ public static class InfrastructureServiceExtensions
 {
     public static IServiceCollection AddInfrastructure(
         this IServiceCollection services,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IWebHostEnvironment environment)
     {
         var connectionString = configuration.GetConnectionString("DefaultConnection");
 
@@ -29,13 +30,28 @@ public static class InfrastructureServiceExtensions
         var jwtSettings = jwtSettingsSection.Get<JwtSettings>()
                          ?? throw new InvalidOperationException("As configurações de JWT não foram encontradas.");
 
+        if (!environment.IsDevelopment())
+        {
+            if (string.IsNullOrWhiteSpace(connectionString) ||
+                connectionString.Contains("CHANGE_ME", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("A connection string de producao nao foi configurada.");
+            }
+
+            if (string.IsNullOrWhiteSpace(jwtSettings.SecretKey) ||
+                jwtSettings.SecretKey.Contains("CHANGE_ME", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("O segredo JWT de producao nao foi configurado.");
+            }
+        }
+
         var secretKey = Encoding.UTF8.GetBytes(jwtSettings.SecretKey);
 
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
             {
-                options.RequireHttpsMetadata = false;
-                options.SaveToken = true;
+                options.RequireHttpsMetadata = !environment.IsDevelopment();
+                options.SaveToken = false;
 
                 options.TokenValidationParameters = new TokenValidationParameters
                 {

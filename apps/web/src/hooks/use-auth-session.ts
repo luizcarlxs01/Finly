@@ -39,13 +39,6 @@ export function useAuthSession(): UseAuthSessionReturn {
   useEffect(() => {
     function syncSession() {
       const storedSession = getAuthSession();
-
-      if (storedSession && !isSessionValid(storedSession)) {
-        clearAuthSession();
-        setSession(null);
-        return;
-      }
-
       setSession(storedSession ?? null);
     }
 
@@ -69,6 +62,29 @@ export function useAuthSession(): UseAuthSessionReturn {
     };
   }, []);
 
+  useEffect(() => {
+    if (!session) {
+      return;
+    }
+
+    const expiresAt = new Date(session.expiresAt).getTime();
+
+    if (Number.isNaN(expiresAt) || expiresAt <= Date.now()) {
+      clearAuthSession();
+      setSession(null);
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      clearAuthSession();
+      setSession(null);
+    }, expiresAt - Date.now());
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [session]);
+
   async function login(payload: LoginRequest) {
     setIsSubmitting(true);
 
@@ -87,7 +103,7 @@ export function useAuthSession(): UseAuthSessionReturn {
   }
 
   return {
-    session,
+    session: isSessionValid(session) ? session : null,
     authenticated: isSessionValid(session),
     isLoaded,
     isSubmitting,

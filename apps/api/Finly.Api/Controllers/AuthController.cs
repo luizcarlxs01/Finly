@@ -1,5 +1,6 @@
 using Finly.Application.DTOs.Auth;
 using Finly.Application.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Finly.Api.Controllers;
@@ -15,6 +16,7 @@ public class AuthController : ControllerBase
         _authService = authService;
     }
 
+    [AllowAnonymous]
     [HttpPost("register")]
     public async Task<IActionResult> Register(
         [FromBody] RegisterRequestDto request,
@@ -34,6 +36,7 @@ public class AuthController : ControllerBase
         }
     }
 
+    [AllowAnonymous]
     [HttpPost("login")]
     public async Task<IActionResult> Login(
         [FromBody] LoginRequestDto request,
