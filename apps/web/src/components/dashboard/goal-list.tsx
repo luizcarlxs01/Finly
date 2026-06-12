@@ -6,22 +6,18 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { Goal } from "@/types/goal";
 import { getTransactionCategoryLabel } from "@/types/transaction-category";
+import { formatBusinessDateBr } from "@/utils/date-format";
 
 type GoalListProps = {
   goals: Goal[];
   onUpdateProgress: (goal: Goal) => void;
   onRemoveGoal: (id: string) => void;
+  actionsDisabled?: boolean;
 };
 
 const currencyFormatter = new Intl.NumberFormat("pt-BR", {
   style: "currency",
   currency: "BRL",
-});
-
-const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
-  day: "2-digit",
-  month: "2-digit",
-  year: "numeric",
 });
 
 function getGoalCategoryLabel(category: string) {
@@ -44,6 +40,7 @@ export function GoalList({
   goals,
   onUpdateProgress,
   onRemoveGoal,
+  actionsDisabled = false,
 }: GoalListProps) {
   if (goals.length === 0) {
     return (
@@ -87,7 +84,7 @@ export function GoalList({
                       {goal.deadline ? (
                         <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
                           <CalendarDays className="size-3.5" />
-                          {dateFormatter.format(new Date(goal.deadline))}
+                          {formatBusinessDateBr(goal.deadline) ?? goal.deadline}
                         </span>
                       ) : null}
                     </div>
@@ -140,6 +137,7 @@ export function GoalList({
                     type="button"
                     variant="outline"
                     className="rounded-2xl"
+                    disabled={actionsDisabled}
                     onClick={() => onUpdateProgress(goal)}
                   >
                     <Pencil className="size-4" />
@@ -150,6 +148,7 @@ export function GoalList({
                     type="button"
                     variant="destructive"
                     className="rounded-2xl"
+                    disabled={actionsDisabled}
                     onClick={() => onRemoveGoal(goal.id)}
                   >
                     <Trash2 className="size-4" />

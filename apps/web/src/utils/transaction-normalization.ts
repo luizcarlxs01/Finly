@@ -286,7 +286,10 @@ function normalizeRecurringTemplate(
     category: normalizeTransactionCategory(transaction.category),
     transactionKind,
     sourceId: null,
-    occurrenceDate: null,
+    occurrenceDate: normalizeOccurrenceDate(
+      transaction.occurrenceDate,
+      transaction.createdAt,
+    ),
     installmentIndex: null,
     installmentCount: null,
     installmentStartDate: null,

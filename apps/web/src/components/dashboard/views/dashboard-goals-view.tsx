@@ -11,6 +11,8 @@ type GoalInput = {
 };
 
 export type DashboardGoalsViewProps = {
+  isSubmitting?: boolean;
+  areActionsDisabled?: boolean;
   goals: Goal[];
   totalGoalProgress: number;
   remainingGoalAmount: number;
@@ -21,6 +23,8 @@ export type DashboardGoalsViewProps = {
 };
 
 export function DashboardGoalsView({
+  isSubmitting = false,
+  areActionsDisabled = false,
   goals,
   totalGoalProgress,
   remainingGoalAmount,
@@ -68,7 +72,7 @@ export function DashboardGoalsView({
 
         <div className="grid gap-6 2xl:grid-cols-[minmax(360px,420px)_minmax(0,1fr)] 2xl:items-start">
           <aside className="min-w-0 2xl:sticky 2xl:top-24">
-            <GoalForm onAddGoal={onAddGoal} />
+            <GoalForm onAddGoal={onAddGoal} isSubmitting={isSubmitting} />
           </aside>
 
           <div className="min-w-0 space-y-5">
@@ -76,6 +80,7 @@ export function DashboardGoalsView({
               goals={goals}
               onUpdateProgress={onUpdateProgress}
               onRemoveGoal={onRemoveGoal}
+              actionsDisabled={areActionsDisabled}
             />
           </div>
         </div>

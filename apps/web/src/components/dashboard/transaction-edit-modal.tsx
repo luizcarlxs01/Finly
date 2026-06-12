@@ -27,6 +27,7 @@ type TransactionEditModalProps = {
   transaction: Transaction | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  isSubmitting?: boolean;
   onSave: (input: {
     id: string;
     title: string;
@@ -44,7 +45,7 @@ type TransactionEditModalProps = {
     recurrenceMonths?: number | null;
     installmentCount?: number | null;
     installmentStartDate?: string | null;
-  }) => void;
+  }) => Promise<void> | void;
 };
 
 const fieldClassName =
@@ -56,6 +57,22 @@ function formatDateForInput(dateValue: string | null | undefined) {
   }
 
   return dateValue.slice(0, 10);
+}
+
+function getTransactionDateForEditing(transaction: Transaction | null) {
+  if (!transaction) {
+    return getTodayDateValue();
+  }
+
+  if (transaction.transactionKind === "installment-template") {
+    return formatDateForInput(transaction.installmentStartDate);
+  }
+
+  if (transaction.transactionKind === "recurring-template") {
+    return formatDateForInput(transaction.recurrenceStartDate);
+  }
+
+  return formatDateForInput(transaction.occurrenceDate ?? transaction.createdAt);
 }
 
 function getEditorKind(transaction: Transaction | null): TransactionEditorKind {
@@ -78,6 +95,7 @@ export function TransactionEditModal({
   transaction,
   open,
   onOpenChange,
+  isSubmitting = false,
   onSave,
 }: TransactionEditModalProps) {
   const [title, setTitle] = useState(transaction?.title ?? "");
@@ -86,9 +104,8 @@ export function TransactionEditModal({
   const [category, setCategory] = useState(transaction?.category ?? "geral");
   const [transactionKind, setTransactionKind] =
     useState<TransactionEditorKind>(getEditorKind(transaction));
-  const [transactionDate, setTransactionDate] = useState(
-    formatDateForInput(transaction?.createdAt),
-  );
+  const [transactionDate, setTransactionDate] =
+    useState(getTransactionDateForEditing(transaction));
   const [installmentCount, setInstallmentCount] = useState(
     String(transaction?.installmentCount ?? 2),
   );
@@ -109,6 +126,28 @@ export function TransactionEditModal({
   const [recurrenceMonths, setRecurrenceMonths] = useState(
     String(transaction?.recurrenceMonths ?? 3),
   );
+
+  useEffect(() => {
+    if (!open || !transaction) {
+      return;
+    }
+
+    setTitle(transaction.title);
+    setAmount(String(transaction.amount));
+    setType(transaction.type);
+    setCategory(transaction.category);
+    setTransactionKind(getEditorKind(transaction));
+    setTransactionDate(getTransactionDateForEditing(transaction));
+    setInstallmentCount(String(transaction.installmentCount ?? 2));
+    setInstallmentStartDate(formatDateForInput(transaction.installmentStartDate));
+    setRecurrenceDay(
+      String(transaction.recurrenceDay ?? getTodayRecurrenceDay()),
+    );
+    setRecurrenceStartDate(formatDateForInput(transaction.recurrenceStartDate));
+    setRecurrenceMode(transaction.recurrenceMode ?? "indefinite");
+    setRecurrenceEndDate(formatDateForInput(transaction.recurrenceEndDate));
+    setRecurrenceMonths(String(transaction.recurrenceMonths ?? 3));
+  }, [open, transaction]);
 
   useEffect(() => {
     if (!open) {
@@ -141,7 +180,7 @@ export function TransactionEditModal({
     transaction.transactionKind === "installment-instance";
   const isGeneratedInstance = isRecurringInstance || isInstallmentInstance;
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const currentTransaction = transaction;
@@ -164,20 +203,23 @@ export function TransactionEditModal({
     }
 
     if (isGeneratedInstance) {
-      onSave({
-        id: currentTransaction.id,
-        title: normalizedTitle,
-        amount: parsedAmount,
-        type,
-        category: normalizedCategory,
-        transactionKind: currentTransaction.transactionKind,
-        isRecurring: false,
-        recurrenceType: null,
-        recurrenceDay: null,
-        recurrenceStartDate: null,
-      });
-
-      onOpenChange(false);
+      try {
+        await onSave({
+          id: currentTransaction.id,
+          title: normalizedTitle,
+          amount: parsedAmount,
+          type,
+          category: normalizedCategory,
+          transactionKind: currentTransaction.transactionKind,
+          isRecurring: false,
+          recurrenceType: null,
+          recurrenceDay: null,
+          recurrenceStartDate: null,
+        });
+        onOpenChange(false);
+      } catch {
+        // A mensagem de erro é tratada na página principal.
+      }
       return;
     }
 
@@ -188,21 +230,24 @@ export function TransactionEditModal({
         return;
       }
 
-      onSave({
-        id: currentTransaction.id,
-        title: normalizedTitle,
-        amount: parsedAmount,
-        type,
-        category: normalizedCategory,
-        transactionKind: "single",
-        transactionDate: normalizedTransactionDate,
-        isRecurring: false,
-        recurrenceType: null,
-        recurrenceDay: null,
-        recurrenceStartDate: null,
-      });
-
-      onOpenChange(false);
+      try {
+        await onSave({
+          id: currentTransaction.id,
+          title: normalizedTitle,
+          amount: parsedAmount,
+          type,
+          category: normalizedCategory,
+          transactionKind: "single",
+          transactionDate: normalizedTransactionDate,
+          isRecurring: false,
+          recurrenceType: null,
+          recurrenceDay: null,
+          recurrenceStartDate: null,
+        });
+        onOpenChange(false);
+      } catch {
+        // A mensagem de erro é tratada na página principal.
+      }
       return;
     }
 
@@ -218,22 +263,25 @@ export function TransactionEditModal({
         return;
       }
 
-      onSave({
-        id: currentTransaction.id,
-        title: normalizedTitle,
-        amount: parsedAmount,
-        type,
-        category: normalizedCategory,
-        transactionKind: "installment-template",
-        isRecurring: false,
-        recurrenceType: null,
-        recurrenceDay: null,
-        recurrenceStartDate: null,
-        installmentCount: parsedInstallmentCount,
-        installmentStartDate: normalizedInstallmentStartDate,
-      });
-
-      onOpenChange(false);
+      try {
+        await onSave({
+          id: currentTransaction.id,
+          title: normalizedTitle,
+          amount: parsedAmount,
+          type,
+          category: normalizedCategory,
+          transactionKind: "installment-template",
+          isRecurring: false,
+          recurrenceType: null,
+          recurrenceDay: null,
+          recurrenceStartDate: null,
+          installmentCount: parsedInstallmentCount,
+          installmentStartDate: normalizedInstallmentStartDate,
+        });
+        onOpenChange(false);
+      } catch {
+        // A mensagem de erro é tratada na página principal.
+      }
       return;
     }
 
@@ -256,25 +304,28 @@ export function TransactionEditModal({
       return;
     }
 
-    onSave({
-      id: currentTransaction.id,
-      title: normalizedTitle,
-      amount: parsedAmount,
-      type,
-      category: normalizedCategory,
-      transactionKind: "recurring-template",
-      isRecurring: true,
-      recurrenceType: "monthly",
-      recurrenceMode,
-      recurrenceDay: parsedRecurrenceDay,
-      recurrenceStartDate: normalizedRecurrenceStartDate,
-      recurrenceEndDate:
-        recurrenceMode === "until-date" ? normalizedRecurrenceEndDate : null,
-      recurrenceMonths:
-        recurrenceMode === "for-months" ? parsedRecurrenceMonths : null,
-    });
-
-    onOpenChange(false);
+    try {
+      await onSave({
+        id: currentTransaction.id,
+        title: normalizedTitle,
+        amount: parsedAmount,
+        type,
+        category: normalizedCategory,
+        transactionKind: "recurring-template",
+        isRecurring: true,
+        recurrenceType: "monthly",
+        recurrenceMode,
+        recurrenceDay: parsedRecurrenceDay,
+        recurrenceStartDate: normalizedRecurrenceStartDate,
+        recurrenceEndDate:
+          recurrenceMode === "until-date" ? normalizedRecurrenceEndDate : null,
+        recurrenceMonths:
+          recurrenceMode === "for-months" ? parsedRecurrenceMonths : null,
+      });
+      onOpenChange(false);
+    } catch {
+      // A mensagem de erro é tratada na página principal.
+    }
   }
 
   return (
@@ -297,6 +348,7 @@ export function TransactionEditModal({
             type="button"
             variant="ghost"
             className="shrink-0 rounded-xl"
+            disabled={isSubmitting}
             onClick={() => onOpenChange(false)}
           >
             Fechar
@@ -661,13 +713,18 @@ export function TransactionEditModal({
                 type="button"
                 variant="outline"
                 className="w-full rounded-xl sm:w-auto"
+                disabled={isSubmitting}
                 onClick={() => onOpenChange(false)}
               >
                 Cancelar
               </Button>
 
-              <Button type="submit" className="w-full rounded-xl sm:w-auto">
-                Salvar alteracoes
+              <Button
+                type="submit"
+                className="w-full rounded-xl sm:w-auto"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Salvando..." : "Salvar alteracoes"}
               </Button>
             </div>
           </div>

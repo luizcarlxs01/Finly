@@ -1,4 +1,5 @@
 import type { UpcomingTransactionsMonthGroup } from "@/utils/upcoming-transactions";
+import { formatBusinessDateBr } from "@/utils/date-format";
 
 type UpcomingTransactionsMonthGroupProps = {
   group: UpcomingTransactionsMonthGroup;
@@ -9,16 +10,8 @@ const currencyFormatter = new Intl.NumberFormat("pt-BR", {
   currency: "BRL",
 });
 
-const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
-  day: "2-digit",
-  month: "2-digit",
-  year: "numeric",
-});
-
 function formatCompetency(dateValue: string) {
-  const [year, month, day] = dateValue.split("-").map(Number);
-
-  return dateFormatter.format(new Date(year, month - 1, day, 12));
+  return formatBusinessDateBr(dateValue) ?? dateValue;
 }
 
 function getTypeLabel(type: "income" | "expense") {

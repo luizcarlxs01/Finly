@@ -34,11 +34,14 @@ type TransactionEditorKind =
 type TransactionFormProps = {
   initialBalance: number;
   onUpdateInitialBalance: (value: number) => void;
-  onAddTransaction: (input: LocalFinanceTransactionInput) => void;
+  onAddTransaction: (
+    input: LocalFinanceTransactionInput,
+  ) => Promise<void> | void;
   onPreviewTransaction: (input: LocalFinanceTransactionInput) => void;
   onClearPreview: () => void;
   isPreviewActive: boolean;
   showPreviewNotice?: boolean;
+  isSubmitting?: boolean;
 };
 
 const inputClassName =
@@ -52,6 +55,7 @@ export function TransactionForm({
   onClearPreview,
   isPreviewActive,
   showPreviewNotice = true,
+  isSubmitting = false,
 }: TransactionFormProps) {
   const [balanceInput, setBalanceInput] = useState(String(initialBalance));
   const [title, setTitle] = useState("");
@@ -197,7 +201,7 @@ export function TransactionForm({
     } satisfies LocalFinanceTransactionInput;
   }
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const transactionInput = buildTransactionInput();
@@ -206,10 +210,13 @@ export function TransactionForm({
       return;
     }
 
-    onAddTransaction(transactionInput);
-
-    resetTransactionForm();
-    onClearPreview();
+    try {
+      await onAddTransaction(transactionInput);
+      resetTransactionForm();
+      onClearPreview();
+    } catch {
+      // A mensagem de erro é tratada no fluxo principal da página.
+    }
   }
 
   function handlePreview() {
@@ -259,6 +266,7 @@ export function TransactionForm({
           <Button
             onClick={handleSaveInitialBalance}
             className="h-11 w-full rounded-2xl"
+            disabled={isSubmitting}
           >
             Salvar saldo inicial
           </Button>
@@ -684,8 +692,12 @@ export function TransactionForm({
               </div>
 
               <div className="space-y-3">
-                <Button type="submit" className="h-11 w-full rounded-2xl">
-                  Salvar lançamento
+                <Button
+                  type="submit"
+                  className="h-11 w-full rounded-2xl"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "Salvando..." : "Salvar lançamento"}
                 </Button>
 
                 <Button

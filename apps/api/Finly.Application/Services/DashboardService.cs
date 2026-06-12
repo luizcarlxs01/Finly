@@ -35,11 +35,17 @@ public class DashboardService : IDashboardService
             .Where(x => x.FinancialProfileId == financialProfileId)
             .ToListAsync(cancellationToken);
 
-        var totalIncome = transactions
+        var today = DateOnly.FromDateTime(DateTime.Today);
+
+        var postedTransactions = transactions
+            .Where(x => x.TransactionDate <= today)
+            .ToList();
+
+        var totalIncome = postedTransactions
             .Where(x => x.Type == TransactionType.Income)
             .Sum(x => x.Amount);
 
-        var totalExpense = transactions
+        var totalExpense = postedTransactions
             .Where(x => x.Type == TransactionType.Expense)
             .Sum(x => x.Amount);
 

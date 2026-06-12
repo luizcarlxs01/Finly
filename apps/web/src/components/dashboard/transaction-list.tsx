@@ -8,8 +8,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import type { Transaction } from "@/types/finance";
 import { TRANSACTION_RECURRENCE_LABELS } from "@/types/transaction";
 import { getTransactionCategoryLabel } from "@/types/transaction-category";
+import {
+  formatBusinessDateBr,
+  formatDisplayDateTime,
+} from "@/utils/date-format";
 
 type TransactionListProps = {
+  disableRemove?: boolean;
+  removeDisabledMessage?: string;
   transactions: Transaction[];
   onEditTransaction: (transaction: Transaction) => void;
   onRemoveTransaction: (id: string) => void;
@@ -23,28 +29,8 @@ const currencyFormatter = new Intl.NumberFormat("pt-BR", {
   currency: "BRL",
 });
 
-const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
-  day: "2-digit",
-  month: "2-digit",
-  year: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-});
-
-const recurrenceDateFormatter = new Intl.DateTimeFormat("pt-BR", {
-  day: "2-digit",
-  month: "2-digit",
-  year: "numeric",
-});
-
-const dateOnlyFormatter = new Intl.DateTimeFormat("pt-BR", {
-  day: "2-digit",
-  month: "2-digit",
-  year: "numeric",
-});
-
 function getTransactionTypeLabel(type: Transaction["type"]) {
-  return type === "income" ? "Entrada" : "Saída";
+  return type === "income" ? "Entrada" : "Saida";
 }
 
 function getTransactionKindLabel(transactionKind: Transaction["transactionKind"]) {
@@ -62,31 +48,29 @@ function getTransactionKindLabel(transactionKind: Transaction["transactionKind"]
     return "Recorrente";
   }
 
-  return "Único";
+  return "Unico";
 }
 
-function formatRecordedAt(createdAt: string) {
-  const createdAtDate = new Date(createdAt);
-
-  if (Number.isNaN(createdAtDate.getTime())) {
-    return null;
+function getTransactionDisplayDate(transaction: Transaction) {
+  if (transaction.transactionKind === "installment-template") {
+    return transaction.installmentStartDate;
   }
 
-  const hasSyntheticMiddayTime =
-    createdAtDate.getHours() === 12 &&
-    createdAtDate.getMinutes() === 0 &&
-    createdAtDate.getSeconds() === 0 &&
-    createdAtDate.getMilliseconds() === 0;
+  if (transaction.transactionKind === "recurring-template") {
+    return transaction.recurrenceStartDate;
+  }
 
-  return hasSyntheticMiddayTime
-    ? {
-        value: dateOnlyFormatter.format(createdAtDate),
-        withTime: false,
-      }
-    : {
-        value: dateFormatter.format(createdAtDate),
-        withTime: true,
-      };
+  return (
+    transaction.occurrenceDate ??
+    transaction.recurringOccurrenceDate ??
+    transaction.createdAt
+  );
+}
+
+function formatTransactionDisplayDate(transaction: Transaction) {
+  const rawDate = getTransactionDisplayDate(transaction);
+
+  return formatDisplayDateTime(rawDate, transaction.createdAt);
 }
 
 function formatRecurringSummary(transaction: Transaction) {
@@ -102,18 +86,18 @@ function formatRecurringSummary(transaction: Transaction) {
 }
 
 function formatRecurringDate(dateValue: string) {
-  const [year, month, day] = dateValue.split("-").map(Number);
-
-  return recurrenceDateFormatter.format(new Date(year, month - 1, day, 12));
+  return formatBusinessDateBr(dateValue) ?? dateValue;
 }
 
 export function TransactionList({
+  disableRemove = false,
+  removeDisabledMessage,
   transactions,
   onEditTransaction,
   onRemoveTransaction,
   getNextRecurringOccurrence,
-  emptyStateTitle = "Nenhuma transação cadastrada",
-  emptyStateDescription = "Assim que você registrar movimentações, elas aparecerão organizadas aqui.",
+  emptyStateTitle = "Nenhuma transacao cadastrada",
+  emptyStateDescription = "Assim que voce registrar movimentacoes, elas aparecerao organizadas aqui.",
 }: TransactionListProps) {
   if (transactions.length === 0) {
     return (
@@ -135,7 +119,7 @@ export function TransactionList({
       {transactions.map((transaction) => {
         const recurringSummary = formatRecurringSummary(transaction);
         const nextRecurringOccurrence = getNextRecurringOccurrence(transaction);
-        const recordedAt = formatRecordedAt(transaction.createdAt);
+        const displayDate = formatTransactionDisplayDate(transaction);
         const isIncome = transaction.type === "income";
 
         return (
@@ -155,11 +139,11 @@ export function TransactionList({
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <CalendarClock className="size-4 shrink-0" />
                         <span className="truncate">
-                          {recordedAt?.withTime
-                            ? recordedAt.value
-                            : recordedAt
-                              ? `${recordedAt.value} · sem horário registrado`
-                              : "Data indisponível"}
+                          {displayDate?.withTime
+                            ? displayDate.value
+                            : displayDate
+                              ? `${displayDate.value} · sem horario registrado`
+                              : "Data indisponivel"}
                         </span>
                       </div>
                     </div>
@@ -211,7 +195,7 @@ export function TransactionList({
                         variant="secondary"
                         className="h-auto rounded-full px-3 py-1"
                       >
-                        Lançamento gerado
+                        Lancamento gerado
                       </Badge>
                     ) : null}
 
@@ -229,7 +213,7 @@ export function TransactionList({
                   nextRecurringOccurrence ? (
                     <div className="rounded-2xl border border-border/60 bg-background/60 px-4 py-3">
                       <p className="text-sm text-muted-foreground">
-                        Próxima ocorrência:{" "}
+                        Proxima ocorrencia:{" "}
                         <span className="font-medium text-foreground">
                           {formatRecurringDate(nextRecurringOccurrence)}
                         </span>
@@ -242,7 +226,7 @@ export function TransactionList({
                     <div className="rounded-2xl border border-border/60 bg-background/60 px-4 py-3">
                       <div className="space-y-1 text-sm text-muted-foreground">
                         <p>
-                          Competência gerada:{" "}
+                          Competencia gerada:{" "}
                           <span className="font-medium text-foreground">
                             {formatRecurringDate(transaction.recurringOccurrenceDate)}
                           </span>
@@ -250,7 +234,7 @@ export function TransactionList({
 
                         {nextRecurringOccurrence ? (
                           <p>
-                            Próximo lançamento:{" "}
+                            Proximo lancamento:{" "}
                             <span className="font-medium text-foreground">
                               {formatRecurringDate(nextRecurringOccurrence)}
                             </span>
@@ -275,6 +259,8 @@ export function TransactionList({
                   <Button
                     type="button"
                     variant="destructive"
+                    disabled={disableRemove}
+                    title={disableRemove ? removeDisabledMessage : undefined}
                     onClick={() => onRemoveTransaction(transaction.id)}
                     className="h-10 rounded-2xl"
                   >

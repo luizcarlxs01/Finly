@@ -13,14 +13,22 @@ import {
 import { FinanceSummaryCard } from "@/components/dashboard/finance-summary-card";
 import { ScheduleModal } from "@/components/dashboard/overlays/schedule-modal";
 import { StatementProjectionModal } from "@/components/dashboard/overlays/statement-projection-modal";
+import {
+  TransactionAdvancedFilters,
+} from "@/components/dashboard/transaction-advanced-filters";
+import { TransactionFilterTabs } from "@/components/dashboard/transaction-filter-tabs";
 import { TransactionForm } from "@/components/dashboard/transaction-form";
+import { TransactionList } from "@/components/dashboard/transaction-list";
 import { Button } from "@/components/ui/button";
 import type { LocalFinanceTransactionInput } from "@/hooks/use-local-finance";
 import type { Transaction, TransactionFilter } from "@/types/finance";
-import type { UpcomingTransactionsMonthGroup } from "@/utils/upcoming-transactions";
 import type { TransactionSortOption } from "@/components/dashboard/transaction-advanced-filters";
+import type { UpcomingTransactionsMonthGroup } from "@/utils/upcoming-transactions";
 
 type DashboardTransactionsViewProps = {
+  isApiMode?: boolean;
+  pendingFeatureMessage?: string;
+  isSubmitting?: boolean;
   initialBalance: number;
   totalIncome: number;
   totalExpense: number;
@@ -59,6 +67,9 @@ const currencyFormatter = new Intl.NumberFormat("pt-BR", {
 });
 
 export function DashboardTransactionsView({
+  isApiMode = false,
+  pendingFeatureMessage,
+  isSubmitting = false,
   initialBalance,
   totalIncome,
   totalExpense,
@@ -132,6 +143,8 @@ export function DashboardTransactionsView({
                 </Button>
               </div>
             </div>
+
+            {isApiMode && pendingFeatureMessage ? null : null}
           </div>
 
           <div id="resumo-financeiro">
@@ -173,6 +186,7 @@ export function DashboardTransactionsView({
                     onClearPreview={onClearPreview}
                     isPreviewActive={isPreviewActive}
                     showPreviewNotice={false}
+                    isSubmitting={isSubmitting}
                   />
                 </div>
 
@@ -330,6 +344,52 @@ export function DashboardTransactionsView({
               </Button>
             </div>
           </div>
+        </section>
+
+        <section className="space-y-4">
+          <div className="rounded-[1.75rem] border border-border/70 bg-card/95 p-5 shadow-sm sm:p-6">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <h3 className="text-xl font-semibold tracking-tight text-foreground">
+                  Lista de lançamentos
+                </h3>
+                <p className="text-sm leading-6 text-muted-foreground">
+                  Encontre uma movimentação e use o botão{" "}
+                  <span className="font-medium text-foreground">Editar</span> em
+                  cada item para abrir o modal principal.
+                </p>
+              </div>
+
+              <TransactionFilterTabs
+                value={transactionFilter}
+                onChange={onTransactionFilterChange}
+              />
+
+              <TransactionAdvancedFilters
+                searchValue={searchTerm}
+                onSearchChange={onSearchTermChange}
+                categoryValue={categoryFilter}
+                onCategoryChange={onCategoryFilterChange}
+                sortValue={sortOption}
+                onSortChange={onSortOptionChange}
+                resultCount={filteredTransactions.length}
+                totalCount={statementTransactions.length}
+                hasActiveFilters={
+                  transactionFilter !== "all" || hasActiveAdvancedFilters
+                }
+                onClearFilters={onClearAdvancedFilters}
+              />
+            </div>
+          </div>
+
+          <TransactionList
+            transactions={filteredTransactions}
+            onEditTransaction={onEditTransaction}
+            onRemoveTransaction={onRemoveTransaction}
+            getNextRecurringOccurrence={getNextRecurringOccurrence}
+            emptyStateTitle={emptyStateTitle}
+            emptyStateDescription={emptyStateDescription}
+          />
         </section>
       </div>
 

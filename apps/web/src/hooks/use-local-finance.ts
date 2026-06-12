@@ -260,6 +260,33 @@ function getTransactionCreatedAt(
   return normalizedDate ? normalizedDate.toISOString() : new Date().toISOString();
 }
 
+function isDateOnOrBeforeToday(dateValue: string | null | undefined) {
+  const normalizedDate = parseDateValue(dateValue);
+  const todayDate = parseDateValue(getTodayDateValue());
+
+  if (!normalizedDate || !todayDate) {
+    return true;
+  }
+
+  return normalizedDate.getTime() <= todayDate.getTime();
+}
+
+function getTransactionPostingDate(transaction: Transaction) {
+  if (transaction.transactionKind === "recurring-template") {
+    return transaction.recurrenceStartDate;
+  }
+
+  if (transaction.transactionKind === "installment-template") {
+    return transaction.installmentStartDate;
+  }
+
+  return (
+    transaction.occurrenceDate ??
+    transaction.recurringOccurrenceDate ??
+    transaction.createdAt
+  );
+}
+
 function normalizeProfile(profile: LocalFinanceProfile): LocalFinanceProfile {
   return applyTransactionAutomation({
     initialBalance: profile.initialBalance ?? 0,
@@ -302,7 +329,8 @@ export function useLocalFinance() {
     return profile.transactions.filter(
       (transaction) =>
         transaction.transactionKind !== "recurring-template" &&
-        transaction.transactionKind !== "installment-template",
+        transaction.transactionKind !== "installment-template" &&
+        isDateOnOrBeforeToday(getTransactionPostingDate(transaction)),
     );
   }, [profile.transactions]);
 
@@ -346,7 +374,10 @@ export function useLocalFinance() {
       category: normalizedInput.category,
       transactionKind: normalizedInput.transactionKind,
       sourceId: null,
-      occurrenceDate: null,
+      occurrenceDate:
+        normalizedInput.transactionKind === "single"
+          ? normalizedInput.transactionDate
+          : null,
       installmentIndex: null,
       installmentCount: normalizedInput.installmentCount,
       installmentStartDate: normalizedInput.installmentStartDate,
@@ -389,7 +420,10 @@ export function useLocalFinance() {
       category: normalizedInput.category,
       transactionKind: normalizedInput.transactionKind,
       sourceId: null,
-      occurrenceDate: null,
+      occurrenceDate:
+        normalizedInput.transactionKind === "single"
+          ? normalizedInput.transactionDate
+          : null,
       installmentIndex: null,
       installmentCount: normalizedInput.installmentCount,
       installmentStartDate: normalizedInput.installmentStartDate,
@@ -490,7 +524,10 @@ export function useLocalFinance() {
                   : transaction.createdAt,
               transactionKind: nextTransactionKind,
               sourceId: null,
-              occurrenceDate: null,
+              occurrenceDate:
+                nextTransactionKind === "single"
+                  ? normalizedInput.transactionDate
+                  : null,
               installmentIndex: null,
               installmentCount:
                 nextTransactionKind === "installment-template"

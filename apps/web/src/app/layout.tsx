@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Script from "next/script";
+import { FinanceSourceProvider } from "@/contexts/finance-source-context";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -34,7 +35,7 @@ export default function RootLayout({
         <Script id="finly-theme-init" strategy="beforeInteractive">
           {themeInitializationScript}
         </Script>
-        {children}
+        <FinanceSourceProvider>{children}</FinanceSourceProvider>
       </body>
     </html>
   );

@@ -11,13 +11,14 @@ import {
 } from "@/types/transaction-category";
 
 type GoalFormProps = {
+  isSubmitting?: boolean;
   onAddGoal: (input: {
     title: string;
     targetAmount: number;
     currentAmount: number;
     category: string;
     deadline?: string;
-  }) => void;
+  }) => Promise<void> | void;
 };
 
 const fieldClassName =
@@ -27,14 +28,17 @@ function getTodayDateValue() {
   return new Date().toISOString().split("T")[0];
 }
 
-export function GoalForm({ onAddGoal }: GoalFormProps) {
+export function GoalForm({
+  isSubmitting = false,
+  onAddGoal,
+}: GoalFormProps) {
   const [title, setTitle] = useState("");
   const [targetAmount, setTargetAmount] = useState("");
   const [currentAmount, setCurrentAmount] = useState("");
   const [category, setCategory] = useState("general");
   const [deadline, setDeadline] = useState("");
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const parsedTargetAmount = Number(targetAmount);
@@ -51,19 +55,23 @@ export function GoalForm({ onAddGoal }: GoalFormProps) {
       return;
     }
 
-    onAddGoal({
-      title: normalizedTitle,
-      targetAmount: parsedTargetAmount,
-      currentAmount: parsedCurrentAmount,
-      category,
-      deadline: deadline || undefined,
-    });
+    try {
+      await onAddGoal({
+        title: normalizedTitle,
+        targetAmount: parsedTargetAmount,
+        currentAmount: parsedCurrentAmount,
+        category,
+        deadline: deadline || undefined,
+      });
 
-    setTitle("");
-    setTargetAmount("");
-    setCurrentAmount("");
-    setCategory("general");
-    setDeadline("");
+      setTitle("");
+      setTargetAmount("");
+      setCurrentAmount("");
+      setCategory("general");
+      setDeadline("");
+    } catch {
+      // A mensagem de erro e tratada no fluxo principal da pagina.
+    }
   }
 
   return (
@@ -235,8 +243,12 @@ export function GoalForm({ onAddGoal }: GoalFormProps) {
               </p>
             </div>
 
-            <Button type="submit" className="h-11 w-full rounded-2xl">
-              Salvar meta
+            <Button
+              type="submit"
+              className="h-11 w-full rounded-2xl"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Salvando..." : "Salvar meta"}
             </Button>
           </section>
         </form>

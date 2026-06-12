@@ -7,8 +7,9 @@ import type { Goal } from "@/types/goal";
 type GoalProgressModalProps = {
   goal: Goal | null;
   open: boolean;
+  isSubmitting?: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (input: { id: string; currentAmount: number }) => void;
+  onSave: (input: { id: string; currentAmount: number }) => Promise<void> | void;
 };
 
 const fieldClassName =
@@ -17,12 +18,21 @@ const fieldClassName =
 export function GoalProgressModal({
   goal,
   open,
+  isSubmitting = false,
   onOpenChange,
   onSave,
 }: GoalProgressModalProps) {
   const [currentAmount, setCurrentAmount] = useState(
     goal ? String(goal.currentAmount) : "",
   );
+
+  useEffect(() => {
+    if (!open || !goal) {
+      return;
+    }
+
+    setCurrentAmount(String(goal.currentAmount));
+  }, [goal, open]);
 
   useEffect(() => {
     if (!open) {
@@ -50,7 +60,7 @@ export function GoalProgressModal({
     return null;
   }
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!goal) {
@@ -63,12 +73,15 @@ export function GoalProgressModal({
       return;
     }
 
-    onSave({
-      id: goal.id,
-      currentAmount: parsedCurrentAmount,
-    });
-
-    onOpenChange(false);
+    try {
+      await onSave({
+        id: goal.id,
+        currentAmount: parsedCurrentAmount,
+      });
+      onOpenChange(false);
+    } catch {
+      // A mensagem de erro e tratada no fluxo principal da pagina.
+    }
   }
 
   return (
@@ -129,13 +142,14 @@ export function GoalProgressModal({
               type="button"
               variant="outline"
               className="rounded-xl"
+              disabled={isSubmitting}
               onClick={() => onOpenChange(false)}
             >
               Cancelar
             </Button>
 
-            <Button type="submit" className="rounded-xl">
-              Salvar
+            <Button type="submit" className="rounded-xl" disabled={isSubmitting}>
+              {isSubmitting ? "Salvando..." : "Salvar"}
             </Button>
           </div>
         </form>
