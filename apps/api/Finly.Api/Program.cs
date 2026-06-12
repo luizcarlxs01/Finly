@@ -3,6 +3,7 @@ using Finly.Application.Services;
 using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
+
 var allowedOrigins = builder.Configuration
     .GetSection("Cors:AllowedOrigins")
     .Get<string[]>()
@@ -54,11 +55,6 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("Frontend", policy =>
     {
-        if (allowedOrigins.Length == 0)
-        {
-            return;
-        }
-
         policy
             .WithOrigins(allowedOrigins)
             .AllowAnyHeader()
@@ -78,6 +74,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseRouting();
 
 app.UseCors("Frontend");
 
