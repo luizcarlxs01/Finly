@@ -20,8 +20,6 @@ function renderTransactionForm(
   overrides: Partial<React.ComponentProps<typeof TransactionForm>> = {},
 ) {
   const props: React.ComponentProps<typeof TransactionForm> = {
-    initialBalance: 1000,
-    onUpdateInitialBalance: vi.fn(),
     onAddTransaction: vi.fn(),
     onPreviewTransaction: vi.fn(),
     onClearPreview: vi.fn(),
@@ -43,15 +41,13 @@ describe("TransactionForm", () => {
   it("deve renderizar os campos principais com defaults relevantes do modo unico", () => {
     renderTransactionForm();
 
-    expect(screen.getByLabelText("Saldo atual")).toHaveValue(1000);
-    expect(
-      screen.getByRole("button", { name: "Salvar saldo inicial" }),
-    ).toBeInTheDocument();
     expect(screen.getByLabelText("T\u00edtulo")).toHaveValue("");
     expect(screen.getByLabelText("Valor")).toHaveValue(null);
-    expect(screen.getByLabelText("Entrada ou sa\u00edda")).toHaveValue("expense");
+    expect(screen.getByLabelText("Natureza")).toHaveValue("expense");
     expect(screen.getByLabelText("Categoria")).toHaveValue("geral");
-    expect(screen.getByLabelText("Data")).toHaveValue("2026-04-10");
+    expect(screen.getByLabelText("Data do lan\u00e7amento")).toHaveValue(
+      "2026-04-10",
+    );
     expect(
       screen.queryByLabelText("Quantidade de parcelas"),
     ).not.toBeInTheDocument();
@@ -64,23 +60,6 @@ describe("TransactionForm", () => {
     expect(
       screen.getByRole("button", { name: /Simular impacto/i }),
     ).toBeInTheDocument();
-  });
-
-  it("deve salvar o saldo inicial com o valor informado", async () => {
-    const user = userEvent.setup();
-    const onUpdateInitialBalance = vi.fn();
-
-    renderTransactionForm({ onUpdateInitialBalance });
-
-    const balanceInput = screen.getByLabelText("Saldo atual");
-
-    await user.clear(balanceInput);
-    await user.type(balanceInput, "2450.75");
-    await user.click(
-      screen.getByRole("button", { name: "Salvar saldo inicial" }),
-    );
-
-    expect(onUpdateInitialBalance).toHaveBeenCalledWith(2450.75);
   });
 
   it("deve enviar um lancamento unico com os dados minimos validos", async () => {
@@ -120,13 +99,13 @@ describe("TransactionForm", () => {
 
     await user.type(screen.getByLabelText("T\u00edtulo"), "  Mercado do m\u00eas  ");
     await user.type(screen.getByLabelText("Valor"), "250.5");
-    await user.selectOptions(
-      screen.getByLabelText("Entrada ou sa\u00edda"),
-      "income",
-    );
+    await user.selectOptions(screen.getByLabelText("Natureza"), "income");
     await user.selectOptions(screen.getByLabelText("Categoria"), "salario");
-    await user.clear(screen.getByLabelText("Data"));
-    await user.type(screen.getByLabelText("Data"), "2026-04-15");
+    await user.clear(screen.getByLabelText("Data do lan\u00e7amento"));
+    await user.type(
+      screen.getByLabelText("Data do lan\u00e7amento"),
+      "2026-04-15",
+    );
     await user.click(
       screen.getByRole("button", { name: "Salvar lan\u00e7amento" }),
     );
@@ -147,9 +126,11 @@ describe("TransactionForm", () => {
 
     expect(screen.getByLabelText("T\u00edtulo")).toHaveValue("");
     expect(screen.getByLabelText("Valor")).toHaveValue(null);
-    expect(screen.getByLabelText("Entrada ou sa\u00edda")).toHaveValue("expense");
+    expect(screen.getByLabelText("Natureza")).toHaveValue("expense");
     expect(screen.getByLabelText("Categoria")).toHaveValue("geral");
-    expect(screen.getByLabelText("Data")).toHaveValue("2026-04-10");
+    expect(screen.getByLabelText("Data do lan\u00e7amento")).toHaveValue(
+      "2026-04-10",
+    );
   });
 
   it("deve exibir campos de parcelamento e simular impacto com os dados corretos", async () => {
@@ -161,16 +142,23 @@ describe("TransactionForm", () => {
     await user.click(screen.getByRole("button", { name: /Parcelado/i }));
 
     expect(screen.getByLabelText("Quantidade de parcelas")).toHaveValue(2);
-    expect(screen.getByLabelText("Primeira parcela")).toHaveValue("2026-04-10");
-    expect(screen.queryByLabelText("Data")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Data da primeira parcela")).toHaveValue(
+      "2026-04-10",
+    );
+    expect(
+      screen.queryByLabelText("Data do lan\u00e7amento"),
+    ).not.toBeInTheDocument();
 
     await user.type(screen.getByLabelText("T\u00edtulo"), "Notebook");
     await user.type(screen.getByLabelText("Valor"), "3000");
     await user.selectOptions(screen.getByLabelText("Categoria"), "compras");
     await user.clear(screen.getByLabelText("Quantidade de parcelas"));
     await user.type(screen.getByLabelText("Quantidade de parcelas"), "10");
-    await user.clear(screen.getByLabelText("Primeira parcela"));
-    await user.type(screen.getByLabelText("Primeira parcela"), "2026-05-01");
+    await user.clear(screen.getByLabelText("Data da primeira parcela"));
+    await user.type(
+      screen.getByLabelText("Data da primeira parcela"),
+      "2026-05-01",
+    );
     await user.click(screen.getByRole("button", { name: /Simular impacto/i }));
 
     expect(onPreviewTransaction).toHaveBeenCalledWith({

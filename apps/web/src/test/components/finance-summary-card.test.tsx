@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 
 import { FinanceSummaryCard } from "@/components/dashboard/finance-summary-card";
@@ -16,6 +16,13 @@ function renderFinanceSummaryCard(
     totalIncome: 2500,
     totalExpense: 900,
     currentBalance: 2600,
+    forecastTotalIncome: 2500,
+    forecastTotalExpense: 900,
+    forecastProjectedBalance: 2600,
+    isPreviewActive: false,
+    onClearPreview: vi.fn(),
+    onUpdateInitialBalance: vi.fn(),
+    nextUpcomingMonthLabel: null,
     ...overrides,
   };
 
@@ -26,19 +33,21 @@ function renderFinanceSummaryCard(
 }
 
 function getCard() {
-  return screen.getByText("Resumo financeiro").closest('[data-slot="card"]');
+  return screen.getByText("Resumo financeiro").closest(
+    '[data-slot="card"]',
+  ) as HTMLElement | null;
 }
 
 function getByExactText(scope: ReturnType<typeof within>, value: string) {
   return scope.getByText(
-    (_, element) =>
+    (_: string, element: Element | null) =>
       element?.textContent === value && (element.children.length ?? 0) === 0,
   );
 }
 
 function getAllByExactText(scope: ReturnType<typeof within>, value: string) {
   return scope.getAllByText(
-    (_, element) =>
+    (_: string, element: Element | null) =>
       element?.textContent === value && (element.children.length ?? 0) === 0,
   );
 }
@@ -48,12 +57,12 @@ describe("FinanceSummaryCard", () => {
     renderFinanceSummaryCard();
 
     expect(screen.getByText("Resumo financeiro")).toBeInTheDocument();
-    expect(
-      screen.getByText("Um resumo rápido do momento atual."),
-    ).toBeInTheDocument();
     expect(screen.getByText("Saldo atual")).toBeInTheDocument();
     expect(screen.getByText("Entradas")).toBeInTheDocument();
     expect(screen.getByText("Saídas")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Alterar saldo" }),
+    ).toBeInTheDocument();
 
     const scope = within(getCard()!);
 
@@ -62,7 +71,7 @@ describe("FinanceSummaryCard", () => {
     expect(getByExactText(scope, currencyFormatter.format(900))).toBeInTheDocument();
     expect(
       screen.getByText(
-        (_, element) =>
+        (_: string, element: Element | null) =>
           element?.textContent === `Base inicial: ${currencyFormatter.format(1000)}`,
       ),
     ).toBeInTheDocument();
@@ -74,6 +83,9 @@ describe("FinanceSummaryCard", () => {
       totalIncome: 0,
       totalExpense: 0,
       currentBalance: 0,
+      forecastTotalIncome: 0,
+      forecastTotalExpense: 0,
+      forecastProjectedBalance: 0,
     });
 
     const scope = within(getCard()!);
@@ -81,7 +93,7 @@ describe("FinanceSummaryCard", () => {
     expect(getAllByExactText(scope, currencyFormatter.format(0))).toHaveLength(3);
     expect(
       screen.getByText(
-        (_, element) =>
+        (_: string, element: Element | null) =>
           element?.textContent === `Base inicial: ${currencyFormatter.format(0)}`,
       ),
     ).toBeInTheDocument();
@@ -93,13 +105,31 @@ describe("FinanceSummaryCard", () => {
       totalIncome: 0,
       totalExpense: 500,
       currentBalance: -300,
+      forecastTotalIncome: 0,
+      forecastTotalExpense: 500,
+      forecastProjectedBalance: -300,
     });
 
-    expect(screen.getByText("Saldo atual")).toBeInTheDocument();
     const scope = within(getCard()!);
 
     expect(getByExactText(scope, currencyFormatter.format(-300))).toBeInTheDocument();
     expect(getByExactText(scope, currencyFormatter.format(0))).toBeInTheDocument();
     expect(getByExactText(scope, currencyFormatter.format(500))).toBeInTheDocument();
+  });
+
+  it("deve exibir a simulacao no proprio resumo quando estiver ativa", () => {
+    renderFinanceSummaryCard({
+      isPreviewActive: true,
+      forecastTotalIncome: 3100,
+      forecastTotalExpense: 1200,
+      forecastProjectedBalance: 2900,
+    });
+
+    const scope = within(getCard()!);
+
+    expect(screen.getByText("Simulação ativa")).toBeInTheDocument();
+    expect(getByExactText(scope, currencyFormatter.format(2900))).toBeInTheDocument();
+    expect(getByExactText(scope, currencyFormatter.format(3100))).toBeInTheDocument();
+    expect(getByExactText(scope, currencyFormatter.format(1200))).toBeInTheDocument();
   });
 });

@@ -1,13 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  CalendarDays,
-  CircleDollarSign,
-  Layers3,
-  RefreshCcw,
-  Sparkles,
-} from "lucide-react";
+import { CalendarDays, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,8 +26,6 @@ type TransactionEditorKind =
   | "recurring-template";
 
 type TransactionFormProps = {
-  initialBalance: number;
-  onUpdateInitialBalance: (value: number) => void;
   onAddTransaction: (
     input: LocalFinanceTransactionInput,
   ) => Promise<void> | void;
@@ -48,8 +40,6 @@ const inputClassName =
   "w-full rounded-2xl border border-border/70 bg-background px-4 py-3 text-sm text-foreground outline-none transition placeholder:text-muted-foreground/80 focus:border-primary focus:ring-2 focus:ring-primary/15";
 
 export function TransactionForm({
-  initialBalance,
-  onUpdateInitialBalance,
   onAddTransaction,
   onPreviewTransaction,
   onClearPreview,
@@ -57,7 +47,6 @@ export function TransactionForm({
   showPreviewNotice = true,
   isSubmitting = false,
 }: TransactionFormProps) {
-  const [balanceInput, setBalanceInput] = useState(String(initialBalance));
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
   const [type, setType] = useState<TransactionType>("expense");
@@ -75,16 +64,6 @@ export function TransactionForm({
     useState<TransactionRecurrenceMode>("indefinite");
   const [recurrenceEndDate, setRecurrenceEndDate] = useState(getTodayDateValue());
   const [recurrenceMonths, setRecurrenceMonths] = useState("3");
-
-  function handleSaveInitialBalance() {
-    const parsedValue = Number(balanceInput);
-
-    if (Number.isNaN(parsedValue)) {
-      return;
-    }
-
-    onUpdateInitialBalance(parsedValue);
-  }
 
   function resetTransactionForm() {
     setTitle("");
@@ -230,156 +209,17 @@ export function TransactionForm({
   }
 
   return (
-    <div className="space-y-5">
-      <Card className="rounded-[1.5rem] border-border/60 bg-card/95 shadow-sm">
-        <CardHeader className="space-y-1 pb-3">
-          <CardTitle className="text-xl font-semibold tracking-tight">
-            Saldo inicial
-          </CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Defina o valor de partida da sua visão financeira.
-          </p>
-        </CardHeader>
+    <Card className="rounded-[1.5rem] border-border/60 bg-card/95 shadow-sm">
+      <CardHeader className="space-y-1 pb-4">
+        <CardTitle className="text-xl font-semibold tracking-tight">
+          Novo lançamento
+        </CardTitle>
+      </CardHeader>
 
-        <CardContent className="space-y-3">
-          <div className="rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
-            <div className="space-y-2">
-              <label
-                htmlFor="initial-balance"
-                className="text-sm font-medium text-foreground"
-              >
-                Saldo atual
-              </label>
-
-              <input
-                id="initial-balance"
-                type="number"
-                step="0.01"
-                value={balanceInput}
-                onChange={(event) => setBalanceInput(event.target.value)}
-                className={inputClassName}
-                placeholder="Ex.: 1500.00"
-              />
-            </div>
-          </div>
-
-          <Button
-            onClick={handleSaveInitialBalance}
-            className="h-11 w-full rounded-2xl"
-            disabled={isSubmitting}
-          >
-            Salvar saldo inicial
-          </Button>
-        </CardContent>
-      </Card>
-
-      <Card className="rounded-[1.5rem] border-border/60 bg-card/95 shadow-sm">
-        <CardHeader className="space-y-1 pb-4">
-          <CardTitle className="text-xl font-semibold tracking-tight">
-            Novo lançamento
-          </CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Preencha só o necessário para registrar sua movimentação.
-          </p>
-        </CardHeader>
-
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <section className="space-y-3 rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
-              <div className="space-y-1">
-                <h3 className="text-base font-semibold text-foreground">
-                  Como esse lançamento funciona
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  Escolha se ele é único, parcelado ou recorrente.
-                </p>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-3">
-                <button
-                  type="button"
-                  onClick={() => setTransactionKind("single")}
-                  className={`rounded-[1.25rem] border px-4 py-4 text-left transition ${
-                    transactionKind === "single"
-                      ? "border-primary bg-primary/10"
-                      : "border-border/60 bg-card/75 hover:border-border"
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <span className="mt-0.5 text-primary">
-                      <CircleDollarSign className="size-5" />
-                    </span>
-                    <div>
-                      <p className="text-sm font-semibold text-foreground">
-                        Único
-                      </p>
-                      <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                        Para um lançamento em uma data específica.
-                      </p>
-                    </div>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setTransactionKind("installment-template")}
-                  className={`rounded-[1.25rem] border px-4 py-4 text-left transition ${
-                    transactionKind === "installment-template"
-                      ? "border-primary bg-primary/10"
-                      : "border-border/60 bg-card/75 hover:border-border"
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <span className="mt-0.5 text-primary">
-                      <Layers3 className="size-5" />
-                    </span>
-                    <div>
-                      <p className="text-sm font-semibold text-foreground">
-                        Parcelado
-                      </p>
-                      <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                        Para dividir o valor em parcelas mensais.
-                      </p>
-                    </div>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setTransactionKind("recurring-template")}
-                  className={`rounded-[1.25rem] border px-4 py-4 text-left transition ${
-                    transactionKind === "recurring-template"
-                      ? "border-primary bg-primary/10"
-                      : "border-border/60 bg-card/75 hover:border-border"
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <span className="mt-0.5 text-primary">
-                      <RefreshCcw className="size-5" />
-                    </span>
-                    <div>
-                      <p className="text-sm font-semibold text-foreground">
-                        Recorrente
-                      </p>
-                      <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                        Para algo que se repete mês a mês.
-                      </p>
-                    </div>
-                  </div>
-                </button>
-              </div>
-            </section>
-
-            <section className="space-y-4 rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
-              <div className="space-y-1">
-                <h3 className="text-base font-semibold text-foreground">
-                  Informações principais
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  Preencha os dados para identificar esse lançamento.
-                </p>
-              </div>
-
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <section className="space-y-4 rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
+            <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <label
                   htmlFor="transaction-title"
@@ -416,323 +256,319 @@ export function TransactionForm({
                   placeholder="Ex.: 250.00"
                 />
               </div>
+            </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <label
-                    htmlFor="transaction-type"
-                    className="text-sm font-medium text-foreground"
-                  >
-                    Entrada ou saída
-                  </label>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <label
+                  htmlFor="transaction-type"
+                  className="text-sm font-medium text-foreground"
+                >
+                  Natureza
+                </label>
 
-                  <select
-                    id="transaction-type"
-                    value={type}
-                    onChange={(event) =>
-                      setType(event.target.value as TransactionType)
-                    }
-                    className={inputClassName}
-                  >
-                    <option value="expense">Saída</option>
-                    <option value="income">Entrada</option>
-                  </select>
-                </div>
+                <select
+                  id="transaction-type"
+                  value={type}
+                  onChange={(event) =>
+                    setType(event.target.value as TransactionType)
+                  }
+                  className={inputClassName}
+                >
+                  <option value="expense">Saída</option>
+                  <option value="income">Entrada</option>
+                </select>
+              </div>
 
-                <div className="space-y-2">
-                  <label
-                    htmlFor="transaction-category"
-                    className="text-sm font-medium text-foreground"
-                  >
-                    Categoria
-                  </label>
+              <div className="space-y-2">
+                <label
+                  htmlFor="transaction-category"
+                  className="text-sm font-medium text-foreground"
+                >
+                  Categoria
+                </label>
 
-                  <select
-                    id="transaction-category"
-                    value={category}
-                    onChange={(event) => setCategory(event.target.value)}
-                    className={inputClassName}
-                    required
-                  >
-                    {TRANSACTION_CATEGORIES.map((currentCategory) => (
-                      <option key={currentCategory} value={currentCategory}>
-                        {getTransactionCategoryLabel(currentCategory)}
-                      </option>
-                    ))}
-                  </select>
+                <select
+                  id="transaction-category"
+                  value={category}
+                  onChange={(event) => setCategory(event.target.value)}
+                  className={inputClassName}
+                  required
+                >
+                  {TRANSACTION_CATEGORIES.map((currentCategory) => (
+                    <option key={currentCategory} value={currentCategory}>
+                      {getTransactionCategoryLabel(currentCategory)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </section>
+
+          <section className="space-y-3 rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
+            <label className="text-sm font-medium text-foreground">
+              Tipo de lançamento
+            </label>
+
+            <div className="grid gap-3 sm:grid-cols-3">
+              {[
+                { value: "single", label: "Único" },
+                { value: "installment-template", label: "Parcelado" },
+                { value: "recurring-template", label: "Recorrente" },
+              ].map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() =>
+                    setTransactionKind(option.value as TransactionEditorKind)
+                  }
+                  className={`rounded-[1.25rem] border px-4 py-3 text-sm font-medium transition ${
+                    transactionKind === option.value
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border/60 bg-card/75 text-foreground hover:border-border"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </section>
+
+          {transactionKind === "single" ? (
+            <section className="space-y-3 rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
+              <div className="space-y-2">
+                <label
+                  htmlFor="transaction-date"
+                  className="text-sm font-medium text-foreground"
+                >
+                  Data do lançamento
+                </label>
+
+                <div className="relative">
+                  <CalendarDays className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    id="transaction-date"
+                    type="date"
+                    value={transactionDate}
+                    onChange={(event) => setTransactionDate(event.target.value)}
+                    className={`${inputClassName} pl-11`}
+                  />
                 </div>
               </div>
             </section>
+          ) : null}
 
-            {transactionKind === "single" ? (
-              <section className="space-y-3 rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
-                <div className="space-y-1">
-                  <h3 className="text-base font-semibold text-foreground">
-                    Data do lançamento
-                  </h3>
+          {transactionKind === "installment-template" ? (
+            <section className="space-y-4 rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <label
+                    htmlFor="transaction-installment-count"
+                    className="text-sm font-medium text-foreground"
+                  >
+                    Quantidade de parcelas
+                  </label>
+
+                  <input
+                    id="transaction-installment-count"
+                    type="number"
+                    min="2"
+                    value={installmentCount}
+                    onChange={(event) =>
+                      setInstallmentCount(event.target.value)
+                    }
+                    className={inputClassName}
+                    placeholder="Ex.: 12"
+                  />
                 </div>
 
                 <div className="space-y-2">
                   <label
-                    htmlFor="transaction-date"
+                    htmlFor="transaction-installment-start-date"
                     className="text-sm font-medium text-foreground"
                   >
-                    Data
+                    Data da primeira parcela
                   </label>
 
                   <div className="relative">
                     <CalendarDays className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                     <input
-                      id="transaction-date"
+                      id="transaction-installment-start-date"
                       type="date"
-                      value={transactionDate}
-                      onChange={(event) => setTransactionDate(event.target.value)}
+                      value={installmentStartDate}
+                      onChange={(event) =>
+                        setInstallmentStartDate(event.target.value)
+                      }
                       className={`${inputClassName} pl-11`}
                     />
                   </div>
                 </div>
-              </section>
-            ) : null}
+              </div>
+            </section>
+          ) : null}
 
-            {transactionKind === "installment-template" ? (
-              <section className="space-y-4 rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
-                <div className="space-y-1">
-                  <h3 className="text-base font-semibold text-foreground">
-                    Parcelamento
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Escolha a quantidade de parcelas e a data da primeira.
-                  </p>
-                </div>
+          {transactionKind === "recurring-template" ? (
+            <section className="space-y-4 rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <label
+                    htmlFor="transaction-recurrence-day"
+                    className="text-sm font-medium text-foreground"
+                  >
+                    Dia da recorrência
+                  </label>
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <label
-                      htmlFor="transaction-installment-count"
-                      className="text-sm font-medium text-foreground"
-                    >
-                      Quantidade de parcelas
-                    </label>
-
-                    <input
-                      id="transaction-installment-count"
-                      type="number"
-                      min="2"
-                      value={installmentCount}
-                      onChange={(event) =>
-                        setInstallmentCount(event.target.value)
-                      }
-                      className={inputClassName}
-                      placeholder="Ex.: 12"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label
-                      htmlFor="transaction-installment-start-date"
-                      className="text-sm font-medium text-foreground"
-                    >
-                      Primeira parcela
-                    </label>
-
-                    <div className="relative">
-                      <CalendarDays className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                      <input
-                        id="transaction-installment-start-date"
-                        type="date"
-                        value={installmentStartDate}
-                        onChange={(event) =>
-                          setInstallmentStartDate(event.target.value)
-                        }
-                        className={`${inputClassName} pl-11`}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </section>
-            ) : null}
-
-            {transactionKind === "recurring-template" ? (
-              <section className="space-y-4 rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
-                <div className="space-y-1">
-                  <h3 className="text-base font-semibold text-foreground">
-                    Recorrência
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Defina quando esse lançamento se repete e por quanto tempo.
-                  </p>
-                </div>
-
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <label
-                      htmlFor="transaction-recurrence-day"
-                      className="text-sm font-medium text-foreground"
-                    >
-                      Dia da recorrência
-                    </label>
-
-                    <input
-                      id="transaction-recurrence-day"
-                      type="number"
-                      min="1"
-                      max="31"
-                      value={recurrenceDay}
-                      onChange={(event) => setRecurrenceDay(event.target.value)}
-                      className={inputClassName}
-                      placeholder="Ex.: 10"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label
-                      htmlFor="transaction-recurrence-start-date"
-                      className="text-sm font-medium text-foreground"
-                    >
-                      Data de início
-                    </label>
-
-                    <div className="relative">
-                      <CalendarDays className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                      <input
-                        id="transaction-recurrence-start-date"
-                        type="date"
-                        value={recurrenceStartDate}
-                        onChange={(event) =>
-                          setRecurrenceStartDate(event.target.value)
-                        }
-                        className={`${inputClassName} pl-11`}
-                      />
-                    </div>
-                  </div>
+                  <input
+                    id="transaction-recurrence-day"
+                    type="number"
+                    min="1"
+                    max="31"
+                    value={recurrenceDay}
+                    onChange={(event) => setRecurrenceDay(event.target.value)}
+                    className={inputClassName}
+                    placeholder="Ex.: 10"
+                  />
                 </div>
 
                 <div className="space-y-2">
                   <label
-                    htmlFor="transaction-recurrence-mode"
+                    htmlFor="transaction-recurrence-start-date"
                     className="text-sm font-medium text-foreground"
                   >
-                    Até quando repetir
+                    Data de início
                   </label>
 
-                  <select
-                    id="transaction-recurrence-mode"
-                    value={recurrenceMode}
-                    onChange={(event) =>
-                      setRecurrenceMode(
-                        event.target.value as TransactionRecurrenceMode,
-                      )
-                    }
-                    className={inputClassName}
-                  >
-                    <option value="indefinite">Indefinido</option>
-                    <option value="until-date">Até data</option>
-                    <option value="for-months">Por quantidade de meses</option>
-                  </select>
-                </div>
-
-                {recurrenceMode === "until-date" ? (
-                  <div className="space-y-2">
-                    <label
-                      htmlFor="transaction-recurrence-end-date"
-                      className="text-sm font-medium text-foreground"
-                    >
-                      Data final
-                    </label>
-
-                    <div className="relative">
-                      <CalendarDays className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                      <input
-                        id="transaction-recurrence-end-date"
-                        type="date"
-                        min={recurrenceStartDate}
-                        value={recurrenceEndDate}
-                        onChange={(event) =>
-                          setRecurrenceEndDate(event.target.value)
-                        }
-                        className={`${inputClassName} pl-11`}
-                      />
-                    </div>
-                  </div>
-                ) : null}
-
-                {recurrenceMode === "for-months" ? (
-                  <div className="space-y-2">
-                    <label
-                      htmlFor="transaction-recurrence-months"
-                      className="text-sm font-medium text-foreground"
-                    >
-                      Quantidade de meses
-                    </label>
-
+                  <div className="relative">
+                    <CalendarDays className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                     <input
-                      id="transaction-recurrence-months"
-                      type="number"
-                      min="1"
-                      value={recurrenceMonths}
+                      id="transaction-recurrence-start-date"
+                      type="date"
+                      value={recurrenceStartDate}
                       onChange={(event) =>
-                        setRecurrenceMonths(event.target.value)
+                        setRecurrenceStartDate(event.target.value)
                       }
-                      className={inputClassName}
-                      placeholder="Ex.: 6"
+                      className={`${inputClassName} pl-11`}
                     />
                   </div>
-                ) : null}
-              </section>
-            ) : null}
-
-            <section className="space-y-3 rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
-              <div className="space-y-1">
-                <h3 className="text-base font-semibold text-foreground">
-                  Confirmar
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  Você pode salvar direto ou simular antes.
-                </p>
+                </div>
               </div>
 
-              <div className="space-y-3">
-                <Button
-                  type="submit"
-                  className="h-11 w-full rounded-2xl"
-                  disabled={isSubmitting}
+              <div className="space-y-2">
+                <label
+                  htmlFor="transaction-recurrence-mode"
+                  className="text-sm font-medium text-foreground"
                 >
-                  {isSubmitting ? "Salvando..." : "Salvar lançamento"}
-                </Button>
+                  Até quando repetir
+                </label>
 
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-11 w-full rounded-2xl"
-                  onClick={handlePreview}
+                <select
+                  id="transaction-recurrence-mode"
+                  value={recurrenceMode}
+                  onChange={(event) =>
+                    setRecurrenceMode(
+                      event.target.value as TransactionRecurrenceMode,
+                    )
+                  }
+                  className={inputClassName}
                 >
-                  <Sparkles className="size-4" />
-                  Simular impacto
-                </Button>
+                  <option value="indefinite">Indefinido</option>
+                  <option value="until-date">Até data</option>
+                  <option value="for-months">Por quantidade de meses</option>
+                </select>
               </div>
 
-              {showPreviewNotice && isPreviewActive ? (
-                <div className="rounded-[1.25rem] border border-accent/60 bg-accent/25 p-4">
-                  <p className="text-sm font-medium text-foreground">
-                    Simulação ativa
-                  </p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    A previsão já está mostrando esse impacto sem salvar nada.
-                  </p>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    className="mt-2 h-10 rounded-xl px-0 hover:bg-transparent"
-                    onClick={onClearPreview}
+              {recurrenceMode === "until-date" ? (
+                <div className="space-y-2">
+                  <label
+                    htmlFor="transaction-recurrence-end-date"
+                    className="text-sm font-medium text-foreground"
                   >
-                    Limpar simulação
-                  </Button>
+                    Data final
+                  </label>
+
+                  <div className="relative">
+                    <CalendarDays className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <input
+                      id="transaction-recurrence-end-date"
+                      type="date"
+                      min={recurrenceStartDate}
+                      value={recurrenceEndDate}
+                      onChange={(event) =>
+                        setRecurrenceEndDate(event.target.value)
+                      }
+                      className={`${inputClassName} pl-11`}
+                    />
+                  </div>
+                </div>
+              ) : null}
+
+              {recurrenceMode === "for-months" ? (
+                <div className="space-y-2">
+                  <label
+                    htmlFor="transaction-recurrence-months"
+                    className="text-sm font-medium text-foreground"
+                  >
+                    Quantidade de meses
+                  </label>
+
+                  <input
+                    id="transaction-recurrence-months"
+                    type="number"
+                    min="1"
+                    value={recurrenceMonths}
+                    onChange={(event) =>
+                      setRecurrenceMonths(event.target.value)
+                    }
+                    className={inputClassName}
+                    placeholder="Ex.: 6"
+                  />
                 </div>
               ) : null}
             </section>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+          ) : null}
+
+          <section className="space-y-3 rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button
+                type="submit"
+                className="h-11 flex-1 rounded-2xl"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Salvando..." : "Salvar lançamento"}
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                className="h-11 flex-1 rounded-2xl"
+                onClick={handlePreview}
+              >
+                <Sparkles className="size-4" />
+                Simular impacto
+              </Button>
+            </div>
+
+            {showPreviewNotice && isPreviewActive ? (
+              <div className="rounded-[1.25rem] border border-accent/60 bg-accent/25 p-4">
+                <p className="text-sm font-medium text-foreground">
+                  Simulação ativa
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  A previsão já está mostrando esse impacto sem salvar nada.
+                </p>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="mt-2 h-10 rounded-xl px-0 hover:bg-transparent"
+                  onClick={onClearPreview}
+                >
+                  Limpar simulação
+                </Button>
+              </div>
+            ) : null}
+          </section>
+        </form>
+      </CardContent>
+    </Card>
   );
 }
