@@ -2,6 +2,7 @@
 
 import { CalendarDays, FileText } from "lucide-react";
 
+import { FinanceSummaryCard } from "@/components/dashboard/finance-summary-card";
 import { TransactionAdvancedFilters } from "@/components/dashboard/transaction-advanced-filters";
 import { TransactionFilterTabs } from "@/components/dashboard/transaction-filter-tabs";
 import { TransactionForm } from "@/components/dashboard/transaction-form";
@@ -36,6 +37,15 @@ type DashboardTransactionsViewProps = {
   emptyStateDescription: string;
   onOpenSchedule: () => void;
   onOpenStatementProjection: () => void;
+  initialBalance: number;
+  totalIncome: number;
+  totalExpense: number;
+  currentBalance: number;
+  forecastTotalIncome: number;
+  forecastTotalExpense: number;
+  forecastProjectedBalance: number;
+  onUpdateInitialBalance: (value: number) => void;
+  nextUpcomingMonthLabel?: string | null;
 };
 
 const WHATSAPP_SUPPORT_NUMBER = "5511975832629";
@@ -65,6 +75,15 @@ export function DashboardTransactionsView({
   emptyStateDescription,
   onOpenSchedule,
   onOpenStatementProjection,
+  initialBalance,
+  totalIncome,
+  totalExpense,
+  currentBalance,
+  forecastTotalIncome,
+  forecastTotalExpense,
+  forecastProjectedBalance,
+  onUpdateInitialBalance,
+  nextUpcomingMonthLabel,
 }: DashboardTransactionsViewProps) {
 
   return (
@@ -136,6 +155,20 @@ export function DashboardTransactionsView({
             </div>
 
             <aside className="min-w-0 space-y-4 xl:sticky xl:top-6">
+              <FinanceSummaryCard
+                initialBalance={initialBalance}
+                totalIncome={totalIncome}
+                totalExpense={totalExpense}
+                currentBalance={currentBalance}
+                forecastTotalIncome={forecastTotalIncome}
+                forecastTotalExpense={forecastTotalExpense}
+                forecastProjectedBalance={forecastProjectedBalance}
+                isPreviewActive={isPreviewActive}
+                onClearPreview={onClearPreview}
+                onUpdateInitialBalance={onUpdateInitialBalance}
+                nextUpcomingMonthLabel={nextUpcomingMonthLabel}
+              />
+
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
                 <Button
                   type="button"

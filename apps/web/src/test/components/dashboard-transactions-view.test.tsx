@@ -52,6 +52,76 @@ vi.mock("@/components/dashboard/transaction-form", () => ({
   },
 }));
 
+vi.mock("@/components/dashboard/finance-summary-card", () => ({
+  FinanceSummaryCard: ({
+    initialBalance,
+    totalIncome,
+    totalExpense,
+    currentBalance,
+    forecastTotalIncome,
+    forecastTotalExpense,
+    forecastProjectedBalance,
+    isPreviewActive,
+    onClearPreview,
+    onUpdateInitialBalance,
+    nextUpcomingMonthLabel,
+  }: {
+    initialBalance: number;
+    totalIncome: number;
+    totalExpense: number;
+    currentBalance: number;
+    forecastTotalIncome: number;
+    forecastTotalExpense: number;
+    forecastProjectedBalance: number;
+    isPreviewActive: boolean;
+    onClearPreview: () => void;
+    onUpdateInitialBalance: (value: number) => void;
+    nextUpcomingMonthLabel?: string | null;
+  }) => {
+    const fmt = new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    });
+    return (
+      <div>
+        <p>Resumo rápido</p>
+        <p>FinanceSummaryCard</p>
+        <p>Inicial: {initialBalance}</p>
+        <p>Entradas: {totalIncome}</p>
+        <p>Saídas: {totalExpense}</p>
+        <p>Saldo: {currentBalance}</p>
+        <p>{fmt.format(forecastProjectedBalance)}</p>
+        <p>{fmt.format(forecastTotalIncome)}</p>
+        <p>{fmt.format(forecastTotalExpense)}</p>
+        {isPreviewActive ? (
+          <>
+            <p>Simulação ativa</p>
+            <p>Os valores abaixo já mostram esse impacto.</p>
+            <button type="button" onClick={onClearPreview}>
+              Limpar simulação
+            </button>
+          </>
+        ) : (
+          <>
+            <p>Simule antes de salvar</p>
+            <p>
+              Use &quot;Simular impacto&quot; para ver como esse lançamento
+              pode ficar.
+            </p>
+          </>
+        )}
+        <p>{nextUpcomingMonthLabel ?? "Sem lançamentos previstos"}</p>
+        {!nextUpcomingMonthLabel ? (
+          <p>Quando houver parcelas ou recorrências, elas aparecem aqui.</p>
+        ) : null}
+        <button type="button" onClick={() => onUpdateInitialBalance(123)}>
+          Trigger update balance
+        </button>
+      </div>
+    );
+  },
+}));
+
 vi.mock("@/components/dashboard/overlays/statement-projection-modal", () => ({
   StatementProjectionModal: ({
     open,
@@ -258,6 +328,14 @@ function renderDashboardTransactionsView(
     emptyStateDescription: "Cadastre itens para começar.",
     onOpenSchedule: vi.fn(),
     onOpenStatementProjection: vi.fn(),
+    initialBalance: 1000,
+    totalIncome: 3000,
+    totalExpense: 200,
+    currentBalance: 2800,
+    forecastTotalIncome: 3200,
+    forecastTotalExpense: 450,
+    forecastProjectedBalance: 3750,
+    onUpdateInitialBalance: vi.fn(),
     ...overrides,
   };
 

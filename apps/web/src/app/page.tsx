@@ -7,7 +7,6 @@ import {
   type DashboardView,
 } from "@/components/layout/app-floating-header";
 import { AccountAccessCard } from "@/components/auth/account-access-card";
-import { FinanceSummaryCard } from "@/components/dashboard/finance-summary-card";
 import { TransactionForm } from "@/components/dashboard/transaction-form";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { DashboardHomeView } from "@/components/dashboard/views/dashboard-home-view";
@@ -674,6 +673,15 @@ export default function HomePage() {
       emptyStateDescription={emptyStateDescription}
       onOpenSchedule={() => setIsScheduleModalOpen(true)}
       onOpenStatementProjection={() => setIsStatementProjectionModalOpen(true)}
+      initialBalance={initialBalance}
+      totalIncome={totalIncome}
+      totalExpense={totalExpense}
+      currentBalance={currentBalance}
+      forecastTotalIncome={forecast.totalIncome}
+      forecastTotalExpense={forecast.totalExpense}
+      forecastProjectedBalance={forecast.projectedBalance}
+      onUpdateInitialBalance={handleUpdateInitialBalance}
+      nextUpcomingMonthLabel={upcomingTransactions[0]?.monthLabel}
     />
   );
 
@@ -736,24 +744,6 @@ export default function HomePage() {
               </div>
             </section>
           ) : null}
-
-          <section className="px-4">
-            <div className="mx-auto max-w-6xl">
-              <FinanceSummaryCard
-                initialBalance={initialBalance}
-                totalIncome={totalIncome}
-                totalExpense={totalExpense}
-                currentBalance={currentBalance}
-                forecastTotalIncome={forecast.totalIncome}
-                forecastTotalExpense={forecast.totalExpense}
-                forecastProjectedBalance={forecast.projectedBalance}
-                isPreviewActive={isPreviewActive}
-                onClearPreview={handleClearPreview}
-                onUpdateInitialBalance={handleUpdateInitialBalance}
-                nextUpcomingMonthLabel={upcomingTransactions[0]?.monthLabel}
-              />
-            </div>
-          </section>
 
           <section className="px-4">
             <div className="mx-auto max-w-6xl space-y-3">

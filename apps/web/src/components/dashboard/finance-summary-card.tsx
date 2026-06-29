@@ -2,10 +2,20 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { ArrowDownRight, ArrowUpRight, Sparkles, Wallet } from "lucide-react";
+import {
+  ArrowDownRight,
+  ArrowUpRight,
+  ChevronDown,
+  ChevronUp,
+  Eye,
+  EyeOff,
+  Sparkles,
+  Wallet,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 type FinanceSummaryCardProps = {
   initialBalance: number;
@@ -43,6 +53,8 @@ export function FinanceSummaryCard({
 }: FinanceSummaryCardProps) {
   const [isEditingBalance, setIsEditingBalance] = useState(false);
   const [balanceInput, setBalanceInput] = useState(String(initialBalance));
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isValuesHidden, setIsValuesHidden] = useState(false);
   const cancelledRef = useRef(false);
 
   useEffect(() => {
@@ -61,18 +73,37 @@ export function FinanceSummaryCard({
     setIsEditingBalance(false);
   }
 
+  function masked(value: string) {
+    return isValuesHidden ? "••••••" : value;
+  }
+
   return (
     <Card className="overflow-hidden rounded-[1.75rem] border-border/60 bg-card/95 text-card-foreground shadow-sm">
-      <CardHeader className="space-y-1 pb-0">
-        <CardTitle className="text-xl font-semibold tracking-tight">
-          Resumo financeiro
-        </CardTitle>
+      <CardHeader className="pb-0">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-xl font-semibold tracking-tight">
+            Resumo financeiro
+          </CardTitle>
+          <button
+            type="button"
+            onClick={() => setIsValuesHidden((prev) => !prev)}
+            aria-label={isValuesHidden ? "Mostrar valores" : "Ocultar valores"}
+            className="flex size-8 items-center justify-center rounded-xl text-muted-foreground transition hover:bg-accent hover:text-foreground"
+          >
+            {isValuesHidden ? (
+              <EyeOff className="size-4" />
+            ) : (
+              <Eye className="size-4" />
+            )}
+          </button>
+        </div>
       </CardHeader>
 
       <CardContent className="space-y-3 p-5 pt-4">
+        {/* Saldo Atual — sempre visível */}
         <div className="rounded-[1.25rem] border border-border/60 bg-background/65 p-4">
           <div className="flex items-start justify-between gap-3">
-            {isEditingBalance ? (
+            {isEditingBalance && !isValuesHidden ? (
               <input
                 autoFocus
                 type="number"
@@ -80,7 +111,10 @@ export function FinanceSummaryCard({
                 value={balanceInput}
                 onChange={(e) => setBalanceInput(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); }
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    e.currentTarget.blur();
+                  }
                   if (e.key === "Escape") {
                     cancelledRef.current = true;
                     setBalanceInput(String(initialBalance));
@@ -94,16 +128,29 @@ export function FinanceSummaryCard({
             ) : (
               <button
                 type="button"
-                onClick={() => setIsEditingBalance(true)}
-                className="group text-left"
-                title="Clique para editar o saldo inicial"
+                onClick={() => {
+                  if (!isValuesHidden) setIsEditingBalance(true);
+                }}
+                className={cn(
+                  "group text-left",
+                  isValuesHidden && "cursor-default",
+                )}
+                title={
+                  isValuesHidden ? undefined : "Clique para editar o saldo inicial"
+                }
               >
                 <p className="text-sm text-muted-foreground">Saldo atual</p>
-                <p className="mt-2 text-2xl font-semibold text-foreground transition-colors group-hover:text-primary">
-                  {formatCurrency(currentBalance)}
+                <p
+                  className={cn(
+                    "mt-2 text-2xl font-semibold text-foreground",
+                    !isValuesHidden &&
+                      "transition-colors group-hover:text-primary",
+                  )}
+                >
+                  {masked(formatCurrency(currentBalance))}
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Base inicial: {formatCurrency(initialBalance)}
+                  Base inicial: {masked(formatCurrency(initialBalance))}
                 </p>
               </button>
             )}
@@ -114,32 +161,7 @@ export function FinanceSummaryCard({
           </div>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-          <div className="rounded-[1.25rem] border border-primary/15 bg-primary/8 p-4">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm text-muted-foreground">Entradas</p>
-                <p className="mt-2 text-xl font-semibold text-primary">
-                  {formatCurrency(totalIncome)}
-                </p>
-              </div>
-              <ArrowUpRight className="size-4.5 text-primary" />
-            </div>
-          </div>
-
-          <div className="rounded-[1.25rem] border border-accent/60 bg-accent/25 p-4">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm text-muted-foreground">Saídas</p>
-                <p className="mt-2 text-xl font-semibold text-foreground">
-                  {formatCurrency(totalExpense)}
-                </p>
-              </div>
-              <ArrowDownRight className="size-4.5 text-foreground" />
-            </div>
-          </div>
-        </div>
-
+        {/* Simulação ativa — sempre visível quando ativa, independente do collapse */}
         {isPreviewActive ? (
           <div className="rounded-[1.25rem] border border-primary/20 bg-primary/8 p-4">
             <div className="flex items-start justify-between gap-3">
@@ -158,7 +180,7 @@ export function FinanceSummaryCard({
               <div className="rounded-[1rem] border border-border/60 bg-background/70 p-3">
                 <p className="text-xs text-muted-foreground">Saldo projetado</p>
                 <p className="mt-1 text-lg font-semibold text-foreground">
-                  {formatCurrency(forecastProjectedBalance)}
+                  {masked(formatCurrency(forecastProjectedBalance))}
                 </p>
               </div>
 
@@ -166,14 +188,14 @@ export function FinanceSummaryCard({
                 <div className="rounded-[1rem] border border-border/60 bg-background/70 p-3">
                   <p className="text-xs text-muted-foreground">Entradas</p>
                   <p className="mt-1 text-base font-semibold text-primary">
-                    {formatCurrency(forecastTotalIncome)}
+                    {masked(formatCurrency(forecastTotalIncome))}
                   </p>
                 </div>
 
                 <div className="rounded-[1rem] border border-border/60 bg-background/70 p-3">
                   <p className="text-xs text-muted-foreground">Saídas</p>
                   <p className="mt-1 text-base font-semibold text-foreground">
-                    {formatCurrency(forecastTotalExpense)}
+                    {masked(formatCurrency(forecastTotalExpense))}
                   </p>
                 </div>
               </div>
@@ -190,12 +212,64 @@ export function FinanceSummaryCard({
           </div>
         ) : null}
 
-        <div className="rounded-[1.25rem] border border-border/60 bg-muted/35 px-4 py-3">
-          <p className="text-xs text-muted-foreground">Próximo período</p>
-          <p className="mt-1 text-sm font-medium text-foreground">
-            {nextUpcomingMonthLabel ?? "Sem lançamentos previstos"}
-          </p>
-        </div>
+        {/* Seção expansível: Entradas, Saídas, Próximo Período */}
+        {isExpanded ? (
+          <>
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+              <div className="rounded-[1.25rem] border border-primary/15 bg-primary/8 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Entradas</p>
+                    <p className="mt-2 text-xl font-semibold text-primary">
+                      {masked(formatCurrency(totalIncome))}
+                    </p>
+                  </div>
+                  <ArrowUpRight className="size-4.5 text-primary" />
+                </div>
+              </div>
+
+              <div className="rounded-[1.25rem] border border-accent/60 bg-accent/25 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Saídas</p>
+                    <p className="mt-2 text-xl font-semibold text-foreground">
+                      {masked(formatCurrency(totalExpense))}
+                    </p>
+                  </div>
+                  <ArrowDownRight className="size-4.5 text-foreground" />
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-[1.25rem] border border-border/60 bg-muted/35 px-4 py-3">
+              <p className="text-xs text-muted-foreground">Próximo período</p>
+              <p className="mt-1 text-sm font-medium text-foreground">
+                {isValuesHidden
+                  ? "••••••"
+                  : (nextUpcomingMonthLabel ?? "Sem lançamentos previstos")}
+              </p>
+            </div>
+          </>
+        ) : null}
+
+        {/* Toggle Mostrar mais / Mostrar menos — sempre visível, sempre ao final */}
+        <button
+          type="button"
+          onClick={() => setIsExpanded((prev) => !prev)}
+          className="flex w-full items-center justify-center gap-1.5 rounded-xl py-1.5 text-xs font-medium text-muted-foreground transition hover:bg-accent/50 hover:text-foreground"
+        >
+          {isExpanded ? (
+            <>
+              Mostrar menos
+              <ChevronUp className="size-3.5" />
+            </>
+          ) : (
+            <>
+              Mostrar mais
+              <ChevronDown className="size-3.5" />
+            </>
+          )}
+        </button>
       </CardContent>
     </Card>
   );
