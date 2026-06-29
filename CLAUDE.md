@@ -242,7 +242,8 @@ Esses erros já existiam antes da Fase 1 e precisam ser corrigidos em momento de
 - ✅ `ApiControllerBase` criado — os 6 controllers herdam, método duplicado removido
 - ✅ `[Required]`, `[MaxLength]`, `[EmailAddress]` em todos os DTOs de request
 - ✅ SecretKey removida dos appsettings — lida via variável de ambiente `JWT__SecretKey`
-- ⏳ CORS — configurar `AllowedOrigins` de produção
+- ✅ CORS — `AllowedOrigins` configurado com `https://finly-opal.vercel.app` em produção
+- ⚠️ `AllowedHosts` permanece `"*"` — será restringido para `api.finly.com.br` na Fase 5, quando o domínio da VPS estiver definido
 - ⏳ Revisar autorização e demais pontos do diagnóstico
 
 **Variáveis de ambiente obrigatórias para rodar a API**
