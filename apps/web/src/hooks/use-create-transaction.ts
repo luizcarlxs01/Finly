@@ -4,17 +4,18 @@ import { useState } from "react";
 import { useFinanceSource } from "@/contexts/finance-source-context";
 import type { LocalFinanceTransactionInput } from "@/hooks/use-local-finance";
 import { useAuthSession } from "@/hooks/use-auth-session";
-import { useFinanceData } from "@/hooks/use-finance-data";
 import {
   createTransaction as createTransactionWithApi,
   TRANSACTION_WRITE_COMPLETED_EVENT,
   type CreateApiTransactionRequest,
 } from "@/lib/api/transactions";
 import type { TransactionKind } from "@/types/transaction";
+import type { Profile } from "@/types/profile";
 import { getTodayDateValue } from "@/utils/recurring-transactions";
 
 type UseCreateTransactionOptions = {
   addLocalTransaction: (input: LocalFinanceTransactionInput) => void;
+  selectedProfile: Profile | null;
 };
 
 type UseCreateTransactionReturn = {
@@ -89,10 +90,10 @@ function getFriendlyErrorMessage(error: unknown) {
 
 export function useCreateTransaction({
   addLocalTransaction,
+  selectedProfile,
 }: UseCreateTransactionOptions): UseCreateTransactionReturn {
   const { source } = useFinanceSource();
   const { session } = useAuthSession();
-  const { selectedProfile } = useFinanceData();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 

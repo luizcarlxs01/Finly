@@ -28,7 +28,7 @@ function getFriendlyErrorMessage(error: unknown) {
     return error.message;
   }
 
-  return "Nao foi possivel atualizar o progresso da meta agora.";
+  return "Não foi possível atualizar o progresso da meta agora.";
 }
 
 export function useUpdateGoalProgress({
@@ -52,7 +52,7 @@ export function useUpdateGoalProgress({
     }
 
     if (!session?.token) {
-      const nextErrorMessage = "Sua sessao de conta nao esta disponivel.";
+      const nextErrorMessage = "Sua sessão de conta não está disponível.";
       setErrorMessage(nextErrorMessage);
       throw new Error(nextErrorMessage);
     }

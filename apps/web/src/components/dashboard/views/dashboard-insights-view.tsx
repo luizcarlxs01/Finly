@@ -5,8 +5,6 @@ import type { DashboardInsight } from "@/utils/dashboard-insights";
 
 export type DashboardInsightsViewProps = {
   accountAutomationView?: ReactNode;
-  isApiMode?: boolean;
-  pendingFeatureMessage?: string;
   insights: DashboardInsight[];
   forecastTotalIncome: number;
   forecastTotalExpense: number;
@@ -15,8 +13,6 @@ export type DashboardInsightsViewProps = {
 
 export function DashboardInsightsView({
   accountAutomationView = null,
-  isApiMode = false,
-  pendingFeatureMessage,
   insights,
   forecastTotalIncome,
   forecastTotalExpense,
@@ -32,12 +28,6 @@ export function DashboardInsightsView({
           Veja leituras rápidas sobre sua vida financeira.
         </p>
       </section>
-
-      {isApiMode && pendingFeatureMessage ? (
-        <section className="rounded-[1.5rem] border border-border/60 bg-background/55 px-4 py-3 text-sm text-muted-foreground">
-          {pendingFeatureMessage}
-        </section>
-      ) : null}
 
       <section className="grid gap-6 2xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
         <div className="min-w-0">

@@ -3,14 +3,15 @@
 import { useState } from "react";
 import { useFinanceSource } from "@/contexts/finance-source-context";
 import { useAuthSession } from "@/hooks/use-auth-session";
-import { useFinanceData } from "@/hooks/use-finance-data";
 import {
   PROFILE_UPDATED_EVENT,
   updateProfile,
 } from "@/lib/api/profiles";
+import type { Profile } from "@/types/profile";
 
 type UseUpdateInitialBalanceOptions = {
   updateLocalInitialBalance: (value: number) => void;
+  selectedProfile: Profile | null;
 };
 
 type UseUpdateInitialBalanceReturn = {
@@ -29,10 +30,10 @@ function getFriendlyErrorMessage(error: unknown) {
 
 export function useUpdateInitialBalance({
   updateLocalInitialBalance,
+  selectedProfile,
 }: UseUpdateInitialBalanceOptions): UseUpdateInitialBalanceReturn {
   const { source } = useFinanceSource();
   const { session } = useAuthSession();
-  const { selectedProfile } = useFinanceData();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 

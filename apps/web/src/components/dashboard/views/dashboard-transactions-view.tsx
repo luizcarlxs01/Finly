@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AlertCircle, CalendarDays, FileText } from "lucide-react";
+import { CalendarDays, FileText } from "lucide-react";
 
 import { FinanceSummaryCard } from "@/components/dashboard/finance-summary-card";
 import { ScheduleModal } from "@/components/dashboard/overlays/schedule-modal";
@@ -17,8 +17,6 @@ import type { Transaction, TransactionFilter } from "@/types/finance";
 import type { UpcomingTransactionsMonthGroup } from "@/utils/upcoming-transactions";
 
 type DashboardTransactionsViewProps = {
-  isApiMode?: boolean;
-  pendingFeatureMessage?: string;
   isSubmitting?: boolean;
   initialBalance: number;
   totalIncome: number;
@@ -55,8 +53,6 @@ type DashboardTransactionsViewProps = {
 const WHATSAPP_SUPPORT_NUMBER = "5519999999999";
 
 export function DashboardTransactionsView({
-  isApiMode = false,
-  pendingFeatureMessage,
   isSubmitting = false,
   initialBalance,
   totalIncome,
@@ -201,17 +197,6 @@ export function DashboardTransactionsView({
                 onUpdateInitialBalance={onUpdateInitialBalance}
                 nextUpcomingMonthLabel={nextUpcomingMonth?.monthLabel}
               />
-
-              {isApiMode && pendingFeatureMessage ? (
-                <div className="rounded-[1.5rem] border border-border/60 bg-card/95 p-4 shadow-sm">
-                  <div className="flex items-start gap-3">
-                    <AlertCircle className="mt-0.5 size-4.5 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">
-                      {pendingFeatureMessage}
-                    </p>
-                  </div>
-                </div>
-              ) : null}
 
               <a
                 href={`https://wa.me/${WHATSAPP_SUPPORT_NUMBER}`}

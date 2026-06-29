@@ -23,7 +23,7 @@ function getFriendlyErrorMessage(error: unknown) {
     return error.message;
   }
 
-  return "Nao foi possivel remover a meta agora.";
+  return "Não foi possível remover a meta agora.";
 }
 
 export function useDeleteGoal({
@@ -47,7 +47,7 @@ export function useDeleteGoal({
     }
 
     if (!session?.token) {
-      const nextErrorMessage = "Sua sessao de conta nao esta disponivel.";
+      const nextErrorMessage = "Sua sessão de conta não está disponível.";
       setErrorMessage(nextErrorMessage);
       throw new Error(nextErrorMessage);
     }

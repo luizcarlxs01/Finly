@@ -40,7 +40,7 @@ type FinanceDataState = {
 };
 
 type UseFinanceDataOptions = {
-  localFinance?: ReturnType<typeof useLocalFinance>;
+  localFinance: ReturnType<typeof useLocalFinance>;
 };
 
 const LOCAL_DASHBOARD_PROFILE_ID = "local-profile";
@@ -177,11 +177,11 @@ function mapApiTransactionToTransaction(
 }
 
 export function useFinanceData(
-  options: UseFinanceDataOptions = {},
+  options: UseFinanceDataOptions,
 ): FinanceDataState {
   const { source, isLoaded: isSourceLoaded } = useFinanceSource();
   const { session } = useAuthSession();
-  const localFinance = options.localFinance ?? useLocalFinance();
+  const localFinance = options.localFinance;
   const [apiDashboard, setApiDashboard] = useState<DashboardSummary | null>(null);
   const [apiTransactions, setApiTransactions] = useState<Transaction[]>([]);
   const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);

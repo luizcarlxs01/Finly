@@ -42,7 +42,7 @@ function getFriendlyLoadErrorMessage(error: unknown) {
     return error.message;
   }
 
-  return "Nao foi possivel carregar as regras financeiras agora.";
+  return "Não foi possível carregar as regras financeiras agora.";
 }
 
 function getFriendlyWriteErrorMessage(error: unknown) {
@@ -50,7 +50,7 @@ function getFriendlyWriteErrorMessage(error: unknown) {
     return error.message;
   }
 
-  return "Nao foi possivel salvar a regra financeira agora.";
+  return "Não foi possível salvar a regra financeira agora.";
 }
 
 function getFriendlyProcessErrorMessage(error: unknown) {
@@ -58,7 +58,7 @@ function getFriendlyProcessErrorMessage(error: unknown) {
     return error.message;
   }
 
-  return "Nao foi possivel processar as regras financeiras agora.";
+  return "Não foi possível processar as regras financeiras agora.";
 }
 
 export function useFinancialRulesData({
@@ -148,7 +148,7 @@ export function useFinancialRulesData({
 
   async function createRule(input: UpsertApiFinancialRuleRequest) {
     if (!token) {
-      throw new Error("Sua sessao de conta nao esta disponivel.");
+      throw new Error("Sua sessão de conta não está disponível.");
     }
 
     setIsSubmitting(true);
@@ -168,7 +168,7 @@ export function useFinancialRulesData({
 
   async function updateRule(id: string, input: UpsertApiFinancialRuleRequest) {
     if (!token) {
-      throw new Error("Sua sessao de conta nao esta disponivel.");
+      throw new Error("Sua sessão de conta não está disponível.");
     }
 
     setIsSubmitting(true);
@@ -188,7 +188,7 @@ export function useFinancialRulesData({
 
   async function deleteRule(id: string) {
     if (!token) {
-      throw new Error("Sua sessao de conta nao esta disponivel.");
+      throw new Error("Sua sessão de conta não está disponível.");
     }
 
     setIsSubmitting(true);
@@ -208,7 +208,7 @@ export function useFinancialRulesData({
 
   async function processRules() {
     if (!token || !selectedProfileId) {
-      throw new Error("Nao foi possivel identificar o perfil da conta.");
+      throw new Error("Não foi possível identificar o perfil da conta.");
     }
 
     setIsProcessing(true);

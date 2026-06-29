@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AppFloatingHeader,
   type DashboardView,
@@ -37,6 +37,7 @@ import type { Transaction, TransactionFilter } from "@/types/finance";
 import type { Goal } from "@/types/goal";
 import { getTransactionCategoryLabel } from "@/types/transaction-category";
 import { getDashboardInsights } from "@/utils/dashboard-insights";
+import { getNextRecurringOccurrenceDate } from "@/utils/recurring-transactions";
 import { getUpcomingTransactionsByMonth } from "@/utils/upcoming-transactions";
 import type { TransactionSortOption } from "@/components/dashboard/transaction-advanced-filters";
 
@@ -190,7 +191,6 @@ export default function HomePage() {
   const financeData = useFinanceData({ localFinance });
   const goalsData = useGoalsData({ localGoals });
   const {
-    getNextRecurringOccurrence,
     updateInitialBalance,
     addTransaction,
     updateTransaction,
@@ -245,6 +245,7 @@ export default function HomePage() {
     isSubmitting: isCreatingGoal,
   } = useCreateGoal({
     addLocalGoal: addGoal,
+    selectedProfile: financeData.selectedProfile,
   });
   const {
     errorMessage: updateGoalProgressErrorMessage,
@@ -259,6 +260,7 @@ export default function HomePage() {
     isSubmitting: isCreatingTransaction,
   } = useCreateTransaction({
     addLocalTransaction: addTransaction,
+    selectedProfile: financeData.selectedProfile,
   });
   const {
     errorMessage: updateInitialBalanceErrorMessage,
@@ -266,6 +268,7 @@ export default function HomePage() {
     updateInitialBalance: updateInitialBalanceUnified,
   } = useUpdateInitialBalance({
     updateLocalInitialBalance: updateInitialBalance,
+    selectedProfile: financeData.selectedProfile,
   });
   const {
     errorMessage: updateTransactionErrorMessage,
@@ -273,6 +276,8 @@ export default function HomePage() {
     updateTransaction: updateTransactionUnified,
   } = useUpdateTransaction({
     updateLocalTransaction: updateTransaction,
+    selectedProfile: financeData.selectedProfile,
+    transactions,
   });
   const {
     deleteTransaction: deleteTransactionUnified,
@@ -403,6 +408,22 @@ export default function HomePage() {
       projectedBalance: projectionSnapshot.currentBalance,
     };
   }, [projectionSnapshot]);
+
+  const getNextRecurringOccurrence = useCallback(
+    (transaction: Transaction): string | null => {
+      if (transaction.transactionKind === "recurring-template") {
+        return getNextRecurringOccurrenceDate(transaction);
+      }
+      if (transaction.transactionKind === "recurring-instance" && transaction.sourceId) {
+        const template = transactions.find(
+          (t) => t.id === transaction.sourceId && t.transactionKind === "recurring-template",
+        );
+        return template ? getNextRecurringOccurrenceDate(template) : null;
+      }
+      return null;
+    },
+    [transactions],
+  );
 
   const hasActiveAdvancedFilters =
     searchTerm.trim().length > 0 ||
@@ -611,7 +632,6 @@ export default function HomePage() {
 
   const transactionsView = (
     <DashboardTransactionsView
-      isApiMode={isApiMode}
       initialBalance={initialBalance}
       totalIncome={totalIncome}
       totalExpense={totalExpense}
@@ -641,7 +661,7 @@ export default function HomePage() {
       isPreviewActive={isPreviewActive}
       onEditTransaction={handleOpenEditModal}
       onRemoveTransaction={handleRemoveTransaction}
-      getNextRecurringOccurrence={isApiMode ? () => null : getNextRecurringOccurrence}
+      getNextRecurringOccurrence={getNextRecurringOccurrence}
       emptyStateTitle={emptyStateTitle}
       emptyStateDescription={emptyStateDescription}
       forecastTotalIncome={forecast.totalIncome}
@@ -667,7 +687,6 @@ export default function HomePage() {
 
   const insightsView = (
     <DashboardInsightsView
-      isApiMode={isApiMode}
       insights={insights}
       forecastTotalIncome={forecast.totalIncome}
       forecastTotalExpense={forecast.totalExpense}

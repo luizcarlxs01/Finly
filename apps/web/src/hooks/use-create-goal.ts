@@ -3,12 +3,12 @@
 import { useState } from "react";
 import { useFinanceSource } from "@/contexts/finance-source-context";
 import { useAuthSession } from "@/hooks/use-auth-session";
-import { useGoalsData } from "@/hooks/use-goals-data";
 import {
   createGoal as createGoalWithApi,
   GOAL_WRITE_COMPLETED_EVENT,
   type CreateApiGoalRequest,
 } from "@/lib/api/goals";
+import type { Profile } from "@/types/profile";
 
 type GoalInput = {
   title: string;
@@ -20,6 +20,7 @@ type GoalInput = {
 
 type UseCreateGoalOptions = {
   addLocalGoal: (input: GoalInput) => void;
+  selectedProfile: Profile | null;
 };
 
 type UseCreateGoalReturn = {
@@ -51,10 +52,10 @@ function getFriendlyErrorMessage(error: unknown) {
 
 export function useCreateGoal({
   addLocalGoal,
+  selectedProfile,
 }: UseCreateGoalOptions): UseCreateGoalReturn {
   const { source } = useFinanceSource();
   const { session } = useAuthSession();
-  const { selectedProfile } = useGoalsData();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 

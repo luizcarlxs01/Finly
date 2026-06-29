@@ -3,13 +3,13 @@
 import { useState } from "react";
 import { useFinanceSource } from "@/contexts/finance-source-context";
 import { useAuthSession } from "@/hooks/use-auth-session";
-import { useFinanceData } from "@/hooks/use-finance-data";
 import {
   TRANSACTION_WRITE_COMPLETED_EVENT,
   type UpdateApiTransactionRequest,
   updateTransaction as updateTransactionWithApi,
 } from "@/lib/api/transactions";
 import type { Transaction, TransactionKind } from "@/types/transaction";
+import type { Profile } from "@/types/profile";
 import { getTodayDateValue } from "@/utils/recurring-transactions";
 
 type UpdateTransactionInput = {
@@ -33,6 +33,8 @@ type UpdateTransactionInput = {
 
 type UseUpdateTransactionOptions = {
   updateLocalTransaction: (input: UpdateTransactionInput) => void;
+  selectedProfile: Profile | null;
+  transactions: Transaction[];
 };
 
 type UseUpdateTransactionReturn = {
@@ -218,10 +220,11 @@ function getFriendlyErrorMessage(error: unknown) {
 
 export function useUpdateTransaction({
   updateLocalTransaction,
+  selectedProfile,
+  transactions,
 }: UseUpdateTransactionOptions): UseUpdateTransactionReturn {
   const { source } = useFinanceSource();
   const { session } = useAuthSession();
-  const { selectedProfile, transactions } = useFinanceData();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 

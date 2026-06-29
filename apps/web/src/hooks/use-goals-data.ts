@@ -25,7 +25,7 @@ type GoalsDataState = {
 };
 
 type UseGoalsDataOptions = {
-  localGoals?: ReturnType<typeof useLocalGoals>;
+  localGoals: ReturnType<typeof useLocalGoals>;
 };
 
 const DEFAULT_API_GOAL_CATEGORY = "general";
@@ -55,11 +55,11 @@ function mapApiGoalToGoal(goal: Awaited<ReturnType<typeof getGoals>>[number]): G
 }
 
 export function useGoalsData(
-  options: UseGoalsDataOptions = {},
+  options: UseGoalsDataOptions,
 ): GoalsDataState {
   const { source, isLoaded: isSourceLoaded } = useFinanceSource();
   const { session } = useAuthSession();
-  const localGoals = options.localGoals ?? useLocalGoals();
+  const localGoals = options.localGoals;
   const [apiGoals, setApiGoals] = useState<Goal[]>([]);
   const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
