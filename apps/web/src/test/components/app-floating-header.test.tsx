@@ -19,7 +19,7 @@ import { AppFloatingHeader } from "@/components/layout/app-floating-header";
 
 describe("AppFloatingHeader", () => {
   it("deve renderizar os elementos principais e as opcoes de navegacao", () => {
-    render(<AppFloatingHeader activeView="home" onChangeView={vi.fn()} />);
+    render(<AppFloatingHeader activeView="home" onChangeView={vi.fn()} isAccountCardOpen={false} onToggleAccountCard={vi.fn()} />);
 
     expect(screen.getByRole("img", { name: "Finly" })).toBeInTheDocument();
     expect(screen.getByText("Finly")).toBeInTheDocument();
@@ -39,7 +39,7 @@ describe("AppFloatingHeader", () => {
     const user = userEvent.setup();
     const onChangeView = vi.fn();
 
-    render(<AppFloatingHeader activeView="home" onChangeView={onChangeView} />);
+    render(<AppFloatingHeader activeView="home" onChangeView={onChangeView} isAccountCardOpen={false} onToggleAccountCard={vi.fn()} />);
 
     await user.click(screen.getByRole("button", { name: /Início/i }));
     await user.click(screen.getByRole("button", { name: /Lançamentos/i }));
@@ -53,7 +53,7 @@ describe("AppFloatingHeader", () => {
   });
 
   it("deve destacar visualmente a aba ativa de forma observavel", () => {
-    render(<AppFloatingHeader activeView="goals" onChangeView={vi.fn()} />);
+    render(<AppFloatingHeader activeView="goals" onChangeView={vi.fn()} isAccountCardOpen={false} onToggleAccountCard={vi.fn()} />);
 
     const goalsButton = screen.getByRole("button", { name: /Metas/i });
     const homeButton = screen.getByRole("button", { name: /Início/i });

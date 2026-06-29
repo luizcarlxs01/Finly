@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Home, Lightbulb, Target, WalletCards } from "lucide-react";
+import { Home, Lightbulb, Target, User, WalletCards } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
@@ -11,6 +11,8 @@ export type DashboardView = "home" | "transactions" | "goals" | "insights";
 type AppFloatingHeaderProps = {
   activeView: DashboardView;
   onChangeView: (view: DashboardView) => void;
+  isAccountCardOpen: boolean;
+  onToggleAccountCard: () => void;
 };
 
 const navigationItems: Array<{
@@ -43,6 +45,8 @@ const navigationItems: Array<{
 export function AppFloatingHeader({
   activeView,
   onChangeView,
+  isAccountCardOpen,
+  onToggleAccountCard,
 }: AppFloatingHeaderProps) {
   return (
     <div className="sticky top-3 z-40 sm:top-4">
@@ -92,6 +96,17 @@ export function AppFloatingHeader({
                 );
               })}
             </nav>
+
+            <Button
+              type="button"
+              variant={isAccountCardOpen ? "default" : "ghost"}
+              onClick={onToggleAccountCard}
+              aria-label="Conta"
+              title="Conta"
+              className="h-8 min-w-8 justify-center rounded-lg px-2 text-xs sm:h-9 sm:min-w-0 sm:rounded-2xl sm:px-3"
+            >
+              <User className="size-4" />
+            </Button>
 
             <div className="flex justify-end">
               <ThemeToggle />

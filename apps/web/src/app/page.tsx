@@ -1,11 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Plus, X } from "lucide-react";
 import {
   AppFloatingHeader,
   type DashboardView,
 } from "@/components/layout/app-floating-header";
 import { AccountAccessCard } from "@/components/auth/account-access-card";
+import { FinanceSummaryCard } from "@/components/dashboard/finance-summary-card";
+import { TransactionForm } from "@/components/dashboard/transaction-form";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { DashboardHomeView } from "@/components/dashboard/views/dashboard-home-view";
 import { DashboardTransactionsView } from "@/components/dashboard/views/dashboard-transactions-view";
@@ -221,6 +224,8 @@ export default function HomePage() {
   const [writeModeMessage, setWriteModeMessage] = useState<string | null>(null);
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [isStatementProjectionModalOpen, setIsStatementProjectionModalOpen] = useState(false);
+  const [isAccountCardOpen, setIsAccountCardOpen] = useState(false);
+  const [isFabOpen, setIsFabOpen] = useState(false);
 
   const isApiMode = source === "api";
   const {
@@ -640,10 +645,6 @@ export default function HomePage() {
 
   const transactionsView = (
     <DashboardTransactionsView
-      initialBalance={initialBalance}
-      totalIncome={totalIncome}
-      totalExpense={totalExpense}
-      currentBalance={currentBalance}
       transactionFilter={transactionFilter}
       onTransactionFilterChange={setTransactionFilter}
       searchTerm={searchTerm}
@@ -656,7 +657,6 @@ export default function HomePage() {
       statementTransactions={statementTransactions}
       hasActiveAdvancedFilters={hasActiveAdvancedFilters}
       onClearAdvancedFilters={handleClearAdvancedFilters}
-      onUpdateInitialBalance={handleUpdateInitialBalance}
       onAddTransaction={handleAddTransaction}
       onPreviewTransaction={handlePreviewTransaction}
       onClearPreview={handleClearPreview}
@@ -672,10 +672,6 @@ export default function HomePage() {
       getNextRecurringOccurrence={getNextRecurringOccurrence}
       emptyStateTitle={emptyStateTitle}
       emptyStateDescription={emptyStateDescription}
-      forecastTotalIncome={forecast.totalIncome}
-      forecastTotalExpense={forecast.totalExpense}
-      forecastProjectedBalance={forecast.projectedBalance}
-      upcomingMonthGroups={upcomingTransactions}
       onOpenSchedule={() => setIsScheduleModalOpen(true)}
       onOpenStatementProjection={() => setIsStatementProjectionModalOpen(true)}
     />
@@ -729,11 +725,33 @@ export default function HomePage() {
           <AppFloatingHeader
             activeView={activeView}
             onChangeView={setActiveView}
+            isAccountCardOpen={isAccountCardOpen}
+            onToggleAccountCard={() => setIsAccountCardOpen((prev) => !prev)}
           />
+
+          {isAccountCardOpen ? (
+            <section className="px-4">
+              <div className="mx-auto max-w-6xl">
+                <AccountAccessCard />
+              </div>
+            </section>
+          ) : null}
 
           <section className="px-4">
             <div className="mx-auto max-w-6xl">
-              <AccountAccessCard />
+              <FinanceSummaryCard
+                initialBalance={initialBalance}
+                totalIncome={totalIncome}
+                totalExpense={totalExpense}
+                currentBalance={currentBalance}
+                forecastTotalIncome={forecast.totalIncome}
+                forecastTotalExpense={forecast.totalExpense}
+                forecastProjectedBalance={forecast.projectedBalance}
+                isPreviewActive={isPreviewActive}
+                onClearPreview={handleClearPreview}
+                onUpdateInitialBalance={handleUpdateInitialBalance}
+                nextUpcomingMonthLabel={upcomingTransactions[0]?.monthLabel}
+              />
             </div>
           </section>
 
@@ -763,6 +781,62 @@ export default function HomePage() {
           />
         </div>
       </PageContainer>
+
+      {activeView !== "home" ? (
+        <button
+          type="button"
+          onClick={() => setIsFabOpen(true)}
+          aria-label="Novo lançamento"
+          title="Novo lançamento"
+          className="fixed bottom-6 right-6 z-40 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition hover:scale-105 hover:shadow-xl active:scale-95"
+        >
+          <Plus className="size-6" />
+        </button>
+      ) : null}
+
+      {isFabOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 backdrop-blur-sm sm:items-center sm:px-4 sm:py-6"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsFabOpen(false);
+          }}
+        >
+          <div className="flex max-h-[min(100dvh-0.5rem,96vh)] w-full flex-col overflow-hidden rounded-t-[1.75rem] border border-border/70 bg-card shadow-2xl sm:max-w-xl sm:rounded-[1.75rem]">
+            <div className="flex items-center justify-between border-b border-border/60 px-5 py-4 sm:px-6">
+              <p className="text-base font-semibold text-foreground">
+                Novo lançamento
+              </p>
+              <button
+                type="button"
+                onClick={() => setIsFabOpen(false)}
+                aria-label="Fechar"
+                className="flex size-8 items-center justify-center rounded-xl text-muted-foreground transition hover:bg-accent hover:text-foreground"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+
+            <div className="overflow-y-auto p-5 sm:p-6">
+              <TransactionForm
+                onAddTransaction={async (input) => {
+                  await handleAddTransaction(input);
+                  setIsFabOpen(false);
+                }}
+                onPreviewTransaction={handlePreviewTransaction}
+                onClearPreview={handleClearPreview}
+                isPreviewActive={isPreviewActive}
+                showPreviewNotice={false}
+                isSubmitting={
+                  isCreatingTransaction ||
+                  isUpdatingInitialBalance ||
+                  isUpdatingTransaction ||
+                  isDeletingTransaction
+                }
+              />
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <TransactionEditModal
         key={editingTransaction?.id ?? "transaction-edit-modal"}

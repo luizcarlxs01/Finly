@@ -6,40 +6,14 @@ import type { LocalFinanceTransactionInput } from "@/hooks/use-local-finance";
 import type { Transaction } from "@/types/finance";
 import type { UpcomingTransactionsMonthGroup } from "@/utils/upcoming-transactions";
 
-vi.mock("@/components/dashboard/finance-summary-card", () => ({
-  FinanceSummaryCard: ({
-    initialBalance,
-    totalIncome,
-    totalExpense,
-    currentBalance,
-  }: {
-    initialBalance: number;
-    totalIncome: number;
-    totalExpense: number;
-    currentBalance: number;
-  }) => (
-    <div>
-      <p>FinanceSummaryCard</p>
-      <p>Inicial: {initialBalance}</p>
-      <p>Entradas: {totalIncome}</p>
-      <p>Saídas: {totalExpense}</p>
-      <p>Saldo: {currentBalance}</p>
-    </div>
-  ),
-}));
-
 vi.mock("@/components/dashboard/transaction-form", () => ({
   TransactionForm: ({
-    initialBalance,
-    onUpdateInitialBalance,
     onAddTransaction,
     onPreviewTransaction,
     onClearPreview,
     isPreviewActive,
     showPreviewNotice,
   }: {
-    initialBalance: number;
-    onUpdateInitialBalance: (value: number) => void;
     onAddTransaction: (input: LocalFinanceTransactionInput) => void;
     onPreviewTransaction: (input: LocalFinanceTransactionInput) => void;
     onClearPreview: () => void;
@@ -62,12 +36,8 @@ vi.mock("@/components/dashboard/transaction-form", () => ({
     return (
       <div>
         <p>TransactionForm</p>
-        <p>Saldo inicial form: {initialBalance}</p>
         <p>Preview ativo form: {String(isPreviewActive)}</p>
         <p>Preview notice form: {String(showPreviewNotice)}</p>
-        <button type="button" onClick={() => onUpdateInitialBalance(123)}>
-          Trigger update balance
-        </button>
         <button type="button" onClick={() => onAddTransaction(sampleInput)}>
           Trigger add transaction
         </button>
@@ -265,10 +235,6 @@ function renderDashboardTransactionsView(
   ];
 
   const props: React.ComponentProps<typeof DashboardTransactionsView> = {
-    initialBalance: 1000,
-    totalIncome: 3000,
-    totalExpense: 200,
-    currentBalance: 3800,
     transactionFilter: "all",
     onTransactionFilterChange: vi.fn(),
     searchTerm: "",
@@ -281,7 +247,6 @@ function renderDashboardTransactionsView(
     statementTransactions: filteredTransactions,
     hasActiveAdvancedFilters: false,
     onClearAdvancedFilters: vi.fn(),
-    onUpdateInitialBalance: vi.fn(),
     onAddTransaction: vi.fn(),
     onPreviewTransaction: vi.fn(),
     onClearPreview: vi.fn(),
@@ -291,10 +256,6 @@ function renderDashboardTransactionsView(
     getNextRecurringOccurrence: vi.fn(() => null),
     emptyStateTitle: "Nenhuma transação",
     emptyStateDescription: "Cadastre itens para começar.",
-    forecastTotalIncome: 3200,
-    forecastTotalExpense: 450,
-    forecastProjectedBalance: 3750,
-    upcomingMonthGroups: [createUpcomingGroup()],
     onOpenSchedule: vi.fn(),
     onOpenStatementProjection: vi.fn(),
     ...overrides,
@@ -330,10 +291,6 @@ describe("DashboardTransactionsView", () => {
     renderDashboardTransactionsView({
       filteredTransactions: [],
       statementTransactions: [],
-      forecastTotalIncome: 0,
-      forecastTotalExpense: 0,
-      forecastProjectedBalance: 0,
-      upcomingMonthGroups: [],
       isPreviewActive: false,
     });
 
@@ -384,7 +341,6 @@ describe("DashboardTransactionsView", () => {
     const onRemoveTransaction = vi.fn();
 
     renderDashboardTransactionsView({
-      onUpdateInitialBalance,
       onAddTransaction,
       onPreviewTransaction,
       onClearPreview,

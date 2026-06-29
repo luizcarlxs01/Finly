@@ -2,7 +2,6 @@
 
 import { CalendarDays, FileText } from "lucide-react";
 
-import { FinanceSummaryCard } from "@/components/dashboard/finance-summary-card";
 import { TransactionAdvancedFilters } from "@/components/dashboard/transaction-advanced-filters";
 import { TransactionFilterTabs } from "@/components/dashboard/transaction-filter-tabs";
 import { TransactionForm } from "@/components/dashboard/transaction-form";
@@ -11,14 +10,9 @@ import { Button } from "@/components/ui/button";
 import type { TransactionSortOption } from "@/components/dashboard/transaction-advanced-filters";
 import type { LocalFinanceTransactionInput } from "@/hooks/use-local-finance";
 import type { Transaction, TransactionFilter } from "@/types/finance";
-import type { UpcomingTransactionsMonthGroup } from "@/utils/upcoming-transactions";
 
 type DashboardTransactionsViewProps = {
   isSubmitting?: boolean;
-  initialBalance: number;
-  totalIncome: number;
-  totalExpense: number;
-  currentBalance: number;
   transactionFilter: TransactionFilter;
   onTransactionFilterChange: (filter: TransactionFilter) => void;
   searchTerm: string;
@@ -31,7 +25,6 @@ type DashboardTransactionsViewProps = {
   statementTransactions: Transaction[];
   hasActiveAdvancedFilters: boolean;
   onClearAdvancedFilters: () => void;
-  onUpdateInitialBalance: (value: number) => void;
   onAddTransaction: (input: LocalFinanceTransactionInput) => void;
   onPreviewTransaction: (input: LocalFinanceTransactionInput) => void;
   onClearPreview: () => void;
@@ -41,10 +34,6 @@ type DashboardTransactionsViewProps = {
   getNextRecurringOccurrence: (transaction: Transaction) => string | null;
   emptyStateTitle: string;
   emptyStateDescription: string;
-  forecastTotalIncome: number;
-  forecastTotalExpense: number;
-  forecastProjectedBalance: number;
-  upcomingMonthGroups: UpcomingTransactionsMonthGroup[];
   onOpenSchedule: () => void;
   onOpenStatementProjection: () => void;
 };
@@ -53,10 +42,6 @@ const WHATSAPP_SUPPORT_NUMBER = "5511975832629";
 
 export function DashboardTransactionsView({
   isSubmitting = false,
-  initialBalance,
-  totalIncome,
-  totalExpense,
-  currentBalance,
   transactionFilter,
   onTransactionFilterChange,
   searchTerm,
@@ -69,7 +54,6 @@ export function DashboardTransactionsView({
   statementTransactions,
   hasActiveAdvancedFilters,
   onClearAdvancedFilters,
-  onUpdateInitialBalance,
   onAddTransaction,
   onPreviewTransaction,
   onClearPreview,
@@ -79,14 +63,9 @@ export function DashboardTransactionsView({
   getNextRecurringOccurrence,
   emptyStateTitle,
   emptyStateDescription,
-  forecastTotalIncome,
-  forecastTotalExpense,
-  forecastProjectedBalance,
-  upcomingMonthGroups,
   onOpenSchedule,
   onOpenStatementProjection,
 }: DashboardTransactionsViewProps) {
-  const nextUpcomingMonth = upcomingMonthGroups[0];
 
   return (
     <>
@@ -177,20 +156,6 @@ export function DashboardTransactionsView({
                   Extrato
                 </Button>
               </div>
-
-              <FinanceSummaryCard
-                initialBalance={initialBalance}
-                totalIncome={totalIncome}
-                totalExpense={totalExpense}
-                currentBalance={currentBalance}
-                forecastTotalIncome={forecastTotalIncome}
-                forecastTotalExpense={forecastTotalExpense}
-                forecastProjectedBalance={forecastProjectedBalance}
-                isPreviewActive={isPreviewActive}
-                onClearPreview={onClearPreview}
-                onUpdateInitialBalance={onUpdateInitialBalance}
-                nextUpcomingMonthLabel={nextUpcomingMonth?.monthLabel}
-              />
 
               <a
                 href={`https://wa.me/${WHATSAPP_SUPPORT_NUMBER}`}
