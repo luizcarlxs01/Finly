@@ -235,16 +235,25 @@ Esses erros já existiam antes da Fase 1 e precisam ser corrigidos em momento de
 
 ---
 
-## 14. O que está em andamento agora (Fase 2)
+## 14. O que está em andamento agora (Fase 3)
 
-**Revisão de segurança da API**
+**Fase 2 — Revisão de segurança da API (CONCLUÍDA)**
 - ✅ Guid.TryParse na base controller — `GetAuthenticatedUserId()` retorna `Unauthorized` em vez de exceção
 - ✅ `ApiControllerBase` criado — os 6 controllers herdam, método duplicado removido
 - ✅ `[Required]`, `[MaxLength]`, `[EmailAddress]` em todos os DTOs de request
 - ✅ SecretKey removida dos appsettings — lida via variável de ambiente `JWT__SecretKey`
 - ✅ CORS — `AllowedOrigins` configurado com `https://finly-opal.vercel.app` em produção
+- ✅ Rate limiting em login/register — 5 req / 15 min por IP, resposta 429 com mensagem clara
+- ✅ Senha mínima aumentada de 6 para 8 caracteres
+- ✅ Rehash silencioso implementado — `SuccessRehashNeeded` atualiza o hash no banco sem interromper o login
+- ✅ Claims JWT enxutas — 4 claims em vez de 6 (`sub`, `email`, `unique_name`, `ClaimTypes.NameIdentifier`)
 - ⚠️ `AllowedHosts` permanece `"*"` — será restringido para `api.finly.com.br` na Fase 5, quando o domínio da VPS estiver definido
-- ⏳ Revisar autorização e demais pontos do diagnóstico
+
+**Fase 3 — Containerização (EM ANDAMENTO)**
+- ⏳ Dockerfile para a API (.NET 8)
+- ⏳ Dockerfile para SQL Server
+- ⏳ Docker Compose unificado
+- Objetivo: `docker compose up -d` sobe todo o ambiente local
 
 **Variáveis de ambiente obrigatórias para rodar a API**
 
@@ -280,15 +289,11 @@ Objetivo: produto estável para apresentação no front-end.
 - UI/UX concluída
 - Fluxo validado no browser
 
-### Fase 2 — Revisão de segurança da API (AGORA)
+### Fase 2 — Revisão de segurança da API (CONCLUÍDA)
 Objetivo: revisar a segurança localmente antes da retomada de deploy.
-- Revisar JWT
-- Validar proteção dos endpoints
-- Revisar validação de usuário
-- Revisar CORS
-- Revisar autorização
+- JWT, endpoints, validação, CORS, rate limiting, rehash, claims — tudo revisado.
 
-### Fase 3 — Containerização
+### Fase 3 — Containerização (AGORA)
 Objetivo: preparar o Finly para sair da máquina local.
 ```
 /docker
@@ -332,7 +337,9 @@ Somente depois de tudo acima estar estável:
 
 **App Mobile (Flutter)** — `apps/mobile` está vazio intencionalmente. Pertence à Fase 7. Não iniciar.
 
-**Docker / VPS / Nginx / SSL / Deploy** — pertence às Fases 3 a 6. Não sugerir enquanto estiver na Fase 2.
+**Docker** — Fase 3 em andamento. Containerização da API e do banco é o foco atual.
+
+**VPS / Nginx / SSL / Deploy** — pertence às Fases 4 a 6. Não sugerir antes de concluir a Fase 3.
 
 ---
 
