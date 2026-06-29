@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { ArrowDownRight, ArrowUpRight, Sparkles, Wallet } from "lucide-react";
 
@@ -43,19 +43,21 @@ export function FinanceSummaryCard({
 }: FinanceSummaryCardProps) {
   const [isEditingBalance, setIsEditingBalance] = useState(false);
   const [balanceInput, setBalanceInput] = useState(String(initialBalance));
+  const cancelledRef = useRef(false);
 
   useEffect(() => {
     setBalanceInput(String(initialBalance));
   }, [initialBalance]);
 
-  function handleSaveInitialBalance() {
-    const parsedValue = Number(balanceInput);
-
-    if (Number.isNaN(parsedValue)) {
+  function handleSaveBalance() {
+    if (cancelledRef.current) {
+      cancelledRef.current = false;
       return;
     }
-
-    onUpdateInitialBalance(parsedValue);
+    const parsedValue = Number(balanceInput);
+    if (!Number.isNaN(parsedValue)) {
+      onUpdateInitialBalance(parsedValue);
+    }
     setIsEditingBalance(false);
   }
 
@@ -70,64 +72,46 @@ export function FinanceSummaryCard({
       <CardContent className="space-y-3 p-5 pt-4">
         <div className="rounded-[1.25rem] border border-border/60 bg-background/65 p-4">
           <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-sm text-muted-foreground">Saldo atual</p>
-              <p className="mt-2 text-2xl font-semibold text-foreground">
-                {formatCurrency(currentBalance)}
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Base inicial: {formatCurrency(initialBalance)}
-              </p>
-            </div>
+            {isEditingBalance ? (
+              <input
+                autoFocus
+                type="number"
+                step="0.01"
+                value={balanceInput}
+                onChange={(e) => setBalanceInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); }
+                  if (e.key === "Escape") {
+                    cancelledRef.current = true;
+                    setBalanceInput(String(initialBalance));
+                    setIsEditingBalance(false);
+                  }
+                }}
+                onBlur={handleSaveBalance}
+                className="w-full rounded-2xl border border-border/70 bg-background px-4 py-3 text-sm text-foreground outline-none transition placeholder:text-muted-foreground/80 focus:border-primary focus:ring-2 focus:ring-primary/15"
+                placeholder="Ex.: 1500.00"
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsEditingBalance(true)}
+                className="group text-left"
+                title="Clique para editar o saldo inicial"
+              >
+                <p className="text-sm text-muted-foreground">Saldo atual</p>
+                <p className="mt-2 text-2xl font-semibold text-foreground transition-colors group-hover:text-primary">
+                  {formatCurrency(currentBalance)}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Base inicial: {formatCurrency(initialBalance)}
+                </p>
+              </button>
+            )}
 
             <span className="flex size-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
               <Wallet className="size-5" />
             </span>
           </div>
-
-          {isEditingBalance ? (
-            <div className="mt-4 space-y-3">
-              <input
-                id="finance-summary-initial-balance"
-                type="number"
-                step="0.01"
-                value={balanceInput}
-                onChange={(event) => setBalanceInput(event.target.value)}
-                className="w-full rounded-2xl border border-border/70 bg-background px-4 py-3 text-sm text-foreground outline-none transition placeholder:text-muted-foreground/80 focus:border-primary focus:ring-2 focus:ring-primary/15"
-                placeholder="Ex.: 1500.00"
-              />
-
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  className="h-10 flex-1 rounded-2xl"
-                  onClick={handleSaveInitialBalance}
-                >
-                  Salvar saldo
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-10 flex-1 rounded-2xl"
-                  onClick={() => {
-                    setBalanceInput(String(initialBalance));
-                    setIsEditingBalance(false);
-                  }}
-                >
-                  Cancelar
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <Button
-              type="button"
-              variant="ghost"
-              className="mt-3 h-9 rounded-xl px-0"
-              onClick={() => setIsEditingBalance(true)}
-            >
-              Alterar saldo
-            </Button>
-          )}
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
