@@ -238,11 +238,29 @@ Esses erros já existiam antes da Fase 1 e precisam ser corrigidos em momento de
 ## 14. O que está em andamento agora (Fase 2)
 
 **Revisão de segurança da API**
-- JWT (payload, claims)
-- Proteção dos endpoints
-- Validação de usuário
-- CORS
-- Autorização
+- ✅ Guid.TryParse na base controller — `GetAuthenticatedUserId()` retorna `Unauthorized` em vez de exceção
+- ✅ `ApiControllerBase` criado — os 6 controllers herdam, método duplicado removido
+- ✅ `[Required]`, `[MaxLength]`, `[EmailAddress]` em todos os DTOs de request
+- ✅ SecretKey removida dos appsettings — lida via variável de ambiente `JWT__SecretKey`
+- ⏳ CORS — configurar `AllowedOrigins` de produção
+- ⏳ Revisar autorização e demais pontos do diagnóstico
+
+**Variáveis de ambiente obrigatórias para rodar a API**
+
+A `SecretKey` do JWT **nunca** deve ser hardcoded. Copie `apps/api/.env.example` para `apps/api/.env` e preencha os valores:
+
+```
+JWT__SecretKey=       ← gere com: openssl rand -base64 32
+JWT__Issuer=Finly.Api
+JWT__Audience=Finly.Web
+ConnectionStrings__DefaultConnection=
+```
+
+O padrão .NET usa `__` para separar seções (`JWT__SecretKey` → `Jwt:SecretKey`).
+O `IConfiguration` do .NET 8 lê env vars automaticamente — nenhuma alteração de código necessária.
+
+Em produção, a guarda em `InfrastructureServiceExtensions` recusa iniciar se `SecretKey` estiver vazio.
+Em desenvolvimento, `appsettings.Development.json` tem `"CONFIGURAR_VIA_ENV"` como placeholder.
 
 **Observação de ambiente**
 - ⚠️ A API está hospedada na Azure com Free Trial expirado (modo read-only).
