@@ -25,6 +25,8 @@ import { useUpdateGoalProgress } from "@/hooks/use-update-goal-progress";
 import { useUpdateTransaction } from "@/hooks/use-update-transaction";
 import { useUpdateInitialBalance } from "@/hooks/use-update-initial-balance";
 import { GoalProgressModal } from "@/components/dashboard/goal-progress-modal";
+import { ScheduleModal } from "@/components/dashboard/overlays/schedule-modal";
+import { StatementProjectionModal } from "@/components/dashboard/overlays/statement-projection-modal";
 import { TransactionEditModal } from "@/components/dashboard/transaction-edit-modal";
 import { PageContainer } from "@/components/layout/page-container";
 import { ConfirmationModal } from "@/components/ui/confirmation-modal";
@@ -217,6 +219,8 @@ export default function HomePage() {
   const [pendingRemovalTransactionId, setPendingRemovalTransactionId] =
     useState<string | null>(null);
   const [writeModeMessage, setWriteModeMessage] = useState<string | null>(null);
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [isStatementProjectionModalOpen, setIsStatementProjectionModalOpen] = useState(false);
 
   const isApiMode = source === "api";
   const {
@@ -627,7 +631,11 @@ export default function HomePage() {
   }
 
   const homeView = (
-    <DashboardHomeView onGoToTransactions={handleGoToTransactionsSection} />
+    <DashboardHomeView
+      onGoToTransactions={handleGoToTransactionsSection}
+      onOpenSchedule={() => setIsScheduleModalOpen(true)}
+      onOpenStatementProjection={() => setIsStatementProjectionModalOpen(true)}
+    />
   );
 
   const transactionsView = (
@@ -668,6 +676,8 @@ export default function HomePage() {
       forecastTotalExpense={forecast.totalExpense}
       forecastProjectedBalance={forecast.projectedBalance}
       upcomingMonthGroups={upcomingTransactions}
+      onOpenSchedule={() => setIsScheduleModalOpen(true)}
+      onOpenStatementProjection={() => setIsStatementProjectionModalOpen(true)}
     />
   );
 
@@ -784,6 +794,37 @@ export default function HomePage() {
             setPendingRemovalTransactionId(null);
           }
         }}
+      />
+
+      <ScheduleModal
+        open={isScheduleModalOpen}
+        onClose={() => setIsScheduleModalOpen(false)}
+        monthGroups={upcomingTransactions}
+      />
+
+      <StatementProjectionModal
+        open={isStatementProjectionModalOpen}
+        onClose={() => setIsStatementProjectionModalOpen(false)}
+        transactionFilter={transactionFilter}
+        onTransactionFilterChange={setTransactionFilter}
+        searchTerm={searchTerm}
+        onSearchTermChange={setSearchTerm}
+        categoryFilter={categoryFilter}
+        onCategoryFilterChange={setCategoryFilter}
+        sortOption={sortOption}
+        onSortOptionChange={setSortOption}
+        filteredTransactions={filteredTransactions}
+        statementTransactions={statementTransactions}
+        hasActiveAdvancedFilters={hasActiveAdvancedFilters}
+        onClearAdvancedFilters={handleClearAdvancedFilters}
+        onEditTransaction={handleOpenEditModal}
+        onRemoveTransaction={handleRemoveTransaction}
+        getNextRecurringOccurrence={getNextRecurringOccurrence}
+        emptyStateTitle={emptyStateTitle}
+        emptyStateDescription={emptyStateDescription}
+        forecastTotalIncome={forecast.totalIncome}
+        forecastTotalExpense={forecast.totalExpense}
+        forecastProjectedBalance={forecast.projectedBalance}
       />
     </>
   );

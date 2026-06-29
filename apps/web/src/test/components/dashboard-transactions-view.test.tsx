@@ -295,6 +295,8 @@ function renderDashboardTransactionsView(
     forecastTotalExpense: 450,
     forecastProjectedBalance: 3750,
     upcomingMonthGroups: [createUpcomingGroup()],
+    onOpenSchedule: vi.fn(),
+    onOpenStatementProjection: vi.fn(),
     ...overrides,
   };
 

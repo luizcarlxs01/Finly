@@ -1,11 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import { CalendarDays, FileText } from "lucide-react";
 
 import { FinanceSummaryCard } from "@/components/dashboard/finance-summary-card";
-import { ScheduleModal } from "@/components/dashboard/overlays/schedule-modal";
-import { StatementProjectionModal } from "@/components/dashboard/overlays/statement-projection-modal";
 import { TransactionAdvancedFilters } from "@/components/dashboard/transaction-advanced-filters";
 import { TransactionFilterTabs } from "@/components/dashboard/transaction-filter-tabs";
 import { TransactionForm } from "@/components/dashboard/transaction-form";
@@ -48,9 +45,11 @@ type DashboardTransactionsViewProps = {
   forecastTotalExpense: number;
   forecastProjectedBalance: number;
   upcomingMonthGroups: UpcomingTransactionsMonthGroup[];
+  onOpenSchedule: () => void;
+  onOpenStatementProjection: () => void;
 };
 
-const WHATSAPP_SUPPORT_NUMBER = "5519999999999";
+const WHATSAPP_SUPPORT_NUMBER = "5511975832629";
 
 export function DashboardTransactionsView({
   isSubmitting = false,
@@ -84,11 +83,9 @@ export function DashboardTransactionsView({
   forecastTotalExpense,
   forecastProjectedBalance,
   upcomingMonthGroups,
+  onOpenSchedule,
+  onOpenStatementProjection,
 }: DashboardTransactionsViewProps) {
-  const [isStatementProjectionModalOpen, setIsStatementProjectionModalOpen] =
-    useState(false);
-  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
-
   const nextUpcomingMonth = upcomingMonthGroups[0];
 
   return (
@@ -164,7 +161,7 @@ export function DashboardTransactionsView({
                 <Button
                   type="button"
                   className="h-11 justify-start rounded-2xl"
-                  onClick={() => setIsScheduleModalOpen(true)}
+                  onClick={onOpenSchedule}
                 >
                   <CalendarDays className="size-4" />
                   Agenda
@@ -174,7 +171,7 @@ export function DashboardTransactionsView({
                   type="button"
                   variant="outline"
                   className="h-11 justify-start rounded-2xl"
-                  onClick={() => setIsStatementProjectionModalOpen(true)}
+                  onClick={onOpenStatementProjection}
                 >
                   <FileText className="size-4" />
                   Extrato
@@ -208,36 +205,6 @@ export function DashboardTransactionsView({
         </section>
       </div>
 
-      <StatementProjectionModal
-        open={isStatementProjectionModalOpen}
-        onClose={() => setIsStatementProjectionModalOpen(false)}
-        transactionFilter={transactionFilter}
-        onTransactionFilterChange={onTransactionFilterChange}
-        searchTerm={searchTerm}
-        onSearchTermChange={onSearchTermChange}
-        categoryFilter={categoryFilter}
-        onCategoryFilterChange={onCategoryFilterChange}
-        sortOption={sortOption}
-        onSortOptionChange={onSortOptionChange}
-        filteredTransactions={filteredTransactions}
-        statementTransactions={statementTransactions}
-        hasActiveAdvancedFilters={hasActiveAdvancedFilters}
-        onClearAdvancedFilters={onClearAdvancedFilters}
-        onEditTransaction={onEditTransaction}
-        onRemoveTransaction={onRemoveTransaction}
-        getNextRecurringOccurrence={getNextRecurringOccurrence}
-        emptyStateTitle={emptyStateTitle}
-        emptyStateDescription={emptyStateDescription}
-        forecastTotalIncome={forecastTotalIncome}
-        forecastTotalExpense={forecastTotalExpense}
-        forecastProjectedBalance={forecastProjectedBalance}
-      />
-
-      <ScheduleModal
-        open={isScheduleModalOpen}
-        onClose={() => setIsScheduleModalOpen(false)}
-        monthGroups={upcomingMonthGroups}
-      />
     </>
   );
 }

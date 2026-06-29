@@ -9,6 +9,8 @@ function renderDashboardHomeView(
 ) {
   const props: React.ComponentProps<typeof DashboardHomeView> = {
     onGoToTransactions: vi.fn(),
+    onOpenSchedule: vi.fn(),
+    onOpenStatementProjection: vi.fn(),
     ...overrides,
   };
 
@@ -26,11 +28,9 @@ describe("DashboardHomeView", () => {
     expect(
       screen.getByText("Seu financeiro mais claro, simples e organizado."),
     ).toBeInTheDocument();
-    expect(screen.getByText("Você já pode usar o Finly agora")).toBeInTheDocument();
+    expect(screen.getByText("Comece a usar o Finly agora")).toBeInTheDocument();
     expect(screen.getByText("O que você já pode fazer")).toBeInTheDocument();
-    expect(
-      screen.getByText("O Finly ainda pode crescer com você"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Mais por vir")).toBeInTheDocument();
   });
 
   it("deve exibir os resumos, cards e a ação principal da interface atual", () => {
@@ -52,7 +52,7 @@ describe("DashboardHomeView", () => {
       screen.getByRole("button", { name: "Ir para a aba de lançamentos" }),
     ).toBeInTheDocument();
     expect(screen.getByText("Começar lançamentos")).toBeInTheDocument();
-    expect(screen.getAllByRole("button")).toHaveLength(1);
+    expect(screen.getAllByRole("button")).toHaveLength(3);
   });
 
   it("deve renderizar de forma estavel com as props minimas validas", () => {
