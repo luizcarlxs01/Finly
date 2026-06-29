@@ -38,8 +38,8 @@ public class AuthService : IAuthService
         if (string.IsNullOrWhiteSpace(password))
             throw new InvalidOperationException("A senha é obrigatória.");
 
-        if (password.Length < 6)
-            throw new InvalidOperationException("A senha deve ter no mínimo 6 caracteres.");
+        if (password.Length < 8)
+            throw new InvalidOperationException("A senha deve ter no mínimo 8 caracteres.");
 
         var userAlreadyExists = await _context.Users
             .AnyAsync(x => x.Email == email, cancellationToken);
@@ -95,6 +95,13 @@ public class AuthService : IAuthService
 
         if (!passwordIsValid)
             throw new InvalidOperationException("E-mail ou senha inválidos.");
+
+        var newHash = _passwordHasherService.GetRehashIfNeeded(password, user.PasswordHash);
+        if (newHash is not null)
+        {
+            user.PasswordHash = newHash;
+            await _context.SaveChangesAsync(cancellationToken);
+        }
 
         return _tokenService.GenerateToken(user);
     }

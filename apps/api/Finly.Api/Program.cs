@@ -1,5 +1,8 @@
+using System.Net;
+using System.Threading.RateLimiting;
 using Finly.Api.Extensions;
 using Finly.Application.Services;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -13,6 +16,26 @@ if (builder.Environment.IsDevelopment() && allowedOrigins.Length == 0)
 {
     allowedOrigins = ["http://localhost:3000"];
 }
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddFixedWindowLimiter("auth", limiterOptions =>
+    {
+        limiterOptions.PermitLimit = 5;
+        limiterOptions.Window = TimeSpan.FromMinutes(15);
+        limiterOptions.QueueLimit = 0;
+        limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+    });
+
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        context.HttpContext.Response.StatusCode = (int)HttpStatusCode.TooManyRequests;
+        context.HttpContext.Response.ContentType = "application/json";
+        await context.HttpContext.Response.WriteAsync(
+            "{\"message\":\"Muitas tentativas. Tente novamente em 15 minutos.\"}",
+            cancellationToken);
+    };
+});
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -78,6 +101,8 @@ app.UseHttpsRedirection();
 app.UseRouting();
 
 app.UseCors("Frontend");
+
+app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();

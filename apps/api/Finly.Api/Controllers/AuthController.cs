@@ -2,6 +2,7 @@ using Finly.Application.DTOs.Auth;
 using Finly.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Finly.Api.Controllers;
 
@@ -17,6 +18,7 @@ public class AuthController : ControllerBase
     }
 
     [AllowAnonymous]
+    [EnableRateLimiting("auth")]
     [HttpPost("register")]
     public async Task<IActionResult> Register(
         [FromBody] RegisterRequestDto request,
@@ -37,6 +39,7 @@ public class AuthController : ControllerBase
     }
 
     [AllowAnonymous]
+    [EnableRateLimiting("auth")]
     [HttpPost("login")]
     public async Task<IActionResult> Login(
         [FromBody] LoginRequestDto request,

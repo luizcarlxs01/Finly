@@ -17,10 +17,17 @@ public class PasswordHasherService : IPasswordHasherService
     public bool VerifyPassword(string password, string passwordHash)
     {
         var user = new User();
-
         var result = _passwordHasher.VerifyHashedPassword(user, passwordHash, password);
-
         return result == PasswordVerificationResult.Success
                || result == PasswordVerificationResult.SuccessRehashNeeded;
+    }
+
+    public string? GetRehashIfNeeded(string password, string existingHash)
+    {
+        var user = new User();
+        var result = _passwordHasher.VerifyHashedPassword(user, existingHash, password);
+        return result == PasswordVerificationResult.SuccessRehashNeeded
+            ? _passwordHasher.HashPassword(user, password)
+            : null;
     }
 }
