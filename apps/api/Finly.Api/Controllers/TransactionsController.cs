@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Finly.Application.DTOs.Transactions;
 using Finly.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -6,10 +5,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Finly.Api.Controllers;
 
-[ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class TransactionsController : ControllerBase
+public class TransactionsController : ApiControllerBase
 {
     private readonly ITransactionService _transactionService;
 
@@ -23,10 +21,11 @@ public class TransactionsController : ControllerBase
         [FromQuery] Guid financialProfileId,
         CancellationToken cancellationToken)
     {
+        if (GetAuthenticatedUserId() is not { } userId)
+            return Unauthorized();
+
         try
         {
-            var userId = GetAuthenticatedUserId();
-
             var transactions = await _transactionService.GetAllAsync(
                 userId,
                 financialProfileId,
@@ -43,7 +42,8 @@ public class TransactionsController : ControllerBase
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
-        var userId = GetAuthenticatedUserId();
+        if (GetAuthenticatedUserId() is not { } userId)
+            return Unauthorized();
 
         var transaction = await _transactionService.GetByIdAsync(userId, id, cancellationToken);
 
@@ -58,10 +58,11 @@ public class TransactionsController : ControllerBase
         [FromBody] CreateTransactionRequestDto request,
         CancellationToken cancellationToken)
     {
+        if (GetAuthenticatedUserId() is not { } userId)
+            return Unauthorized();
+
         try
         {
-            var userId = GetAuthenticatedUserId();
-
             var createdTransaction = await _transactionService.CreateAsync(
                 userId,
                 request,
@@ -81,10 +82,11 @@ public class TransactionsController : ControllerBase
         [FromBody] UpdateTransactionRequestDto request,
         CancellationToken cancellationToken)
     {
+        if (GetAuthenticatedUserId() is not { } userId)
+            return Unauthorized();
+
         try
         {
-            var userId = GetAuthenticatedUserId();
-
             var updatedTransaction = await _transactionService.UpdateAsync(
                 userId,
                 id,
@@ -102,10 +104,11 @@ public class TransactionsController : ControllerBase
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
+        if (GetAuthenticatedUserId() is not { } userId)
+            return Unauthorized();
+
         try
         {
-            var userId = GetAuthenticatedUserId();
-
             await _transactionService.DeleteAsync(userId, id, cancellationToken);
 
             return NoContent();
@@ -114,15 +117,5 @@ public class TransactionsController : ControllerBase
         {
             return BadRequest(new { message = ex.Message });
         }
-    }
-
-    private Guid GetAuthenticatedUserId()
-    {
-        var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-        if (string.IsNullOrWhiteSpace(userIdValue))
-            throw new UnauthorizedAccessException("Usuário autenticado não encontrado no token.");
-
-        return Guid.Parse(userIdValue);
     }
 }

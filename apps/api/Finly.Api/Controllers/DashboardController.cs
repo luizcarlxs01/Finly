@@ -1,14 +1,12 @@
-using System.Security.Claims;
 using Finly.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Finly.Api.Controllers;
 
-[ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class DashboardController : ControllerBase
+public class DashboardController : ApiControllerBase
 {
     private readonly IDashboardService _dashboardService;
 
@@ -20,10 +18,11 @@ public class DashboardController : ControllerBase
     [HttpGet("{financialProfileId:guid}")]
     public async Task<IActionResult> GetSummary(Guid financialProfileId, CancellationToken cancellationToken)
     {
+        if (GetAuthenticatedUserId() is not { } userId)
+            return Unauthorized();
+
         try
         {
-            var userId = GetAuthenticatedUserId();
-
             var summary = await _dashboardService.GetSummaryAsync(
                 userId,
                 financialProfileId,
@@ -35,15 +34,5 @@ public class DashboardController : ControllerBase
         {
             return BadRequest(new { message = ex.Message });
         }
-    }
-
-    private Guid GetAuthenticatedUserId()
-    {
-        var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-        if (string.IsNullOrWhiteSpace(userIdValue))
-            throw new UnauthorizedAccessException("Usuário autenticado não encontrado no token.");
-
-        return Guid.Parse(userIdValue);
     }
 }

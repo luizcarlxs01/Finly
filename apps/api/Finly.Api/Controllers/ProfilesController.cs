@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Finly.Application.DTOs.Profiles;
 using Finly.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -6,10 +5,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Finly.Api.Controllers;
 
-[ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class ProfilesController : ControllerBase
+public class ProfilesController : ApiControllerBase
 {
     private readonly IProfileService _profileService;
 
@@ -21,7 +19,8 @@ public class ProfilesController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
     {
-        var userId = GetAuthenticatedUserId();
+        if (GetAuthenticatedUserId() is not { } userId)
+            return Unauthorized();
 
         var profiles = await _profileService.GetAllAsync(userId, cancellationToken);
 
@@ -31,7 +30,8 @@ public class ProfilesController : ControllerBase
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
-        var userId = GetAuthenticatedUserId();
+        if (GetAuthenticatedUserId() is not { } userId)
+            return Unauthorized();
 
         var profile = await _profileService.GetByIdAsync(userId, id, cancellationToken);
 
@@ -46,10 +46,11 @@ public class ProfilesController : ControllerBase
         [FromBody] CreateProfileRequestDto request,
         CancellationToken cancellationToken)
     {
+        if (GetAuthenticatedUserId() is not { } userId)
+            return Unauthorized();
+
         try
         {
-            var userId = GetAuthenticatedUserId();
-
             var createdProfile = await _profileService.CreateAsync(userId, request, cancellationToken);
 
             return CreatedAtAction(nameof(GetById), new { id = createdProfile.Id }, createdProfile);
@@ -66,10 +67,11 @@ public class ProfilesController : ControllerBase
         [FromBody] UpdateProfileRequestDto request,
         CancellationToken cancellationToken)
     {
+        if (GetAuthenticatedUserId() is not { } userId)
+            return Unauthorized();
+
         try
         {
-            var userId = GetAuthenticatedUserId();
-
             var updatedProfile = await _profileService.UpdateAsync(userId, id, request, cancellationToken);
 
             return Ok(updatedProfile);
@@ -83,10 +85,11 @@ public class ProfilesController : ControllerBase
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
+        if (GetAuthenticatedUserId() is not { } userId)
+            return Unauthorized();
+
         try
         {
-            var userId = GetAuthenticatedUserId();
-
             await _profileService.DeleteAsync(userId, id, cancellationToken);
 
             return NoContent();
@@ -95,15 +98,5 @@ public class ProfilesController : ControllerBase
         {
             return BadRequest(new { message = ex.Message });
         }
-    }
-
-    private Guid GetAuthenticatedUserId()
-    {
-        var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-        if (string.IsNullOrWhiteSpace(userIdValue))
-            throw new UnauthorizedAccessException("Usuário autenticado não encontrado no token.");
-
-        return Guid.Parse(userIdValue);
     }
 }

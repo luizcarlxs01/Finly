@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Finly.Application.DTOs.Goals;
 using Finly.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -6,10 +5,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Finly.Api.Controllers;
 
-[ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class GoalsController : ControllerBase
+public class GoalsController : ApiControllerBase
 {
     private readonly IGoalService _goalService;
 
@@ -23,10 +21,11 @@ public class GoalsController : ControllerBase
         [FromQuery] Guid financialProfileId,
         CancellationToken cancellationToken)
     {
+        if (GetAuthenticatedUserId() is not { } userId)
+            return Unauthorized();
+
         try
         {
-            var userId = GetAuthenticatedUserId();
-
             var goals = await _goalService.GetAllAsync(userId, financialProfileId, cancellationToken);
 
             return Ok(goals);
@@ -40,7 +39,8 @@ public class GoalsController : ControllerBase
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
-        var userId = GetAuthenticatedUserId();
+        if (GetAuthenticatedUserId() is not { } userId)
+            return Unauthorized();
 
         var goal = await _goalService.GetByIdAsync(userId, id, cancellationToken);
 
@@ -55,10 +55,11 @@ public class GoalsController : ControllerBase
         [FromBody] CreateGoalRequestDto request,
         CancellationToken cancellationToken)
     {
+        if (GetAuthenticatedUserId() is not { } userId)
+            return Unauthorized();
+
         try
         {
-            var userId = GetAuthenticatedUserId();
-
             var createdGoal = await _goalService.CreateAsync(userId, request, cancellationToken);
 
             return CreatedAtAction(nameof(GetById), new { id = createdGoal.Id }, createdGoal);
@@ -75,10 +76,11 @@ public class GoalsController : ControllerBase
         [FromBody] UpdateGoalRequestDto request,
         CancellationToken cancellationToken)
     {
+        if (GetAuthenticatedUserId() is not { } userId)
+            return Unauthorized();
+
         try
         {
-            var userId = GetAuthenticatedUserId();
-
             var updatedGoal = await _goalService.UpdateAsync(userId, id, request, cancellationToken);
 
             return Ok(updatedGoal);
@@ -95,10 +97,11 @@ public class GoalsController : ControllerBase
         [FromBody] UpdateGoalProgressRequestDto request,
         CancellationToken cancellationToken)
     {
+        if (GetAuthenticatedUserId() is not { } userId)
+            return Unauthorized();
+
         try
         {
-            var userId = GetAuthenticatedUserId();
-
             var updatedGoal = await _goalService.UpdateProgressAsync(userId, id, request, cancellationToken);
 
             return Ok(updatedGoal);
@@ -112,10 +115,11 @@ public class GoalsController : ControllerBase
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
+        if (GetAuthenticatedUserId() is not { } userId)
+            return Unauthorized();
+
         try
         {
-            var userId = GetAuthenticatedUserId();
-
             await _goalService.DeleteAsync(userId, id, cancellationToken);
 
             return NoContent();
@@ -124,15 +128,5 @@ public class GoalsController : ControllerBase
         {
             return BadRequest(new { message = ex.Message });
         }
-    }
-
-    private Guid GetAuthenticatedUserId()
-    {
-        var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-        if (string.IsNullOrWhiteSpace(userIdValue))
-            throw new UnauthorizedAccessException("Usuário autenticado não encontrado no token.");
-
-        return Guid.Parse(userIdValue);
     }
 }

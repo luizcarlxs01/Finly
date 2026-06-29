@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Finly.Application.DTOs.Rules;
 using Finly.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -6,10 +5,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Finly.Api.Controllers;
 
-[ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class FinancialRulesController : ControllerBase
+public class FinancialRulesController : ApiControllerBase
 {
     private readonly IFinancialRuleService _financialRuleService;
 
@@ -23,10 +21,11 @@ public class FinancialRulesController : ControllerBase
         [FromQuery] Guid financialProfileId,
         CancellationToken cancellationToken)
     {
+        if (GetAuthenticatedUserId() is not { } userId)
+            return Unauthorized();
+
         try
         {
-            var userId = GetAuthenticatedUserId();
-
             var rules = await _financialRuleService.GetAllAsync(
                 userId,
                 financialProfileId,
@@ -43,7 +42,8 @@ public class FinancialRulesController : ControllerBase
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
-        var userId = GetAuthenticatedUserId();
+        if (GetAuthenticatedUserId() is not { } userId)
+            return Unauthorized();
 
         var rule = await _financialRuleService.GetByIdAsync(userId, id, cancellationToken);
 
@@ -58,10 +58,11 @@ public class FinancialRulesController : ControllerBase
         [FromBody] CreateFinancialRuleRequestDto request,
         CancellationToken cancellationToken)
     {
+        if (GetAuthenticatedUserId() is not { } userId)
+            return Unauthorized();
+
         try
         {
-            var userId = GetAuthenticatedUserId();
-
             var createdRule = await _financialRuleService.CreateAsync(
                 userId,
                 request,
@@ -81,10 +82,11 @@ public class FinancialRulesController : ControllerBase
         [FromBody] UpdateFinancialRuleRequestDto request,
         CancellationToken cancellationToken)
     {
+        if (GetAuthenticatedUserId() is not { } userId)
+            return Unauthorized();
+
         try
         {
-            var userId = GetAuthenticatedUserId();
-
             var updatedRule = await _financialRuleService.UpdateAsync(
                 userId,
                 id,
@@ -102,10 +104,11 @@ public class FinancialRulesController : ControllerBase
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
+        if (GetAuthenticatedUserId() is not { } userId)
+            return Unauthorized();
+
         try
         {
-            var userId = GetAuthenticatedUserId();
-
             await _financialRuleService.DeleteAsync(userId, id, cancellationToken);
 
             return NoContent();
@@ -114,15 +117,5 @@ public class FinancialRulesController : ControllerBase
         {
             return BadRequest(new { message = ex.Message });
         }
-    }
-
-    private Guid GetAuthenticatedUserId()
-    {
-        var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-        if (string.IsNullOrWhiteSpace(userIdValue))
-            throw new UnauthorizedAccessException("Usuário autenticado não encontrado no token.");
-
-        return Guid.Parse(userIdValue);
     }
 }
