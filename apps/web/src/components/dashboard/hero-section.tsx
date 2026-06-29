@@ -9,7 +9,7 @@ type HeroSectionProps = {
 
 export function HeroSection({ onStartTransactions }: HeroSectionProps) {
   return (
-    <section className="relative overflow-hidden rounded-[2rem] border border-border/60 bg-gradient-to-br from-background via-background to-muted/35 px-5 py-8 shadow-sm sm:px-6 sm:py-10 lg:px-8 lg:py-12 2xl:px-10 2xl:py-14">
+    <section className="relative overflow-hidden rounded-[2rem] border border-border/60 bg-linear-to-br from-background via-background to-muted/35 px-5 py-8 shadow-sm sm:px-6 sm:py-10 lg:px-8 lg:py-12 2xl:px-10 2xl:py-14">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.08),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.06),transparent_28%)]" />
 
       <div className="relative grid gap-8 xl:grid-cols-[minmax(0,1.2fr)_minmax(260px,340px)] xl:items-end 2xl:gap-10">
