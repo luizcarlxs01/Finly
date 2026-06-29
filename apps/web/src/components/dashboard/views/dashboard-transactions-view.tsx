@@ -120,13 +120,10 @@ export function DashboardTransactionsView({
               <section className="space-y-4">
                 <div className="rounded-[1.75rem] border border-border/70 bg-card/95 p-5 shadow-sm sm:p-6">
                   <div className="space-y-4">
-                    <div className="space-y-1">
+                    <div>
                       <h3 className="text-xl font-semibold tracking-tight text-foreground">
                         Lista de lançamentos
                       </h3>
-                      <p className="text-sm text-muted-foreground">
-                        Use o botão Editar em cada item para abrir o modal principal.
-                      </p>
                     </div>
 
                     <TransactionFilterTabs

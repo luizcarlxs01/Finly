@@ -18,10 +18,10 @@ export function OnboardingFuture() {
 
         <div className="space-y-1">
           <CardTitle className="text-xl font-semibold tracking-tight text-foreground">
-            O Finly ainda pode crescer com você
+            Mais por vir
           </CardTitle>
           <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-            A base já está pronta, e a experiência ainda pode ganhar mais continuidade com o tempo.
+            A experiência vai crescer com você.
           </p>
         </div>
       </CardHeader>

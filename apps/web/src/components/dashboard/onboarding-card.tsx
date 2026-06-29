@@ -16,10 +16,10 @@ export function OnboardingCard() {
 
         <div className="space-y-1">
           <CardTitle className="text-xl font-semibold tracking-tight text-foreground">
-            Você já pode usar o Finly agora
+            Comece a usar o Finly agora
           </CardTitle>
           <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-            Tudo funciona direto no navegador para você começar sem etapas extras.
+            Tudo funciona direto no navegador.
           </p>
         </div>
       </CardHeader>
@@ -45,7 +45,7 @@ export function OnboardingCard() {
             Vale lembrar
           </p>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            Se você trocar de navegador ou limpar os dados, as informações não acompanham.
+            Trocar de navegador ou limpar os dados apaga as informações.
           </p>
         </div>
 
@@ -57,7 +57,7 @@ export function OnboardingCard() {
             Começo sem fricção
           </p>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            A ideia é ajudar você a ganhar clareza antes de qualquer conta ou cadastro.
+            Ganhe clareza antes de qualquer cadastro.
           </p>
         </div>
       </CardContent>

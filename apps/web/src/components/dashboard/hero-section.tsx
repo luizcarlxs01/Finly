@@ -27,8 +27,7 @@ export function HeroSection({ onStartTransactions }: HeroSectionProps) {
             </h1>
 
             <p className="max-w-3xl text-sm leading-7 text-muted-foreground sm:text-base lg:text-lg">
-              Comece pelo essencial, acompanhe sua rotina e siga com mais
-              confiança no dia a dia.
+              Comece pelo essencial e ganhe clareza sobre seu dinheiro.
             </p>
           </div>
 
@@ -49,7 +48,7 @@ export function HeroSection({ onStartTransactions }: HeroSectionProps) {
             <div className="rounded-[1.25rem] border border-border/60 bg-background/65 px-4 py-3">
               <p className="font-medium text-foreground">Veja seu momento</p>
               <p className="mt-1 leading-6">
-                Entenda saldo, entradas e saídas de forma rápida.
+                Saldo, entradas e saídas num relance.
               </p>
             </div>
 
@@ -63,7 +62,7 @@ export function HeroSection({ onStartTransactions }: HeroSectionProps) {
             <div className="rounded-[1.25rem] border border-border/60 bg-background/65 px-4 py-3">
               <p className="font-medium text-foreground">Acompanhe objetivos</p>
               <p className="mt-1 leading-6">
-                Metas e insights ajudam você a seguir em frente.
+                Metas e insights no seu caminho.
               </p>
             </div>
           </div>

@@ -49,8 +49,7 @@ export function DashboardInsightsView({
             Mais contexto, no seu tempo
           </h3>
           <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-            O Finly ainda pode ampliar essa leitura com o tempo, sem perder a
-            clareza da tela.
+            Mais análises em breve.
           </p>
         </div>
       </section>
