@@ -60,8 +60,8 @@ Branches principais: `main`, `luiz`, `leo`
 ### mobile (Flutter)
 - Flutter + Dart
 - Stack planejada: Riverpod (estado), GoRouter (navegação), Dio + flutter_secure_storage
-- Status: **pasta criada, sem código ainda — pertence à Fase 6**
-- Não iniciar o mobile antes de concluir as Fases 1 a 5
+- Status: **pasta criada, sem código ainda — pertence à Fase 7**
+- Não iniciar o mobile antes de concluir as Fases 1 a 6
 
 ---
 
@@ -91,6 +91,12 @@ src/
 ├── types/
 └── utils/
 ```
+
+**Estrutura funcional atual da Fase 1**
+- `FinanceSummaryCard` fica apenas na aba **Lançamentos**, no `aside` da tela.
+- O `FinanceSummaryCard` é colapsável: mostra **Saldo Atual** por padrão, permite ocultar todos os valores com o "olhinho" e mantém a **Simulação** visível mesmo colapsado.
+- O `AccountAccessCard` é aberto por toggle via ícone no header (`AppFloatingHeader`).
+- O FAB `[+]` fixo aparece nas abas **Lançamentos**, **Metas** e **Insights**.
 
 ---
 
@@ -147,7 +153,7 @@ Finance Summary Card, Financial Forecast Card, Financial Rules Manager,
 Transaction Form, Transaction List, Transaction Edit Modal,
 Goal Form, Goal List, Goal Progress Modal,
 Upcoming Transactions, Schedule Modal, Statement Projection Modal,
-Account Access Card, Login Form
+Account Access Card, App Floating Header, Login Form
 
 ---
 
@@ -196,52 +202,74 @@ Account Access Card, Login Form
 
 ---
 
-## 12. O que está em andamento agora (Fase 1)
+## 12. Fase 1 concluída e validada no browser
 
 **UI / UX (web)**
-- Reorganizar layout do Dashboard
-- Mover Resumo Financeiro
-- Remover Resumo Rápido
-- Agenda como atalho
-- Extrato como atalho
-- Integrar Simulação ao Resumo Financeiro
-- Simplificar Saldo Inicial
-- Reduzir textos
-- Melhorar responsividade
-- Adicionar botão "Reportar Problema"
-- Nenhuma regra funcional será alterada nessa fase
+- ✅ Reduzir textos da UI (hero, onboarding, insights)
+- ✅ Remover cards decorativos do HeroSection
+- ✅ Atalhos Agenda e Extrato na Home
+- ✅ Simplificar Saldo Inicial (in-place editing)
+- ✅ Remover cards de onboarding da Home
+- ✅ Reorganização completa do layout
+- ✅ `FinanceSummaryCard` apenas na aba **Lançamentos** (`aside`)
+- ✅ Card colapsável: mostra só **Saldo Atual** por padrão
+- ✅ "Olhinho" para ocultar todos os valores
+- ✅ Simulação sempre visível mesmo colapsado
+- ✅ `AccountAccessCard` via ícone no Header (toggle)
+- ✅ FAB `[+]` fixo — aparece em **Lançamentos**, **Metas** e **Insights**
+- ✅ Cards de onboarding removidos da Home
 
-**Revisão de segurança (api)**
+**Validação**
+- Fluxo validado visualmente no browser ao fim da Fase 1.
+
+---
+
+## 13. Dívida técnica conhecida
+
+Erros de TypeScript pré-existentes nos testes, fora do escopo da Fase 1:
+- `financial-forecast-card.test.tsx`
+- `goal-list.test.tsx`
+- `transaction-list.test.tsx`
+
+Esses erros já existiam antes da Fase 1 e precisam ser corrigidos em momento dedicado.
+
+---
+
+## 14. O que está em andamento agora (Fase 2)
+
+**Revisão de segurança da API**
 - JWT (payload, claims)
 - Proteção dos endpoints
 - Validação de usuário
 - CORS
 - Autorização
-- Revisão final ainda pendente
 
-**Deploy**
-- ⚠️ Azure Free Trial expirado → API e banco em modo read-only
-- Não é possível fazer deploy, restart ou alterações na Azure agora
-- A API está sem deploy ativo no momento — o front-end funciona em modo local (localStorage)
-- Não sugerir nenhuma solução envolvendo Azure, Docker ou VPS agora — isso pertence às fases 2 a 5
-- **Foco atual exclusivo: UI/UX + correções + apresentação**
+**Observação de ambiente**
+- ⚠️ A API está hospedada na Azure com Free Trial expirado (modo read-only).
+- A revisão de segurança deve ser feita localmente e commitada.
+- O deploy aguarda a migração para VPS nas fases futuras (Fase 3+).
 
 ---
 
-## 13. Plano de infraestrutura — fases futuras (não tocar agora)
+## 15. Plano de infraestrutura — fases futuras (não tocar agora)
 
 > Decisão registrada: não misturar infraestrutura com a fase atual.
 > O plano abaixo será executado somente após a apresentação e estabilização do produto.
 
-### Fase 1 — Estabilização (AGORA)
-Objetivo: produto estável para apresentação.
-- Finalizar UI/UX
-- Corrigir bugs encontrados
-- Revisar segurança
-- Validar modo sem conta
-- Validar modo com conta
+### Fase 1 — Estabilização UI/UX (CONCLUÍDA)
+Objetivo: produto estável para apresentação no front-end.
+- UI/UX concluída
+- Fluxo validado no browser
 
-### Fase 2 — Containerização
+### Fase 2 — Revisão de segurança da API (AGORA)
+Objetivo: revisar a segurança localmente antes da retomada de deploy.
+- Revisar JWT
+- Validar proteção dos endpoints
+- Revisar validação de usuário
+- Revisar CORS
+- Revisar autorização
+
+### Fase 3 — Containerização
 Objetivo: preparar o Finly para sair da máquina local.
 ```
 /docker
@@ -251,7 +279,7 @@ Objetivo: preparar o Finly para sair da máquina local.
 ```
 Resultado: `docker compose up -d` sobe tudo.
 
-### Fase 3 — VPS
+### Fase 4 — VPS
 Contratar servidor:
 - 4 GB RAM, 2 vCPU
 - Faixa: R$ 40–80/mês
@@ -259,18 +287,18 @@ Contratar servidor:
 
 Resultado: Finly rodando em servidor próprio.
 
-### Fase 4 — HTTPS
+### Fase 5 — HTTPS
 - Domínio próprio (`app.finly.com.br`, `api.finly.com.br`)
 - Let's Encrypt + Nginx
 - SSL configurado
 
-### Fase 5 — Produção
+### Fase 6 — Produção
 - Migrar banco local → VPS
 - Rodar `dotnet ef database update`
 - Configurar JWT, Connection String, Backup, Logs
 - Sem dependência da Azure
 
-### Fase 6 — Novas funcionalidades
+### Fase 7 — Novas funcionalidades
 Somente depois de tudo acima estar estável:
 - Troca de Perfil Financeiro (Pessoal / Empresa / Família)
 - Importação / Exportação
@@ -279,17 +307,17 @@ Somente depois de tudo acima estar estável:
 
 ---
 
-## 14. Funcionalidades e temas adiados — não tocar agora
+## 16. Funcionalidades e temas adiados — não tocar agora
 
-**Troca de Perfil Financeiro** — adiada para Fase 6. Não sugerir, não implementar, não criar estrutura.
+**Troca de Perfil Financeiro** — adiada para Fase 7. Não sugerir, não implementar, não criar estrutura.
 
-**App Mobile (Flutter)** — `apps/mobile` está vazio intencionalmente. Pertence à Fase 6. Não iniciar.
+**App Mobile (Flutter)** — `apps/mobile` está vazio intencionalmente. Pertence à Fase 7. Não iniciar.
 
-**Docker / VPS / Nginx / SSL / Deploy** — pertence às Fases 2 a 5. Não sugerir enquanto estiver na Fase 1.
+**Docker / VPS / Nginx / SSL / Deploy** — pertence às Fases 3 a 6. Não sugerir enquanto estiver na Fase 2.
 
 ---
 
-## 15. Filosofia de desenvolvimento
+## 17. Filosofia de desenvolvimento
 
 1. Implementar
 2. Validar manualmente
@@ -300,7 +328,7 @@ Nunca acumular pendências. Nunca avançar com bugs conhecidos.
 
 ---
 
-## 16. Convenção de commits
+## 18. Convenção de commits
 
 ```
 feat:      nova funcionalidade
@@ -313,7 +341,7 @@ style:     formatação, sem alteração de lógica
 
 ---
 
-## 17. Antes de qualquer implementação — perguntas obrigatórias
+## 19. Antes de qualquer implementação — perguntas obrigatórias
 
 1. Isso cria duplicidade (componente local vs API)?
    → Se sim, pare. Refatore para usar o hook unificado.
