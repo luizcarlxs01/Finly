@@ -1,4 +1,4 @@
-import { ArrowRight, CircleDollarSign, Target, Wallet } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ export function HeroSection({ onStartTransactions }: HeroSectionProps) {
     <section className="relative overflow-hidden rounded-[2rem] border border-border/60 bg-linear-to-br from-background via-background to-muted/35 px-5 py-8 shadow-sm sm:px-6 sm:py-10 lg:px-8 lg:py-12 2xl:px-10 2xl:py-14">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.08),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.06),transparent_28%)]" />
 
-      <div className="relative grid gap-8 xl:grid-cols-[minmax(0,1.2fr)_minmax(260px,340px)] xl:items-end 2xl:gap-10">
+      <div className="relative">
         <div className="min-w-0 max-w-4xl space-y-6">
           <Badge
             variant="outline"
@@ -64,50 +64,6 @@ export function HeroSection({ onStartTransactions }: HeroSectionProps) {
               <p className="mt-1 leading-6">
                 Metas e insights no seu caminho.
               </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-3 xl:grid-cols-1">
-          <div className="rounded-[1.5rem] border border-border/60 bg-background/80 p-5 backdrop-blur">
-            <div className="flex items-start gap-3">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                <Wallet className="size-5" />
-              </span>
-              <div>
-                <p className="text-sm text-muted-foreground">Resumo</p>
-                <p className="mt-2 text-base font-semibold text-foreground">
-                  Veja seu panorama logo no começo.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-[1.5rem] border border-border/60 bg-background/80 p-5 backdrop-blur">
-            <div className="flex items-start gap-3">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                <CircleDollarSign className="size-5" />
-              </span>
-              <div>
-                <p className="text-sm text-muted-foreground">Lançamentos</p>
-                <p className="mt-2 text-base font-semibold text-foreground">
-                  Registre entradas e saídas com clareza.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-[1.5rem] border border-border/60 bg-background/80 p-5 backdrop-blur">
-            <div className="flex items-start gap-3">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                <Target className="size-5" />
-              </span>
-              <div>
-                <p className="text-sm text-muted-foreground">Evolução</p>
-                <p className="mt-2 text-base font-semibold text-foreground">
-                  Acompanhe metas e sinais do seu progresso.
-                </p>
-              </div>
             </div>
           </div>
         </div>
