@@ -196,7 +196,7 @@ export function DashboardTransactionsView({
                 rel="noreferrer"
                 className="inline-flex h-11 w-full items-center justify-center rounded-2xl border border-dashed border-border/70 bg-background/60 px-4 text-sm font-medium text-muted-foreground transition hover:border-primary/40 hover:text-foreground"
               >
-                🐞 Reportar problema
+                Reportar problema
               </a>
             </aside>
           </div>
