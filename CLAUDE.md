@@ -235,7 +235,7 @@ Esses erros já existiam antes da Fase 1 e precisam ser corrigidos em momento de
 
 ---
 
-## 14. O que está em andamento agora (Fase 3)
+## 14. O que está em andamento agora (Fase 4)
 
 **Fase 2 — Revisão de segurança da API (CONCLUÍDA)**
 - ✅ Guid.TryParse na base controller — `GetAuthenticatedUserId()` retorna `Unauthorized` em vez de exceção
@@ -249,33 +249,67 @@ Esses erros já existiam antes da Fase 1 e precisam ser corrigidos em momento de
 - ✅ Claims JWT enxutas — 4 claims em vez de 6 (`sub`, `email`, `unique_name`, `ClaimTypes.NameIdentifier`)
 - ⚠️ `AllowedHosts` permanece `"*"` — será restringido para `api.finly.com.br` na Fase 5, quando o domínio da VPS estiver definido
 
-**Fase 3 — Containerização (EM ANDAMENTO)**
-- ⏳ Dockerfile para a API (.NET 8)
-- ⏳ Dockerfile para SQL Server
-- ⏳ Docker Compose unificado
-- Objetivo: `docker compose up -d` sobe todo o ambiente local
+**Fase 3 — Containerização (CONCLUÍDA e validada em 29/06/2026)**
 
-**Variáveis de ambiente obrigatórias para rodar a API**
+Arquivos criados/alterados:
 
-A `SecretKey` do JWT **nunca** deve ser hardcoded. Copie `apps/api/.env.example` para `apps/api/.env` e preencha os valores:
+- ✅ `docker/docker-compose.yml` — orquestra dois serviços:
+  - `banco`: SQL Server 2022 Express com healthcheck (`sqlcmd SELECT 1`) e volume persistente `sqldata`
+  - `api`: imagem da API com `depends_on: banco` (condição `service_healthy`), porta 8080, todas as env vars injetadas
+- ✅ `docker/api/Dockerfile` — multi-stage build:
+  - Stage `build`: `mcr.microsoft.com/dotnet/sdk:8.0` — copia `.sln` e `.csproj`, roda `dotnet restore`, depois copia código e roda `dotnet publish -c Release`
+  - Stage `runtime`: `mcr.microsoft.com/dotnet/aspnet:8.0` — copia apenas `/app/publish`, expõe porta 8080
+- ✅ `docker/.env.example` — template com `SA_PASSWORD` e `JWT__SecretKey` (sem valores reais)
+- ✅ `apps/api/.dockerignore` — exclui recursivamente com `**/bin/`, `**/obj/`, `**/.vs/`, `TestResults/`, `*.user`, `.env`
+  - ⚠️ Padrão `obj/` (sem `**/`) só excluiria a raiz — a correção para `**/obj/` foi necessária porque os `project.assets.json` gerados localmente no Windows continham paths absolutos (`C:\Program Files (x86)\Microsoft Visual Studio\Shared\NuGetPackages`) que quebravam o `dotnet restore` dentro do container Linux
+- ✅ `apps/api/Finly.Api/Program.cs` — duas alterações:
+  - `UseHttpsRedirection` agora é condicional (`if (!IsDevelopment())`) — necessário para o container não redirecionar para HTTPS quando rodando sem certificado
+  - `Database.Migrate()` executado no startup via `IServiceScope` — aplica migrations pendentes automaticamente ao subir o container; requerido `using Microsoft.EntityFrameworkCore`
 
+Resultado validado:
+- `docker compose up -d --build` executado sem erros
+- Container `banco` atingiu status `healthy`
+- API respondeu em `http://localhost:8080/swagger` com status 200
+- 3 migrations aplicadas automaticamente (`InitialCreate`, `AddIsPrimaryToFinancialProfile`, `AddFinancialRules`)
+
+**Como rodar o ambiente local com Docker**
+
+Pré-requisito: Docker Desktop instalado e rodando.
+
+```bash
+# 1. Copiar o template de variáveis
+cp docker/.env.example docker/.env
+
+# 2. Editar docker/.env e preencher os dois valores:
+#    SA_PASSWORD — senha forte para o SQL Server (ex: Finly@2024!)
+#    JWT__SecretKey — chave base64 gerada com um dos comandos abaixo:
+
+# PowerShell:
+[Convert]::ToBase64String((1..32 | ForEach-Object { Get-Random -Max 256 }))
+
+# ou bash / WSL / Linux / Mac:
+openssl rand -base64 32
+
+# 3. Subir os containers (rodar de dentro da pasta docker/)
+cd docker
+docker compose --env-file .env up -d --build
+
+# 4. Validar
+# Swagger:     http://localhost:8080/swagger   → deve retornar 200
+# SQL Server:  localhost:1433  (usuário: sa, senha: valor de SA_PASSWORD)
 ```
-JWT__SecretKey=       ← gere com: openssl rand -base64 32
-JWT__Issuer=Finly.Api
-JWT__Audience=Finly.Web
-ConnectionStrings__DefaultConnection=
-```
 
-O padrão .NET usa `__` para separar seções (`JWT__SecretKey` → `Jwt:SecretKey`).
-O `IConfiguration` do .NET 8 lê env vars automaticamente — nenhuma alteração de código necessária.
+**Credenciais e segredos**
 
-Em produção, a guarda em `InfrastructureServiceExtensions` recusa iniciar se `SecretKey` estiver vazio.
-Em desenvolvimento, `appsettings.Development.json` tem `"CONFIGURAR_VIA_ENV"` como placeholder.
+- As credenciais reais ficam em `docker/.env`, que **nunca é commitado** (coberto pelo `.gitignore` raiz via padrão `.env`)
+- `SA_PASSWORD` e `JWT__SecretKey` são gerados localmente por cada desenvolvedor seguindo o `docker/.env.example`
+- Jamais citar o valor real de nenhuma senha ou chave em commits, comentários ou neste arquivo
 
-**Observação de ambiente**
-- ⚠️ A API está hospedada na Azure com Free Trial expirado (modo read-only).
-- A revisão de segurança deve ser feita localmente e commitada.
-- O deploy aguarda a migração para VPS nas fases futuras (Fase 3+).
+**Fase 4 — VPS (PRÓXIMA)**
+- Contratar servidor: 4 GB RAM, 2 vCPU, Ubuntu + Docker + Docker Compose
+- Faixa: R$ 40–80/mês
+- Subir o mesmo `docker-compose.yml` na VPS com as credenciais de produção
+- Pré-requisito: Fase 3 concluída ✅
 
 ---
 
@@ -293,17 +327,13 @@ Objetivo: produto estável para apresentação no front-end.
 Objetivo: revisar a segurança localmente antes da retomada de deploy.
 - JWT, endpoints, validação, CORS, rate limiting, rehash, claims — tudo revisado.
 
-### Fase 3 — Containerização (AGORA)
+### Fase 3 — Containerização (CONCLUÍDA)
 Objetivo: preparar o Finly para sair da máquina local.
-```
-/docker
-  docker-compose.yml
-  /api
-  /banco
-```
-Resultado: `docker compose up -d` sobe tudo.
+- `docker compose up -d --build` sobe banco + API sem erros
+- Migrations aplicadas automaticamente no startup
+- Validado em 29/06/2026
 
-### Fase 4 — VPS
+### Fase 4 — VPS (AGORA)
 Contratar servidor:
 - 4 GB RAM, 2 vCPU
 - Faixa: R$ 40–80/mês
@@ -337,9 +367,9 @@ Somente depois de tudo acima estar estável:
 
 **App Mobile (Flutter)** — `apps/mobile` está vazio intencionalmente. Pertence à Fase 7. Não iniciar.
 
-**Docker** — Fase 3 em andamento. Containerização da API e do banco é o foco atual.
+**Docker** — Fase 3 concluída. Não alterar os arquivos em `docker/` sem motivo explícito.
 
-**VPS / Nginx / SSL / Deploy** — pertence às Fases 4 a 6. Não sugerir antes de concluir a Fase 3.
+**VPS / Nginx / SSL / Deploy** — pertence às Fases 4 a 6. A Fase 4 (VPS) é o próximo passo.
 
 ---
 
