@@ -101,7 +101,53 @@ export function DashboardTransactionsView({
         </section>
 
         <section id="nova-transacao">
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)] xl:items-start">
+          <div className="grid gap-6 xl:grid-cols-[minmax(320px,0.65fr)_minmax(0,1.35fr)] xl:items-start">
+            <aside className="min-w-0 space-y-4 xl:sticky xl:top-6">
+              <FinanceSummaryCard
+                initialBalance={initialBalance}
+                totalIncome={totalIncome}
+                totalExpense={totalExpense}
+                currentBalance={currentBalance}
+                forecastTotalIncome={forecastTotalIncome}
+                forecastTotalExpense={forecastTotalExpense}
+                forecastProjectedBalance={forecastProjectedBalance}
+                isPreviewActive={isPreviewActive}
+                onClearPreview={onClearPreview}
+                onUpdateInitialBalance={onUpdateInitialBalance}
+                nextUpcomingMonthLabel={nextUpcomingMonthLabel}
+              />
+
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+                <Button
+                  type="button"
+                  className="h-11 justify-start rounded-2xl"
+                  onClick={onOpenSchedule}
+                >
+                  <CalendarDays className="size-4" />
+                  Agenda
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-11 justify-start rounded-2xl"
+                  onClick={onOpenStatementProjection}
+                >
+                  <FileText className="size-4" />
+                  Extrato
+                </Button>
+              </div>
+
+              <a
+                href={`https://wa.me/${WHATSAPP_SUPPORT_NUMBER}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex h-11 w-full items-center justify-center rounded-2xl border border-dashed border-border/70 bg-background/60 px-4 text-sm font-medium text-muted-foreground transition hover:border-primary/40 hover:text-foreground"
+              >
+                Reportar problema
+              </a>
+            </aside>
+
             <div className="min-w-0 space-y-6">
               <TransactionForm
                 onAddTransaction={onAddTransaction}
@@ -153,52 +199,6 @@ export function DashboardTransactionsView({
                 />
               </section>
             </div>
-
-            <aside className="min-w-0 space-y-4 xl:sticky xl:top-6">
-              <FinanceSummaryCard
-                initialBalance={initialBalance}
-                totalIncome={totalIncome}
-                totalExpense={totalExpense}
-                currentBalance={currentBalance}
-                forecastTotalIncome={forecastTotalIncome}
-                forecastTotalExpense={forecastTotalExpense}
-                forecastProjectedBalance={forecastProjectedBalance}
-                isPreviewActive={isPreviewActive}
-                onClearPreview={onClearPreview}
-                onUpdateInitialBalance={onUpdateInitialBalance}
-                nextUpcomingMonthLabel={nextUpcomingMonthLabel}
-              />
-
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-                <Button
-                  type="button"
-                  className="h-11 justify-start rounded-2xl"
-                  onClick={onOpenSchedule}
-                >
-                  <CalendarDays className="size-4" />
-                  Agenda
-                </Button>
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-11 justify-start rounded-2xl"
-                  onClick={onOpenStatementProjection}
-                >
-                  <FileText className="size-4" />
-                  Extrato
-                </Button>
-              </div>
-
-              <a
-                href={`https://wa.me/${WHATSAPP_SUPPORT_NUMBER}`}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex h-11 w-full items-center justify-center rounded-2xl border border-dashed border-border/70 bg-background/60 px-4 text-sm font-medium text-muted-foreground transition hover:border-primary/40 hover:text-foreground"
-              >
-                Reportar problema
-              </a>
-            </aside>
           </div>
         </section>
       </div>
