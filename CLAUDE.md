@@ -219,8 +219,13 @@ Account Access Card, App Floating Header, Login Form
 - ✅ FAB `[+]` fixo — aparece em **Lançamentos**, **Metas** e **Insights**
 - ✅ Cards de onboarding removidos da Home
 
+**Refinamentos pós Fase 1 (validados no browser)**
+- ✅ Aba de Lançamentos reorganizada — `FinanceSummaryCard`, Agenda e Extrato aparecem antes do formulário/lista (DOM reordenado; grid de `1.35fr/0.65fr` invertido para `0.65fr/1.35fr`)
+- ✅ Lista de transações colapsável — fechada por padrão (`isListOpen = false`), expande via botão "Visualizar lançamentos" com chevron animado
+- ✅ FAB evoluído para speed dial — ao clicar em `[+]` (rotaciona 45°), dois mini-botões aparecem com animação CSS (`opacity` + `translate-y`): **Nova Transação** (`ArrowUpDown`) e **Nova Meta** (`Target`); cada opção abre seu próprio drawer; `GoalForm` reaproveitado sem alteração
+
 **Validação**
-- Fluxo validado visualmente no browser ao fim da Fase 1.
+- Fluxo validado visualmente no browser ao fim da Fase 1 e após refinamentos.
 
 ---
 
