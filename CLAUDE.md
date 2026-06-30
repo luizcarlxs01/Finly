@@ -313,7 +313,47 @@ docker compose --env-file .env up -d --build
 
 ---
 
-## 15. Plano de infraestrutura — fases futuras (não tocar agora)
+## 15. Como rodar localmente
+
+### Cenário A — Docker (padrão atual)
+
+```bash
+# 1. Subir banco + API
+cd docker
+docker compose --env-file .env up -d --build
+
+# 2. Subir o frontend
+cd apps/web
+npm run dev
+```
+
+- API disponível em: `http://localhost:8080`
+- Frontend disponível em: `http://localhost:3000`
+- `apps/web/.env.local` deve ter: `NEXT_PUBLIC_API_URL=http://localhost:8080`
+
+### Cenário B — API local sem Docker (modo antigo, eventual)
+
+```bash
+# 1. Subir a API via Kestrel
+cd apps/api
+dotnet run --project Finly.Api
+
+# 2. Subir o frontend
+cd apps/web
+npm run dev
+```
+
+- API disponível em: `http://localhost:5149`
+- Frontend disponível em: `http://localhost:3000`
+- `apps/web/.env.local` deve ter: `NEXT_PUBLIC_API_URL=http://localhost:5149`
+
+> Para alternar entre os cenários, basta trocar o valor de `NEXT_PUBLIC_API_URL` no `apps/web/.env.local` e reiniciar o `npm run dev`.
+
+CORS já está configurado para aceitar `http://localhost:3000` em ambos os cenários (`appsettings.Development.json`) — nenhuma alteração necessária.
+
+---
+
+## 16. Plano de infraestrutura — fases futuras (não tocar agora)
 
 > Decisão registrada: não misturar infraestrutura com a fase atual.
 > O plano abaixo será executado somente após a apresentação e estabilização do produto.
@@ -361,7 +401,7 @@ Somente depois de tudo acima estar estável:
 
 ---
 
-## 16. Funcionalidades e temas adiados — não tocar agora
+## 17. Funcionalidades e temas adiados — não tocar agora
 
 **Troca de Perfil Financeiro** — adiada para Fase 7. Não sugerir, não implementar, não criar estrutura.
 
@@ -373,7 +413,7 @@ Somente depois de tudo acima estar estável:
 
 ---
 
-## 17. Filosofia de desenvolvimento
+## 18. Filosofia de desenvolvimento
 
 1. Implementar
 2. Validar manualmente
@@ -384,7 +424,7 @@ Nunca acumular pendências. Nunca avançar com bugs conhecidos.
 
 ---
 
-## 18. Convenção de commits
+## 19. Convenção de commits
 
 ```
 feat:      nova funcionalidade
@@ -397,7 +437,7 @@ style:     formatação, sem alteração de lógica
 
 ---
 
-## 19. Antes de qualquer implementação — perguntas obrigatórias
+## 20. Antes de qualquer implementação — perguntas obrigatórias
 
 1. Isso cria duplicidade (componente local vs API)?
    → Se sim, pare. Refatore para usar o hook unificado.
