@@ -1,6 +1,7 @@
 "use client";
 
-import { CalendarDays, FileText } from "lucide-react";
+import { useState } from "react";
+import { CalendarDays, ChevronDown, FileText } from "lucide-react";
 
 import { FinanceSummaryCard } from "@/components/dashboard/finance-summary-card";
 import { TransactionAdvancedFilters } from "@/components/dashboard/transaction-advanced-filters";
@@ -85,6 +86,7 @@ export function DashboardTransactionsView({
   onUpdateInitialBalance,
   nextUpcomingMonthLabel,
 }: DashboardTransactionsViewProps) {
+  const [isListOpen, setIsListOpen] = useState(false);
 
   return (
     <>
@@ -161,42 +163,55 @@ export function DashboardTransactionsView({
               <section className="space-y-4">
                 <div className="rounded-[1.75rem] border border-border/70 bg-card/95 p-5 shadow-sm sm:p-6">
                   <div className="space-y-4">
-                    <div>
+                    <button
+                      type="button"
+                      onClick={() => setIsListOpen((prev) => !prev)}
+                      className="flex w-full items-center justify-between gap-2 text-left"
+                    >
                       <h3 className="text-xl font-semibold tracking-tight text-foreground">
-                        Lista de lançamentos
+                        {isListOpen ? "Ocultar lançamentos" : "Visualizar lançamentos"}
                       </h3>
-                    </div>
+                      <ChevronDown
+                        className={`size-5 shrink-0 text-muted-foreground transition-transform duration-200 ${isListOpen ? "rotate-180" : ""}`}
+                      />
+                    </button>
 
-                    <TransactionFilterTabs
-                      value={transactionFilter}
-                      onChange={onTransactionFilterChange}
-                    />
+                    {isListOpen ? (
+                      <>
+                        <TransactionFilterTabs
+                          value={transactionFilter}
+                          onChange={onTransactionFilterChange}
+                        />
 
-                    <TransactionAdvancedFilters
-                      searchValue={searchTerm}
-                      onSearchChange={onSearchTermChange}
-                      categoryValue={categoryFilter}
-                      onCategoryChange={onCategoryFilterChange}
-                      sortValue={sortOption}
-                      onSortChange={onSortOptionChange}
-                      resultCount={filteredTransactions.length}
-                      totalCount={statementTransactions.length}
-                      hasActiveFilters={
-                        transactionFilter !== "all" || hasActiveAdvancedFilters
-                      }
-                      onClearFilters={onClearAdvancedFilters}
-                    />
+                        <TransactionAdvancedFilters
+                          searchValue={searchTerm}
+                          onSearchChange={onSearchTermChange}
+                          categoryValue={categoryFilter}
+                          onCategoryChange={onCategoryFilterChange}
+                          sortValue={sortOption}
+                          onSortChange={onSortOptionChange}
+                          resultCount={filteredTransactions.length}
+                          totalCount={statementTransactions.length}
+                          hasActiveFilters={
+                            transactionFilter !== "all" || hasActiveAdvancedFilters
+                          }
+                          onClearFilters={onClearAdvancedFilters}
+                        />
+                      </>
+                    ) : null}
                   </div>
                 </div>
 
-                <TransactionList
-                  transactions={filteredTransactions}
-                  onEditTransaction={onEditTransaction}
-                  onRemoveTransaction={onRemoveTransaction}
-                  getNextRecurringOccurrence={getNextRecurringOccurrence}
-                  emptyStateTitle={emptyStateTitle}
-                  emptyStateDescription={emptyStateDescription}
-                />
+                {isListOpen ? (
+                  <TransactionList
+                    transactions={filteredTransactions}
+                    onEditTransaction={onEditTransaction}
+                    onRemoveTransaction={onRemoveTransaction}
+                    getNextRecurringOccurrence={getNextRecurringOccurrence}
+                    emptyStateTitle={emptyStateTitle}
+                    emptyStateDescription={emptyStateDescription}
+                  />
+                ) : null}
               </section>
             </div>
           </div>
