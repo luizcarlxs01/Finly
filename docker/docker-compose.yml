@@ -1,0 +1,45 @@
+services:
+  banco:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      SA_PASSWORD: ${SA_PASSWORD}
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Express
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqldata:/var/opt/mssql
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "/opt/mssql-tools18/bin/sqlcmd",
+          "-S", "localhost",
+          "-U", "sa",
+          "-P", "${SA_PASSWORD}",
+          "-Q", "SELECT 1",
+          "-No",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  api:
+    build:
+      context: ../apps/api
+      dockerfile: ../../docker/api/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      JWT__SecretKey: ${JWT__SecretKey}
+      JWT__Issuer: Finly.Api
+      JWT__Audience: Finly.Web
+      ConnectionStrings__DefaultConnection: "Server=banco,1433;Database=FinlyDb;User ID=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;MultipleActiveResultSets=True;"
+    depends_on:
+      banco:
+        condition: service_healthy
+
+volumes:
+  sqldata:
