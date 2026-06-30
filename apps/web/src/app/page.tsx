@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus, X } from "lucide-react";
+import { ArrowUpDown, Plus, Target, X } from "lucide-react";
 import {
   AppFloatingHeader,
   type DashboardView,
@@ -26,6 +26,7 @@ import { useImpactSimulation } from "@/hooks/use-impact-simulation";
 import { useUpdateGoalProgress } from "@/hooks/use-update-goal-progress";
 import { useUpdateTransaction } from "@/hooks/use-update-transaction";
 import { useUpdateInitialBalance } from "@/hooks/use-update-initial-balance";
+import { GoalForm } from "@/components/dashboard/goal-form";
 import { GoalProgressModal } from "@/components/dashboard/goal-progress-modal";
 import { ScheduleModal } from "@/components/dashboard/overlays/schedule-modal";
 import { StatementProjectionModal } from "@/components/dashboard/overlays/statement-projection-modal";
@@ -224,7 +225,9 @@ export default function HomePage() {
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [isStatementProjectionModalOpen, setIsStatementProjectionModalOpen] = useState(false);
   const [isAccountCardOpen, setIsAccountCardOpen] = useState(false);
-  const [isFabOpen, setIsFabOpen] = useState(false);
+  const [isSpeedDialOpen, setIsSpeedDialOpen] = useState(false);
+  const [isFabTransactionOpen, setIsFabTransactionOpen] = useState(false);
+  const [isFabGoalOpen, setIsFabGoalOpen] = useState(false);
 
   const isApiMode = source === "api";
   const {
@@ -773,32 +776,75 @@ export default function HomePage() {
       </PageContainer>
 
       {activeView !== "home" ? (
-        <button
-          type="button"
-          onClick={() => setIsFabOpen(true)}
-          aria-label="Novo lançamento"
-          title="Novo lançamento"
-          className="fixed bottom-6 right-6 z-40 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition hover:scale-105 hover:shadow-xl active:scale-95"
-        >
-          <Plus className="size-6" />
-        </button>
+        <div className="fixed bottom-6 right-6 z-40 flex flex-col-reverse items-end gap-3">
+          <button
+            type="button"
+            onClick={() => setIsSpeedDialOpen((prev) => !prev)}
+            aria-label={isSpeedDialOpen ? "Fechar menu" : "Novo lançamento"}
+            className="flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-all hover:scale-105 hover:shadow-xl active:scale-95"
+          >
+            <Plus
+              className={`size-6 transition-transform duration-200 ${isSpeedDialOpen ? "rotate-45" : ""}`}
+            />
+          </button>
+
+          <div
+            className={`flex flex-col-reverse items-end gap-3 transition-all duration-200 ${
+              isSpeedDialOpen
+                ? "pointer-events-auto translate-y-0 opacity-100"
+                : "pointer-events-none translate-y-2 opacity-0"
+            }`}
+          >
+            <button
+              type="button"
+              onClick={() => {
+                setIsSpeedDialOpen(false);
+                setIsFabTransactionOpen(true);
+              }}
+              className="flex items-center gap-3"
+            >
+              <span className="rounded-2xl border border-border/70 bg-card px-3 py-1.5 text-sm font-medium text-foreground shadow">
+                Nova transação
+              </span>
+              <span className="flex size-11 items-center justify-center rounded-full border border-border/70 bg-card text-foreground shadow">
+                <ArrowUpDown className="size-4" />
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setIsSpeedDialOpen(false);
+                setIsFabGoalOpen(true);
+              }}
+              className="flex items-center gap-3"
+            >
+              <span className="rounded-2xl border border-border/70 bg-card px-3 py-1.5 text-sm font-medium text-foreground shadow">
+                Nova meta
+              </span>
+              <span className="flex size-11 items-center justify-center rounded-full border border-border/70 bg-card text-foreground shadow">
+                <Target className="size-4" />
+              </span>
+            </button>
+          </div>
+        </div>
       ) : null}
 
-      {isFabOpen ? (
+      {isFabTransactionOpen ? (
         <div
           className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 backdrop-blur-sm sm:items-center sm:px-4 sm:py-6"
           onClick={(e) => {
-            if (e.target === e.currentTarget) setIsFabOpen(false);
+            if (e.target === e.currentTarget) setIsFabTransactionOpen(false);
           }}
         >
           <div className="flex max-h-[min(100dvh-0.5rem,96vh)] w-full flex-col overflow-hidden rounded-t-[1.75rem] border border-border/70 bg-card shadow-2xl sm:max-w-xl sm:rounded-[1.75rem]">
             <div className="flex items-center justify-between border-b border-border/60 px-5 py-4 sm:px-6">
               <p className="text-base font-semibold text-foreground">
-                Novo lançamento
+                Nova transação
               </p>
               <button
                 type="button"
-                onClick={() => setIsFabOpen(false)}
+                onClick={() => setIsFabTransactionOpen(false)}
                 aria-label="Fechar"
                 className="flex size-8 items-center justify-center rounded-xl text-muted-foreground transition hover:bg-accent hover:text-foreground"
               >
@@ -810,7 +856,7 @@ export default function HomePage() {
               <TransactionForm
                 onAddTransaction={async (input) => {
                   await handleAddTransaction(input);
-                  setIsFabOpen(false);
+                  setIsFabTransactionOpen(false);
                 }}
                 onPreviewTransaction={handlePreviewTransaction}
                 onClearPreview={handleClearPreview}
@@ -822,6 +868,41 @@ export default function HomePage() {
                   isUpdatingTransaction ||
                   isDeletingTransaction
                 }
+              />
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {isFabGoalOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 backdrop-blur-sm sm:items-center sm:px-4 sm:py-6"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsFabGoalOpen(false);
+          }}
+        >
+          <div className="flex max-h-[min(100dvh-0.5rem,96vh)] w-full flex-col overflow-hidden rounded-t-[1.75rem] border border-border/70 bg-card shadow-2xl sm:max-w-xl sm:rounded-[1.75rem]">
+            <div className="flex items-center justify-between border-b border-border/60 px-5 py-4 sm:px-6">
+              <p className="text-base font-semibold text-foreground">
+                Nova meta
+              </p>
+              <button
+                type="button"
+                onClick={() => setIsFabGoalOpen(false)}
+                aria-label="Fechar"
+                className="flex size-8 items-center justify-center rounded-xl text-muted-foreground transition hover:bg-accent hover:text-foreground"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+
+            <div className="overflow-y-auto p-5 sm:p-6">
+              <GoalForm
+                onAddGoal={async (input) => {
+                  await handleAddGoal(input);
+                  setIsFabGoalOpen(false);
+                }}
+                isSubmitting={isCreatingGoal}
               />
             </div>
           </div>
