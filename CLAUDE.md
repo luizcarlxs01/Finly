@@ -137,12 +137,13 @@ Finly.Domain/         → entidades, contratos de domínio
 Finly.Infrastructure/ → EF Core, repositórios, migrations
 ```
 
-**Controllers:** Auth, Dashboard, Profiles, Transactions, Goals, FinancialRules, RuleProcessing
+**Controllers:** Auth, Dashboard, Profiles, Transactions, Occurrences, Goals, FinancialRules, RuleProcessing
 
 **Migrations EF Core:**
 - `InitialCreate`
 - `AddIsPrimaryToFinancialProfile`
 - `AddFinancialRules`
+- `AddOccurrencesAndReshapeTransactions` — ver seção 21 (arquitetura Transaction + Occurrence)
 
 ---
 
@@ -177,6 +178,13 @@ Account Access Card, App Floating Header, Login Form
 **Recorrências** — ocorrências futuras não alteram saldo atual.
 
 **Modo local** — possui exatamente as mesmas regras da API. `transactions ≠ postedTransactions`.
+
+> ⚠️ No **backend**, a partir da Fase A/B (ver seção 21), o mecanismo mudou: saldo
+> atual passou a ser a soma de `Occurrence.Amount` onde `Status = Paid`, em vez de
+> filtrar `Transaction.Amount` por `TransactionDate <= hoje`. O invariante acima
+> (nunca considerar o futuro) continua valendo, só a implementação é outra. O
+> **frontend e o modo local ainda não foram migrados** — continuam no modelo
+> antigo descrito aqui. Ver seção 21 antes de mexer em saldo/transações no backend.
 
 ---
 
@@ -455,3 +463,109 @@ style:     formatação, sem alteração de lógica
 
 4. O modo local e o modo API se comportarão exatamente igual?
    → Se não, a implementação está errada.
+
+---
+
+## 21. Arquitetura de Transações — Transaction + Occurrence (nova)
+
+> Mudança de arquitetura do backend, implementada nas Fases A e B desta sessão.
+> Leia esta seção inteira antes de tocar em Transações, Regras Financeiras ou
+> Dashboard no backend.
+
+### Contexto do problema resolvido
+
+Antes desta mudança, transações parceladas/recorrentes salvavam apenas **1
+registro** no banco. As parcelas futuras eram calculadas em tempo real no
+frontend (projeção). Isso impedia editar uma parcela individual (mudar valor
+ou data de uma parcela específica) e tornava o comportamento frágil entre modo
+local e modo API, já que cada um replicava a mesma lógica de projeção
+separadamente.
+
+### Novo modelo de dados
+
+- **Transaction** = o "contrato": título, categoria, valor de referência,
+  configuração de parcelamento/recorrência (`TransactionKind`, `InstallmentCount`,
+  `RecurrenceMode`, `RecurrenceStartDate`/`EndDate`/`Day`/`Months`).
+- **Occurrence** = cada ocorrência REAL da Transaction — 1 para `Single`, N para
+  `Installment`/`Recurring`. Campos: `DueDate`, `Amount` (próprio — pode divergir
+  do valor de referência da Transaction), `Status` (`Pending`/`Paid`), `PaidAt`,
+  `IsCustomized`, `InstallmentIndex`.
+
+### Regras de negócio
+
+- Toda `Transaction` gera pelo menos 1 `Occurrence`.
+- **Status automático NA CRIAÇÃO**: `DueDate <= hoje` → `Paid`, `PaidAt = UtcNow`;
+  `DueDate > hoje` → `Pending`. **Depois da criação, o status NÃO é recalculado
+  automaticamente** — uma Occurrence criada como `Pending` continua `Pending`
+  mesmo depois que sua `DueDate` passa, até alguém chamar `mark-paid`
+  explicitamente. Não existe job de background para isso ainda.
+- **Saldo atual** = soma de `Occurrence.Amount` onde `Status = Paid`
+  (`DashboardService`) — não é mais `Transaction.Amount` filtrado por
+  `TransactionDate <= hoje`.
+- `InstallmentIndex` é **sequencial (1, 2, 3...)** tanto para parcelas quanto
+  para recorrências — `null` apenas para transações `Single`. É a chave de
+  identidade real de uma ocorrência dentro de uma Transaction (não a `DueDate`,
+  que pode ser customizada pelo usuário).
+- Editar uma Occurrence (`PUT /api/occurrences/{id}`) seta `IsCustomized = true`.
+- Recorrência indefinida (`RecurrenceMode.Indefinite`): horizonte inicial de 12
+  meses gerado na criação. Estender quando restar menos de 6 meses futuros é
+  **trabalho futuro, ainda não implementado**.
+- `RuleProcessingService`: 1 `Transaction` "contrato" por `FinancialRule`
+  (`SourceId = rule.Id`), reaproveitada em processamentos subsequentes (nunca
+  cria uma segunda Transaction para a mesma regra). Dedup de occurrences por
+  `TransactionId + InstallmentIndex` — **não por `DueDate`**, porque a `DueDate`
+  pode ter sido customizada pelo usuário, e deduplicar por data geraria uma
+  occurrence duplicada na data "original" a cada reprocessamento.
+- Deletar uma `Transaction` faz cascade nas `Occurrences` (inclusive as pagas).
+
+### Arquivos-chave (apps/api)
+
+- `Finly.Domain/Entities/Transaction.cs`, `Occurrence.cs`
+- `Finly.Domain/Enums/TransactionKind.cs` (`Single`, `Installment`, `Recurring` —
+  valores antigos `InstallmentTemplate`/`InstallmentInstance`,
+  `RecurringTemplate`/`RecurringInstance` mantidos no enum como deprecated, não
+  são mais produzidos), `RecurrenceMode.cs`, `OccurrenceStatus.cs`
+- `Finly.Application/Services/OccurrenceGenerationService.cs` — ponto único de
+  geração de occurrences, usado por `TransactionService.CreateAsync` e por
+  `RuleProcessingService`
+- `Finly.Application/Services/OccurrenceService.cs` — GET / PUT / mark-paid /
+  mark-pending
+- `Finly.Application/Services/RuleProcessingService.cs` — reescrito nas Fases A/B
+- `Finly.Api/Controllers/OccurrencesController.cs`
+- `Finly.Infrastructure/Data/Configurations/OccurrenceConfiguration.cs`
+- Migration: `AddOccurrencesAndReshapeTransactions`
+
+### Status de implementação
+
+- ✅ **Fase A** — Schema, migration, entidade `Occurrence`, `OccurrenceGenerationService`,
+  `TransactionService.CreateAsync` gerando occurrences, `DashboardService` somando
+  occurrences pagas.
+- ✅ **Fase B** — `OccurrencesController` (GET, PUT, mark-paid, mark-pending),
+  `TransactionResponseDto` com `Occurrences` embutidos, `RuleProcessingService`
+  reescrito (contrato único + occurrences incrementais, idempotente).
+- ✅ **Fix** — Dedup de `RuleProcessingService` trocada de `DueDate` para
+  `InstallmentIndex` sequencial (evita duplicata ao customizar a data de uma
+  occurrence).
+- ⏳ **Fase C** — Frontend modo API (pendente).
+- ⏳ **Fase D** — Frontend modo local / `localStorage` (pendente).
+- ⏳ **Fase E** — Remoção de código morto: `synchronizeInstallmentTransactions`,
+  `synchronizeRecurringTransactions`, `createProjectedRecurringItems`,
+  `createProjectedInstallmentItems`, `getNextRecurringOccurrenceDate` — esses
+  arquivos **ainda existem e ainda são usados pelo frontend**. **NÃO foram
+  tocados nesta sessão** — o frontend ainda está 100% no modelo antigo.
+
+### IMPORTANTE para a próxima sessão
+
+**O frontend AINDA NÃO FOI ALTERADO.** Ele continua funcionando com o modelo
+antigo (calculando parcelas/recorrências em tempo real no cliente), e o backend
+agora tem o modelo novo (Transaction + Occurrence) rodando **em paralelo, sem o
+frontend saber disso**. Isso significa que criar uma transação parcelada pelo
+formulário hoje ainda funciona visualmente, mas os dados reais de `Occurrence`
+gerados pelo backend não são exibidos nem editados pela UI ainda.
+
+Antes de iniciar a Fase C, ler:
+
+- `apps/web/src/hooks/use-finance-data.ts`
+- `apps/web/src/hooks/use-local-finance.ts`
+- `apps/web/src/types/api-transaction.ts`
+- `apps/web/src/types/transaction.ts`
