@@ -4,16 +4,17 @@ using Finly.Domain.Entities;
 using Finly.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
-
 namespace Finly.Application.Services;
 
 public class RuleProcessingService : IRuleProcessingService
 {
     private readonly IAppDbContext _context;
+    private readonly IOccurrenceGenerationService _occurrenceGenerationService;
 
-    public RuleProcessingService(IAppDbContext context)
+    public RuleProcessingService(IAppDbContext context, IOccurrenceGenerationService occurrenceGenerationService)
     {
         _context = context;
+        _occurrenceGenerationService = occurrenceGenerationService;
     }
 
     public async Task<ProcessFinancialRulesResponseDto> ProcessAsync(
@@ -35,34 +36,43 @@ public class RuleProcessingService : IRuleProcessingService
             .OrderBy(x => x.CreatedAt)
             .ToListAsync(cancellationToken);
 
-        var existingTransactions = await _context.Transactions
-            .Where(x => x.FinancialProfileId == financialProfileId && x.SourceId != null)
+        var ruleIds = rules.Select(x => x.Id).ToList();
+
+        var existingContractTransactions = await _context.Transactions
+            .Include(x => x.Occurrences)
+            .Where(x => x.FinancialProfileId == financialProfileId &&
+                        x.SourceId != null &&
+                        ruleIds.Contains(x.SourceId.Value))
             .ToListAsync(cancellationToken);
 
-        var createdTransactionCount = 0;
-        var skippedTransactionCount = 0;
+        var transactionsByRuleId = existingContractTransactions.ToDictionary(x => x.SourceId!.Value);
+
+        var createdOccurrenceCount = 0;
+        var skippedOccurrenceCount = 0;
 
         foreach (var rule in rules)
         {
-            var occurrences = GenerateOccurrences(rule, request.ReferenceDate);
-
-            foreach (var occurrence in occurrences)
+            if (!transactionsByRuleId.TryGetValue(rule.Id, out var transaction))
             {
-                var alreadyExists = existingTransactions.Any(x =>
-                    x.SourceId == rule.Id &&
-                    x.TransactionDate == occurrence.OccurrenceDate);
+                transaction = BuildTransactionFromRule(rule);
+                _context.Transactions.Add(transaction);
+                transactionsByRuleId[rule.Id] = transaction;
+            }
 
-                if (alreadyExists)
+            var generatedOccurrences = _occurrenceGenerationService.Generate(transaction);
+            var existingDueDates = transaction.Occurrences.Select(x => x.DueDate).ToHashSet();
+
+            foreach (var occurrence in generatedOccurrences)
+            {
+                if (!existingDueDates.Add(occurrence.DueDate))
                 {
-                    skippedTransactionCount++;
+                    skippedOccurrenceCount++;
                     continue;
                 }
 
-                var transaction = BuildTransactionFromRule(rule, occurrence);
-
-                _context.Transactions.Add(transaction);
-                existingTransactions.Add(transaction);
-                createdTransactionCount++;
+                _context.Occurrences.Add(occurrence);
+                transaction.Occurrences.Add(occurrence);
+                createdOccurrenceCount++;
             }
 
             if (request.ReferenceDate >= rule.StartDate)
@@ -78,118 +88,33 @@ public class RuleProcessingService : IRuleProcessingService
             FinancialProfileId = financialProfileId,
             ReferenceDate = request.ReferenceDate,
             ProcessedRuleCount = rules.Count,
-            CreatedTransactionCount = createdTransactionCount,
-            SkippedTransactionCount = skippedTransactionCount
+            CreatedTransactionCount = createdOccurrenceCount,
+            SkippedTransactionCount = skippedOccurrenceCount
         };
     }
 
-    private static List<RuleOccurrenceData> GenerateOccurrences(FinancialRule rule, DateOnly referenceDate)
+    private static Transaction BuildTransactionFromRule(FinancialRule rule)
     {
-        var occurrences = new List<RuleOccurrenceData>();
+        var isInstallment = rule.RuleType == RuleType.InstallmentExpense;
 
-        if (referenceDate < rule.StartDate)
-            return occurrences;
-
-        if (rule.RuleType == RuleType.InstallmentExpense)
-        {
-            if (!rule.TotalMonths.HasValue || rule.TotalMonths.Value <= 0)
-                return occurrences;
-
-            for (var i = 0; i < rule.TotalMonths.Value; i++)
-            {
-                var occurrenceDate = BuildOccurrenceDate(rule.StartDate, rule.DayOfMonth, i);
-
-                if (occurrenceDate > referenceDate)
-                    break;
-
-                occurrences.Add(new RuleOccurrenceData
-                {
-                    OccurrenceDate = occurrenceDate,
-                    InstallmentIndex = i + 1,
-                    InstallmentCount = rule.TotalMonths
-                });
-            }
-
-            return occurrences;
-        }
-
-        if (rule.RecurrenceMode is null)
-            return occurrences;
-
-        var monthOffset = 0;
-
-        while (true)
-        {
-            var occurrenceDate = BuildOccurrenceDate(rule.StartDate, rule.DayOfMonth, monthOffset);
-
-            if (occurrenceDate > referenceDate)
-                break;
-
-            if (rule.RecurrenceMode == RecurrenceMode.UntilDate &&
-                rule.EndDate.HasValue &&
-                occurrenceDate > rule.EndDate.Value)
-                break;
-
-            if (rule.RecurrenceMode == RecurrenceMode.ForMonths &&
-                rule.TotalMonths.HasValue &&
-                monthOffset >= rule.TotalMonths.Value)
-                break;
-
-            occurrences.Add(new RuleOccurrenceData
-            {
-                OccurrenceDate = occurrenceDate,
-                InstallmentIndex = null,
-                InstallmentCount = null
-            });
-
-            monthOffset++;
-        }
-
-        return occurrences;
-    }
-
-    private static DateOnly BuildOccurrenceDate(DateOnly startDate, int dayOfMonth, int monthOffset)
-    {
-        var targetMonthDate = startDate.AddMonths(monthOffset);
-        var daysInMonth = DateTime.DaysInMonth(targetMonthDate.Year, targetMonthDate.Month);
-        var clampedDay = Math.Min(dayOfMonth, daysInMonth);
-
-        return new DateOnly(targetMonthDate.Year, targetMonthDate.Month, clampedDay);
-    }
-
-    private static Transaction BuildTransactionFromRule(
-        FinancialRule rule,
-        RuleOccurrenceData occurrence)
-    {
         return new Transaction
         {
             FinancialProfileId = rule.FinancialProfileId,
-            Title = BuildTitle(rule, occurrence),
+            Title = rule.Title,
             Amount = rule.Amount,
             Category = BuildCategory(rule.RuleType),
-            TransactionDate = occurrence.OccurrenceDate,
+            TransactionDate = rule.StartDate,
             SourceId = rule.Id,
-            TransactionKind = BuildTransactionKind(rule.RuleType),
+            TransactionKind = isInstallment ? TransactionKind.Installment : TransactionKind.Recurring,
             Type = BuildTransactionType(rule.RuleType),
-            IsRecurring = rule.RuleType != RuleType.InstallmentExpense,
-            RecurrenceStartDate = rule.RuleType != RuleType.InstallmentExpense ? rule.StartDate : null,
-            RecurrenceEndDate = rule.RuleType != RuleType.InstallmentExpense ? rule.EndDate : null,
-            RecurrenceDay = rule.RuleType != RuleType.InstallmentExpense ? rule.DayOfMonth : null,
-            RecurrenceMonths = rule.RuleType != RuleType.InstallmentExpense ? rule.TotalMonths : null,
-            InstallmentCount = occurrence.InstallmentCount
+            InstallmentCount = isInstallment ? rule.TotalMonths : null,
+            IsRecurring = !isInstallment,
+            RecurrenceMode = !isInstallment ? rule.RecurrenceMode : null,
+            RecurrenceStartDate = !isInstallment ? rule.StartDate : null,
+            RecurrenceEndDate = !isInstallment ? rule.EndDate : null,
+            RecurrenceDay = !isInstallment ? rule.DayOfMonth : null,
+            RecurrenceMonths = !isInstallment ? rule.TotalMonths : null
         };
-    }
-
-    private static string BuildTitle(FinancialRule rule, RuleOccurrenceData occurrence)
-    {
-        if (rule.RuleType == RuleType.InstallmentExpense &&
-            occurrence.InstallmentIndex.HasValue &&
-            occurrence.InstallmentCount.HasValue)
-        {
-            return $"{rule.Title} ({occurrence.InstallmentIndex.Value}/{occurrence.InstallmentCount.Value})";
-        }
-
-        return rule.Title;
     }
 
     private static string BuildCategory(RuleType ruleType)
@@ -214,24 +139,5 @@ public class RuleProcessingService : IRuleProcessingService
             RuleType.InstallmentExpense => TransactionType.Expense,
             _ => TransactionType.Expense
         };
-    }
-
-    private static TransactionKind BuildTransactionKind(RuleType ruleType)
-    {
-        return ruleType switch
-        {
-            RuleType.InstallmentExpense => TransactionKind.InstallmentInstance,
-            RuleType.Salary => TransactionKind.RecurringInstance,
-            RuleType.RecurringIncome => TransactionKind.RecurringInstance,
-            RuleType.RecurringExpense => TransactionKind.RecurringInstance,
-            _ => TransactionKind.Single
-        };
-    }
-
-    private sealed class RuleOccurrenceData
-    {
-        public DateOnly OccurrenceDate { get; set; }
-        public int? InstallmentIndex { get; set; }
-        public int? InstallmentCount { get; set; }
     }
 }

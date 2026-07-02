@@ -27,7 +27,6 @@ public class CreateTransactionRequestDto
 
     public DateOnly TransactionDate { get; set; }
     public Guid? SourceId { get; set; }
-    public int? InstallmentIndex { get; set; }
     public int? InstallmentCount { get; set; }
     public bool IsRecurring { get; set; }
     public DateOnly? RecurrenceStartDate { get; set; }

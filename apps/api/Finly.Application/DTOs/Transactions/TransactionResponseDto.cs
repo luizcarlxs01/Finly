@@ -1,3 +1,5 @@
+using Finly.Application.DTOs.Occurrences;
+
 namespace Finly.Application.DTOs.Transactions;
 
 public class TransactionResponseDto
@@ -19,4 +21,5 @@ public class TransactionResponseDto
     public int? RecurrenceDay { get; set; }
     public int? RecurrenceMonths { get; set; }
     public DateTime CreatedAt { get; set; }
+    public IReadOnlyList<OccurrenceResponseDto> Occurrences { get; set; } = new List<OccurrenceResponseDto>();
 }

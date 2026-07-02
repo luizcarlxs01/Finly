@@ -1,3 +1,4 @@
+using Finly.Application.DTOs.Occurrences;
 using Finly.Application.DTOs.Transactions;
 using Finly.Application.Interfaces;
 using Finly.Domain.Entities;
@@ -28,12 +29,14 @@ public class TransactionService : ITransactionService
         if (!profileExists)
             throw new InvalidOperationException("Perfil não encontrado para o usuário informado.");
 
-        return await _context.Transactions
+        var transactions = await _context.Transactions
+            .Include(x => x.Occurrences)
             .Where(x => x.FinancialProfileId == financialProfileId)
             .OrderByDescending(x => x.TransactionDate)
             .ThenByDescending(x => x.CreatedAt)
-            .Select(x => MapToResponse(x))
             .ToListAsync(cancellationToken);
+
+        return transactions.Select(MapToResponse).ToList();
     }
 
     public async Task<TransactionResponseDto?> GetByIdAsync(
@@ -41,10 +44,13 @@ public class TransactionService : ITransactionService
         Guid transactionId,
         CancellationToken cancellationToken = default)
     {
-        return await _context.Transactions
-            .Where(x => x.Id == transactionId && x.FinancialProfile.UserId == userId)
-            .Select(x => MapToResponse(x))
-            .FirstOrDefaultAsync(cancellationToken);
+        var transaction = await _context.Transactions
+            .Include(x => x.Occurrences)
+            .FirstOrDefaultAsync(
+                x => x.Id == transactionId && x.FinancialProfile.UserId == userId,
+                cancellationToken);
+
+        return transaction is null ? null : MapToResponse(transaction);
     }
 
     public async Task<TransactionResponseDto> CreateAsync(
@@ -102,6 +108,7 @@ public class TransactionService : ITransactionService
         foreach (var occurrence in occurrences)
         {
             _context.Occurrences.Add(occurrence);
+            transaction.Occurrences.Add(occurrence);
         }
 
         await _context.SaveChangesAsync(cancellationToken);
@@ -206,7 +213,22 @@ public class TransactionService : ITransactionService
             RecurrenceEndDate = transaction.RecurrenceEndDate,
             RecurrenceDay = transaction.RecurrenceDay,
             RecurrenceMonths = transaction.RecurrenceMonths,
-            CreatedAt = transaction.CreatedAt
+            CreatedAt = transaction.CreatedAt,
+            Occurrences = transaction.Occurrences
+                .OrderBy(x => x.DueDate)
+                .Select(x => new OccurrenceResponseDto
+                {
+                    Id = x.Id,
+                    TransactionId = x.TransactionId,
+                    InstallmentIndex = x.InstallmentIndex,
+                    DueDate = x.DueDate,
+                    Amount = x.Amount,
+                    Status = x.Status.ToString(),
+                    PaidAt = x.PaidAt,
+                    IsCustomized = x.IsCustomized,
+                    CreatedAt = x.CreatedAt
+                })
+                .ToList()
         };
     }
 }
