@@ -68,7 +68,7 @@ public class OccurrenceGenerationService : IOccurrenceGenerationService
                     break;
             }
 
-            occurrences.Add(BuildOccurrence(transaction, dueDate, installmentIndex: null));
+            occurrences.Add(BuildOccurrence(transaction, dueDate, installmentIndex: monthOffset + 1));
             monthOffset++;
         }
 

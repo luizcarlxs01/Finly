@@ -60,11 +60,11 @@ public class RuleProcessingService : IRuleProcessingService
             }
 
             var generatedOccurrences = _occurrenceGenerationService.Generate(transaction);
-            var existingDueDates = transaction.Occurrences.Select(x => x.DueDate).ToHashSet();
+            var existingInstallmentIndexes = transaction.Occurrences.Select(x => x.InstallmentIndex).ToHashSet();
 
             foreach (var occurrence in generatedOccurrences)
             {
-                if (!existingDueDates.Add(occurrence.DueDate))
+                if (!existingInstallmentIndexes.Add(occurrence.InstallmentIndex))
                 {
                     skippedOccurrenceCount++;
                     continue;
