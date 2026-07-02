@@ -1,6 +1,7 @@
 using Finly.Application.Interfaces;
 using Finly.Domain.Common;
 using Finly.Domain.Entities;
+using Finly.Infrastructure.Data.Configurations;
 using Microsoft.EntityFrameworkCore;
 
 namespace Finly.Infrastructure.Data;
@@ -14,6 +15,7 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<User> Users => Set<User>();
     public DbSet<FinancialProfile> FinancialProfiles => Set<FinancialProfile>();
     public DbSet<Transaction> Transactions => Set<Transaction>();
+    public DbSet<Arrangement> Arrangements => Set<Arrangement>();
     public DbSet<Goal> Goals => Set<Goal>();
     public DbSet<FinancialRule> FinancialRules => Set<FinancialRule>();
 
@@ -90,6 +92,8 @@ public class AppDbContext : DbContext, IAppDbContext
                 .HasForeignKey(x => x.FinancialProfileId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
+
+        modelBuilder.ApplyConfiguration(new ArrangementConfiguration());
 
         modelBuilder.Entity<Goal>(entity =>
         {

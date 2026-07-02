@@ -71,11 +71,11 @@ public class FinancialRuleService : IFinancialRuleService
         if (!Enum.TryParse<RuleType>(request.RuleType, true, out var ruleType))
             throw new InvalidOperationException("O tipo da regra é inválido.");
 
-        RuleRecurrenceMode? recurrenceMode = null;
+        RecurrenceMode? recurrenceMode = null;
 
         if (!string.IsNullOrWhiteSpace(request.RecurrenceMode))
         {
-            if (!Enum.TryParse<RuleRecurrenceMode>(request.RecurrenceMode, true, out var parsedMode))
+            if (!Enum.TryParse<RecurrenceMode>(request.RecurrenceMode, true, out var parsedMode))
                 throw new InvalidOperationException("O modo de recorrência da regra é inválido.");
 
             recurrenceMode = parsedMode;
@@ -140,11 +140,11 @@ public class FinancialRuleService : IFinancialRuleService
         if (!Enum.TryParse<RuleType>(request.RuleType, true, out var ruleType))
             throw new InvalidOperationException("O tipo da regra é inválido.");
 
-        RuleRecurrenceMode? recurrenceMode = null;
+        RecurrenceMode? recurrenceMode = null;
 
         if (!string.IsNullOrWhiteSpace(request.RecurrenceMode))
         {
-            if (!Enum.TryParse<RuleRecurrenceMode>(request.RecurrenceMode, true, out var parsedMode))
+            if (!Enum.TryParse<RecurrenceMode>(request.RecurrenceMode, true, out var parsedMode))
                 throw new InvalidOperationException("O modo de recorrência da regra é inválido.");
 
             recurrenceMode = parsedMode;
@@ -187,7 +187,7 @@ public class FinancialRuleService : IFinancialRuleService
 
     private static void ValidateRule(
         RuleType ruleType,
-        RuleRecurrenceMode? recurrenceMode,
+        RecurrenceMode? recurrenceMode,
         DateOnly? endDate,
         int? totalMonths)
     {
@@ -204,10 +204,10 @@ public class FinancialRuleService : IFinancialRuleService
             if (recurrenceMode is null)
                 throw new InvalidOperationException("Regras recorrentes devem informar o modo de recorrência.");
 
-            if (recurrenceMode == RuleRecurrenceMode.UntilDate && endDate is null)
+            if (recurrenceMode == RecurrenceMode.UntilDate && endDate is null)
                 throw new InvalidOperationException("Regras com recorrência até data devem informar a data final.");
 
-            if (recurrenceMode == RuleRecurrenceMode.ForMonths && (totalMonths is null || totalMonths <= 0))
+            if (recurrenceMode == RecurrenceMode.ForMonths && (totalMonths is null || totalMonths <= 0))
                 throw new InvalidOperationException("Regras com recorrência por meses devem informar a quantidade de meses.");
         }
     }

@@ -35,18 +35,17 @@ public class DashboardService : IDashboardService
             .Where(x => x.FinancialProfileId == financialProfileId)
             .ToListAsync(cancellationToken);
 
-        var today = DateOnly.FromDateTime(DateTime.Today);
+        var paidArrangements = await _context.Arrangements
+            .Where(x => x.Status == ArrangementStatus.Paid && x.Transaction.FinancialProfileId == financialProfileId)
+            .Include(x => x.Transaction)
+            .ToListAsync(cancellationToken);
 
-        var postedTransactions = transactions
-            .Where(x => x.TransactionDate <= today)
-            .ToList();
-
-        var totalIncome = postedTransactions
-            .Where(x => x.Type == TransactionType.Income)
+        var totalIncome = paidArrangements
+            .Where(x => x.Transaction.Type == TransactionType.Income)
             .Sum(x => x.Amount);
 
-        var totalExpense = postedTransactions
-            .Where(x => x.Type == TransactionType.Expense)
+        var totalExpense = paidArrangements
+            .Where(x => x.Transaction.Type == TransactionType.Expense)
             .Sum(x => x.Amount);
 
         var currentBalance = profile.InitialBalance + totalIncome - totalExpense;

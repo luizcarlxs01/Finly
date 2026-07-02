@@ -18,14 +18,15 @@ public class Transaction : BaseEntity
 
     public Guid? SourceId { get; set; }
 
-    public int? InstallmentIndex { get; set; }
     public int? InstallmentCount { get; set; }
 
     public bool IsRecurring { get; set; }
+    public RecurrenceMode? RecurrenceMode { get; set; }
     public DateOnly? RecurrenceStartDate { get; set; }
     public DateOnly? RecurrenceEndDate { get; set; }
     public int? RecurrenceDay { get; set; }
     public int? RecurrenceMonths { get; set; }
 
     public FinancialProfile FinancialProfile { get; set; } = null!;
+    public ICollection<Arrangement> Arrangements { get; set; } = new List<Arrangement>();
 }

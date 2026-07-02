@@ -125,12 +125,12 @@ public class RuleProcessingService : IRuleProcessingService
             if (occurrenceDate > referenceDate)
                 break;
 
-            if (rule.RecurrenceMode == RuleRecurrenceMode.UntilDate &&
+            if (rule.RecurrenceMode == RecurrenceMode.UntilDate &&
                 rule.EndDate.HasValue &&
                 occurrenceDate > rule.EndDate.Value)
                 break;
 
-            if (rule.RecurrenceMode == RuleRecurrenceMode.ForMonths &&
+            if (rule.RecurrenceMode == RecurrenceMode.ForMonths &&
                 rule.TotalMonths.HasValue &&
                 monthOffset >= rule.TotalMonths.Value)
                 break;
@@ -176,7 +176,6 @@ public class RuleProcessingService : IRuleProcessingService
             RecurrenceEndDate = rule.RuleType != RuleType.InstallmentExpense ? rule.EndDate : null,
             RecurrenceDay = rule.RuleType != RuleType.InstallmentExpense ? rule.DayOfMonth : null,
             RecurrenceMonths = rule.RuleType != RuleType.InstallmentExpense ? rule.TotalMonths : null,
-            InstallmentIndex = occurrence.InstallmentIndex,
             InstallmentCount = occurrence.InstallmentCount
         };
     }

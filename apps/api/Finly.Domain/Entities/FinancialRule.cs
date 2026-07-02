@@ -11,7 +11,7 @@ public class FinancialRule : BaseEntity
     public decimal Amount { get; set; }
 
     public RuleType RuleType { get; set; }
-    public RuleRecurrenceMode? RecurrenceMode { get; set; }
+    public RecurrenceMode? RecurrenceMode { get; set; }
 
     public int DayOfMonth { get; set; }
 

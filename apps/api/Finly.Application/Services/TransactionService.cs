@@ -9,10 +9,12 @@ namespace Finly.Application.Services;
 public class TransactionService : ITransactionService
 {
     private readonly IAppDbContext _context;
+    private readonly IArrangementGenerationService _arrangementGenerationService;
 
-    public TransactionService(IAppDbContext context)
+    public TransactionService(IAppDbContext context, IArrangementGenerationService arrangementGenerationService)
     {
         _context = context;
+        _arrangementGenerationService = arrangementGenerationService;
     }
 
     public async Task<IReadOnlyList<TransactionResponseDto>> GetAllAsync(
@@ -86,7 +88,6 @@ public class TransactionService : ITransactionService
             TransactionKind = transactionKind,
             TransactionDate = request.TransactionDate,
             SourceId = request.SourceId,
-            InstallmentIndex = request.InstallmentIndex,
             InstallmentCount = request.InstallmentCount,
             IsRecurring = request.IsRecurring,
             RecurrenceStartDate = request.RecurrenceStartDate,
@@ -96,6 +97,13 @@ public class TransactionService : ITransactionService
         };
 
         _context.Transactions.Add(transaction);
+
+        var arrangements = _arrangementGenerationService.Generate(transaction);
+        foreach (var arrangement in arrangements)
+        {
+            _context.Arrangements.Add(arrangement);
+        }
+
         await _context.SaveChangesAsync(cancellationToken);
 
         return MapToResponse(transaction);
@@ -150,7 +158,6 @@ public class TransactionService : ITransactionService
         transaction.TransactionKind = transactionKind;
         transaction.TransactionDate = request.TransactionDate;
         transaction.SourceId = request.SourceId;
-        transaction.InstallmentIndex = request.InstallmentIndex;
         transaction.InstallmentCount = request.InstallmentCount;
         transaction.IsRecurring = request.IsRecurring;
         transaction.RecurrenceStartDate = request.RecurrenceStartDate;
@@ -193,7 +200,6 @@ public class TransactionService : ITransactionService
             TransactionKind = transaction.TransactionKind.ToString(),
             TransactionDate = transaction.TransactionDate,
             SourceId = transaction.SourceId,
-            InstallmentIndex = transaction.InstallmentIndex,
             InstallmentCount = transaction.InstallmentCount,
             IsRecurring = transaction.IsRecurring,
             RecurrenceStartDate = transaction.RecurrenceStartDate,

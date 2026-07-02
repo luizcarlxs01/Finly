@@ -1,6 +1,6 @@
 namespace Finly.Domain.Enums;
 
-public enum RuleRecurrenceMode
+public enum RecurrenceMode
 {
     Indefinite = 1,
     UntilDate = 2,
