@@ -8,7 +8,7 @@ public interface IAppDbContext
     DbSet<User> Users { get; }
     DbSet<FinancialProfile> FinancialProfiles { get; }
     DbSet<Transaction> Transactions { get; }
-    DbSet<Arrangement> Arrangements { get; }
+    DbSet<Occurrence> Occurrences { get; }
     DbSet<Goal> Goals { get; }
     DbSet<FinancialRule> FinancialRules { get; }
 

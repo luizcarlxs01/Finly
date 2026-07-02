@@ -22,55 +22,6 @@ namespace Finly.Infrastructure.Data.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("Finly.Domain.Entities.Arrangement", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<decimal>("Amount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateOnly>("DueDate")
-                        .HasColumnType("date");
-
-                    b.Property<int?>("InstallmentIndex")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("IsCustomized")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("PaidAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<Guid>("TransactionId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DueDate", "Status")
-                        .HasDatabaseName("IX_Arrangements_DueDate_Status");
-
-                    b.HasIndex("TransactionId", "DueDate")
-                        .HasDatabaseName("IX_Arrangements_TransactionId_DueDate");
-
-                    b.HasIndex("TransactionId", "InstallmentIndex")
-                        .IsUnique()
-                        .HasDatabaseName("IX_Arrangements_TransactionId_InstallmentIndex")
-                        .HasFilter("[InstallmentIndex] IS NOT NULL");
-
-                    b.ToTable("Arrangements", (string)null);
-                });
-
             modelBuilder.Entity("Finly.Domain.Entities.FinancialProfile", b =>
                 {
                     b.Property<Guid>("Id")
@@ -201,6 +152,55 @@ namespace Finly.Infrastructure.Data.Migrations
                     b.ToTable("Goals", (string)null);
                 });
 
+            modelBuilder.Entity("Finly.Domain.Entities.Occurrence", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateOnly>("DueDate")
+                        .HasColumnType("date");
+
+                    b.Property<int?>("InstallmentIndex")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsCustomized")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("PaidAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("TransactionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DueDate", "Status")
+                        .HasDatabaseName("IX_Occurrences_DueDate_Status");
+
+                    b.HasIndex("TransactionId", "DueDate")
+                        .HasDatabaseName("IX_Occurrences_TransactionId_DueDate");
+
+                    b.HasIndex("TransactionId", "InstallmentIndex")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Occurrences_TransactionId_InstallmentIndex")
+                        .HasFilter("[InstallmentIndex] IS NOT NULL");
+
+                    b.ToTable("Occurrences", (string)null);
+                });
+
             modelBuilder.Entity("Finly.Domain.Entities.Transaction", b =>
                 {
                     b.Property<Guid>("Id")
@@ -304,17 +304,6 @@ namespace Finly.Infrastructure.Data.Migrations
                     b.ToTable("Users", (string)null);
                 });
 
-            modelBuilder.Entity("Finly.Domain.Entities.Arrangement", b =>
-                {
-                    b.HasOne("Finly.Domain.Entities.Transaction", "Transaction")
-                        .WithMany("Arrangements")
-                        .HasForeignKey("TransactionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Transaction");
-                });
-
             modelBuilder.Entity("Finly.Domain.Entities.FinancialProfile", b =>
                 {
                     b.HasOne("Finly.Domain.Entities.User", "User")
@@ -348,6 +337,17 @@ namespace Finly.Infrastructure.Data.Migrations
                     b.Navigation("FinancialProfile");
                 });
 
+            modelBuilder.Entity("Finly.Domain.Entities.Occurrence", b =>
+                {
+                    b.HasOne("Finly.Domain.Entities.Transaction", "Transaction")
+                        .WithMany("Occurrences")
+                        .HasForeignKey("TransactionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Transaction");
+                });
+
             modelBuilder.Entity("Finly.Domain.Entities.Transaction", b =>
                 {
                     b.HasOne("Finly.Domain.Entities.FinancialProfile", "FinancialProfile")
@@ -370,7 +370,7 @@ namespace Finly.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("Finly.Domain.Entities.Transaction", b =>
                 {
-                    b.Navigation("Arrangements");
+                    b.Navigation("Occurrences");
                 });
 
             modelBuilder.Entity("Finly.Domain.Entities.User", b =>

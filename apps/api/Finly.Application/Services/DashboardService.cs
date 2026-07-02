@@ -35,16 +35,16 @@ public class DashboardService : IDashboardService
             .Where(x => x.FinancialProfileId == financialProfileId)
             .ToListAsync(cancellationToken);
 
-        var paidArrangements = await _context.Arrangements
-            .Where(x => x.Status == ArrangementStatus.Paid && x.Transaction.FinancialProfileId == financialProfileId)
+        var paidOccurrences = await _context.Occurrences
+            .Where(x => x.Status == OccurrenceStatus.Paid && x.Transaction.FinancialProfileId == financialProfileId)
             .Include(x => x.Transaction)
             .ToListAsync(cancellationToken);
 
-        var totalIncome = paidArrangements
+        var totalIncome = paidOccurrences
             .Where(x => x.Transaction.Type == TransactionType.Income)
             .Sum(x => x.Amount);
 
-        var totalExpense = paidArrangements
+        var totalExpense = paidOccurrences
             .Where(x => x.Transaction.Type == TransactionType.Expense)
             .Sum(x => x.Amount);
 

@@ -9,12 +9,12 @@ namespace Finly.Application.Services;
 public class TransactionService : ITransactionService
 {
     private readonly IAppDbContext _context;
-    private readonly IArrangementGenerationService _arrangementGenerationService;
+    private readonly IOccurrenceGenerationService _occurrenceGenerationService;
 
-    public TransactionService(IAppDbContext context, IArrangementGenerationService arrangementGenerationService)
+    public TransactionService(IAppDbContext context, IOccurrenceGenerationService occurrenceGenerationService)
     {
         _context = context;
-        _arrangementGenerationService = arrangementGenerationService;
+        _occurrenceGenerationService = occurrenceGenerationService;
     }
 
     public async Task<IReadOnlyList<TransactionResponseDto>> GetAllAsync(
@@ -98,10 +98,10 @@ public class TransactionService : ITransactionService
 
         _context.Transactions.Add(transaction);
 
-        var arrangements = _arrangementGenerationService.Generate(transaction);
-        foreach (var arrangement in arrangements)
+        var occurrences = _occurrenceGenerationService.Generate(transaction);
+        foreach (var occurrence in occurrences)
         {
-            _context.Arrangements.Add(arrangement);
+            _context.Occurrences.Add(occurrence);
         }
 
         await _context.SaveChangesAsync(cancellationToken);

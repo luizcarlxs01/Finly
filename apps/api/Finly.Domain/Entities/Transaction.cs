@@ -28,5 +28,5 @@ public class Transaction : BaseEntity
     public int? RecurrenceMonths { get; set; }
 
     public FinancialProfile FinancialProfile { get; set; } = null!;
-    public ICollection<Arrangement> Arrangements { get; set; } = new List<Arrangement>();
+    public ICollection<Occurrence> Occurrences { get; set; } = new List<Occurrence>();
 }

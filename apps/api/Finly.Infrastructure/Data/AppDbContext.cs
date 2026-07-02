@@ -15,7 +15,7 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<User> Users => Set<User>();
     public DbSet<FinancialProfile> FinancialProfiles => Set<FinancialProfile>();
     public DbSet<Transaction> Transactions => Set<Transaction>();
-    public DbSet<Arrangement> Arrangements => Set<Arrangement>();
+    public DbSet<Occurrence> Occurrences => Set<Occurrence>();
     public DbSet<Goal> Goals => Set<Goal>();
     public DbSet<FinancialRule> FinancialRules => Set<FinancialRule>();
 
@@ -93,7 +93,7 @@ public class AppDbContext : DbContext, IAppDbContext
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
-        modelBuilder.ApplyConfiguration(new ArrangementConfiguration());
+        modelBuilder.ApplyConfiguration(new OccurrenceConfiguration());
 
         modelBuilder.Entity<Goal>(entity =>
         {

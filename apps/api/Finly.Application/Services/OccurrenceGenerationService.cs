@@ -4,9 +4,9 @@ using Finly.Domain.Enums;
 
 namespace Finly.Application.Services;
 
-public class ArrangementGenerationService : IArrangementGenerationService
+public class OccurrenceGenerationService : IOccurrenceGenerationService
 {
-    public List<Arrangement> Generate(Transaction transaction)
+    public List<Occurrence> Generate(Transaction transaction)
     {
         return transaction.TransactionKind switch
         {
@@ -16,36 +16,36 @@ public class ArrangementGenerationService : IArrangementGenerationService
         };
     }
 
-    private static List<Arrangement> GenerateSingle(Transaction transaction)
+    private static List<Occurrence> GenerateSingle(Transaction transaction)
     {
-        return new List<Arrangement>
+        return new List<Occurrence>
         {
-            BuildArrangement(transaction, transaction.TransactionDate, installmentIndex: null)
+            BuildOccurrence(transaction, transaction.TransactionDate, installmentIndex: null)
         };
     }
 
-    private static List<Arrangement> GenerateInstallments(Transaction transaction)
+    private static List<Occurrence> GenerateInstallments(Transaction transaction)
     {
         var installmentCount = transaction.InstallmentCount ?? 1;
         var dayOfMonth = transaction.TransactionDate.Day;
-        var arrangements = new List<Arrangement>();
+        var occurrences = new List<Occurrence>();
 
         for (var index = 0; index < installmentCount; index++)
         {
             var dueDate = BuildOccurrenceDate(transaction.TransactionDate, dayOfMonth, index);
-            arrangements.Add(BuildArrangement(transaction, dueDate, installmentIndex: index + 1));
+            occurrences.Add(BuildOccurrence(transaction, dueDate, installmentIndex: index + 1));
         }
 
-        return arrangements;
+        return occurrences;
     }
 
-    private static List<Arrangement> GenerateRecurring(Transaction transaction)
+    private static List<Occurrence> GenerateRecurring(Transaction transaction)
     {
         var startDate = transaction.RecurrenceStartDate ?? transaction.TransactionDate;
         var dayOfMonth = transaction.RecurrenceDay ?? startDate.Day;
         var mode = transaction.RecurrenceMode ?? InferRecurrenceMode(transaction);
 
-        var arrangements = new List<Arrangement>();
+        var occurrences = new List<Occurrence>();
         var monthOffset = 0;
 
         while (true)
@@ -68,11 +68,11 @@ public class ArrangementGenerationService : IArrangementGenerationService
                     break;
             }
 
-            arrangements.Add(BuildArrangement(transaction, dueDate, installmentIndex: null));
+            occurrences.Add(BuildOccurrence(transaction, dueDate, installmentIndex: null));
             monthOffset++;
         }
 
-        return arrangements;
+        return occurrences;
     }
 
     private static RecurrenceMode InferRecurrenceMode(Transaction transaction)
@@ -86,18 +86,18 @@ public class ArrangementGenerationService : IArrangementGenerationService
         return RecurrenceMode.Indefinite;
     }
 
-    private static Arrangement BuildArrangement(Transaction transaction, DateOnly dueDate, int? installmentIndex)
+    private static Occurrence BuildOccurrence(Transaction transaction, DateOnly dueDate, int? installmentIndex)
     {
         var today = DateOnly.FromDateTime(DateTime.Today);
         var isPaid = dueDate <= today;
 
-        return new Arrangement
+        return new Occurrence
         {
             TransactionId = transaction.Id,
             InstallmentIndex = installmentIndex,
             DueDate = dueDate,
             Amount = transaction.Amount,
-            Status = isPaid ? ArrangementStatus.Paid : ArrangementStatus.Pending,
+            Status = isPaid ? OccurrenceStatus.Paid : OccurrenceStatus.Pending,
             PaidAt = isPaid ? DateTime.UtcNow : null,
             IsCustomized = false
         };

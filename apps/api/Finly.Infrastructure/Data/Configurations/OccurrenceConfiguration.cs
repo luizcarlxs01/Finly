@@ -4,11 +4,11 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Finly.Infrastructure.Data.Configurations;
 
-public class ArrangementConfiguration : IEntityTypeConfiguration<Arrangement>
+public class OccurrenceConfiguration : IEntityTypeConfiguration<Occurrence>
 {
-    public void Configure(EntityTypeBuilder<Arrangement> builder)
+    public void Configure(EntityTypeBuilder<Occurrence> builder)
     {
-        builder.ToTable("Arrangements");
+        builder.ToTable("Occurrences");
 
         builder.HasKey(x => x.Id);
 
@@ -25,19 +25,19 @@ public class ArrangementConfiguration : IEntityTypeConfiguration<Arrangement>
             .IsRequired();
 
         builder.HasOne(x => x.Transaction)
-            .WithMany(x => x.Arrangements)
+            .WithMany(x => x.Occurrences)
             .HasForeignKey(x => x.TransactionId)
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasIndex(x => new { x.TransactionId, x.DueDate })
-            .HasDatabaseName("IX_Arrangements_TransactionId_DueDate");
+            .HasDatabaseName("IX_Occurrences_TransactionId_DueDate");
 
         builder.HasIndex(x => new { x.DueDate, x.Status })
-            .HasDatabaseName("IX_Arrangements_DueDate_Status");
+            .HasDatabaseName("IX_Occurrences_DueDate_Status");
 
         builder.HasIndex(x => new { x.TransactionId, x.InstallmentIndex })
             .IsUnique()
-            .HasDatabaseName("IX_Arrangements_TransactionId_InstallmentIndex")
+            .HasDatabaseName("IX_Occurrences_TransactionId_InstallmentIndex")
             .HasFilter("[InstallmentIndex] IS NOT NULL");
     }
 }

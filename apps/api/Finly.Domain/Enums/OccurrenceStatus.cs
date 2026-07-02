@@ -1,6 +1,6 @@
 namespace Finly.Domain.Enums;
 
-public enum ArrangementStatus
+public enum OccurrenceStatus
 {
     Pending = 1,
     Paid = 2

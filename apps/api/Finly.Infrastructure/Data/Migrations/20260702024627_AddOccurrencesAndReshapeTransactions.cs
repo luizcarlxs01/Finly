@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Finly.Infrastructure.Data.Migrations
 {
     /// <inheritdoc />
-    public partial class AddArrangementsAndReshapeTransactions : Migration
+    public partial class AddOccurrencesAndReshapeTransactions : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -22,7 +22,7 @@ namespace Finly.Infrastructure.Data.Migrations
                 nullable: true);
 
             migrationBuilder.CreateTable(
-                name: "Arrangements",
+                name: "Occurrences",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
@@ -38,9 +38,9 @@ namespace Finly.Infrastructure.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Arrangements", x => x.Id);
+                    table.PrimaryKey("PK_Occurrences", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Arrangements_Transactions_TransactionId",
+                        name: "FK_Occurrences_Transactions_TransactionId",
                         column: x => x.TransactionId,
                         principalTable: "Transactions",
                         principalColumn: "Id",
@@ -48,18 +48,18 @@ namespace Finly.Infrastructure.Data.Migrations
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_Arrangements_DueDate_Status",
-                table: "Arrangements",
+                name: "IX_Occurrences_DueDate_Status",
+                table: "Occurrences",
                 columns: new[] { "DueDate", "Status" });
 
             migrationBuilder.CreateIndex(
-                name: "IX_Arrangements_TransactionId_DueDate",
-                table: "Arrangements",
+                name: "IX_Occurrences_TransactionId_DueDate",
+                table: "Occurrences",
                 columns: new[] { "TransactionId", "DueDate" });
 
             migrationBuilder.CreateIndex(
-                name: "IX_Arrangements_TransactionId_InstallmentIndex",
-                table: "Arrangements",
+                name: "IX_Occurrences_TransactionId_InstallmentIndex",
+                table: "Occurrences",
                 columns: new[] { "TransactionId", "InstallmentIndex" },
                 unique: true,
                 filter: "[InstallmentIndex] IS NOT NULL");
@@ -69,7 +69,7 @@ namespace Finly.Infrastructure.Data.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "Arrangements");
+                name: "Occurrences");
 
             migrationBuilder.DropColumn(
                 name: "RecurrenceMode",
