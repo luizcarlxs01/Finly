@@ -10,13 +10,13 @@ import type {
   Transaction,
   TransactionKind,
   TransactionRecurrenceMode,
-  TransactionRecurrenceType,
 } from "@/types/transaction";
-import { synchronizeInstallmentTransactions } from "@/utils/installment-transactions";
+import type { OccurrenceStatus } from "@/types/occurrence";
 import {
+  createMonthlyOccurrence,
+  formatDateValue,
   getTodayDateValue,
   parseDateValue,
-  synchronizeRecurringTransactions,
 } from "@/utils/recurring-transactions";
 import {
   normalizeInstallmentCount,
@@ -50,21 +50,6 @@ function sortTransactionsByMostRecent(transactions: Transaction[]) {
     (left, right) =>
       new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
   );
-}
-
-function applyTransactionAutomation(profile: LocalFinanceProfile) {
-  const recurringProfile = synchronizeRecurringTransactions({
-    transactions: profile.transactions,
-  });
-
-  const installmentProfile = synchronizeInstallmentTransactions({
-    transactions: recurringProfile.transactions,
-  });
-
-  return {
-    ...profile,
-    transactions: sortTransactionsByMostRecent(installmentProfile.transactions),
-  };
 }
 
 function getTransactionCreatedAt(
@@ -182,27 +167,138 @@ function isValidTransactionInput(
   );
 }
 
-function buildPreviewTransaction(
-  input: ReturnType<typeof normalizeTransactionInput>,
-): Transaction {
-  const createdAt = getTransactionCreatedAt(input.transactionDate);
+type PreviewOccurrence = {
+  dueDate: string;
+  amount: number;
+  installmentIndex: number | null;
+  status: OccurrenceStatus;
+};
 
-  return {
-    id: "preview-transaction",
+function addMonthsToDate(date: Date, monthOffset: number) {
+  const totalMonths = date.getMonth() + monthOffset;
+  const year = date.getFullYear() + Math.floor(totalMonths / 12);
+  const monthIndex = ((totalMonths % 12) + 12) % 12;
+
+  return { year, monthIndex };
+}
+
+function buildOccurrenceDate(anchorDate: Date, dayOfMonth: number, monthOffset: number) {
+  const { year, monthIndex } = addMonthsToDate(anchorDate, monthOffset);
+
+  return createMonthlyOccurrence(year, monthIndex, dayOfMonth);
+}
+
+/**
+ * Replica em memória, só para o preview, as mesmas regras do backend
+ * (Finly.Application/Services/OccurrenceGenerationService.cs) — Single gera 1 occurrence,
+ * Installment gera N mensais a partir da data informada, Recurring gera até a condição de
+ * parada (until-date/for-months/12 meses se indefinido). Status Paid/Pending é decidido do
+ * mesmo jeito: DueDate <= hoje. Isso é dívida técnica conhecida — duplica a regra do backend
+ * só para fins de simulação, já que o preview nunca é persistido.
+ */
+function generatePreviewOccurrences(
+  input: ReturnType<typeof normalizeTransactionInput>,
+): PreviewOccurrence[] {
+  const today = parseDateValue(getTodayDateValue())!;
+
+  function buildOccurrence(dueDate: Date, installmentIndex: number | null): PreviewOccurrence {
+    return {
+      dueDate: formatDateValue(dueDate),
+      amount: input.amount,
+      installmentIndex,
+      status: dueDate <= today ? "paid" : "pending",
+    };
+  }
+
+  if (input.transactionKind === "installment-template") {
+    const startDate = parseDateValue(input.installmentStartDate);
+
+    if (!startDate || !input.installmentCount) {
+      return [];
+    }
+
+    const dayOfMonth = startDate.getDate();
+    const occurrences: PreviewOccurrence[] = [];
+
+    for (let index = 0; index < input.installmentCount; index += 1) {
+      const dueDate = buildOccurrenceDate(startDate, dayOfMonth, index);
+      occurrences.push(buildOccurrence(dueDate, index + 1));
+    }
+
+    return occurrences;
+  }
+
+  if (input.transactionKind === "recurring-template") {
+    const startDate = parseDateValue(input.recurrenceStartDate);
+
+    if (!startDate) {
+      return [];
+    }
+
+    const dayOfMonth = input.recurrenceDay ?? startDate.getDate();
+    const mode = input.recurrenceMode ?? "indefinite";
+    const endDate = parseDateValue(input.recurrenceEndDate);
+    const occurrences: PreviewOccurrence[] = [];
+    let monthOffset = 0;
+
+    while (true) {
+      const dueDate = buildOccurrenceDate(startDate, dayOfMonth, monthOffset);
+
+      if (mode === "until-date") {
+        if (endDate && dueDate > endDate) {
+          break;
+        }
+      } else if (mode === "for-months") {
+        if (monthOffset >= (input.recurrenceMonths ?? 0)) {
+          break;
+        }
+      } else if (monthOffset >= 12) {
+        break;
+      }
+
+      occurrences.push(buildOccurrence(dueDate, monthOffset + 1));
+      monthOffset += 1;
+    }
+
+    return occurrences;
+  }
+
+  const transactionDate = parseDateValue(input.transactionDate) ?? today;
+
+  return [buildOccurrence(transactionDate, null)];
+}
+
+function buildPreviewLineItems(
+  input: ReturnType<typeof normalizeTransactionInput>,
+): Transaction[] {
+  const previewOccurrences = generatePreviewOccurrences(input);
+  const displayKind: TransactionKind =
+    input.transactionKind === "installment-template"
+      ? "installment-instance"
+      : input.transactionKind === "recurring-template"
+        ? "recurring-instance"
+        : "single";
+  const createdAt = getTransactionCreatedAt(
+    input.transactionDate ?? input.installmentStartDate ?? input.recurrenceStartDate,
+  );
+
+  return previewOccurrences.map((occurrence, index) => ({
+    id: `preview-occurrence-${index}`,
     title: input.title,
-    amount: input.amount,
+    amount: occurrence.amount,
     type: input.type,
     category: input.category,
-    transactionKind: input.transactionKind as TransactionKind,
-    sourceId: null,
-    occurrenceDate: null,
-    installmentIndex: null,
+    transactionKind: displayKind,
+    sourceId: "preview-transaction",
+    occurrenceDate: occurrence.dueDate,
+    installmentIndex: occurrence.installmentIndex,
     installmentCount: input.installmentCount,
-    installmentStartDate: input.installmentStartDate,
-    recurringSourceId: null,
-    recurringOccurrenceDate: null,
+    installmentStartDate: null,
+    recurringSourceId: displayKind === "recurring-instance" ? "preview-transaction" : null,
+    recurringOccurrenceDate:
+      displayKind === "recurring-instance" ? occurrence.dueDate : null,
     isRecurring: input.isRecurring,
-    recurrenceType: input.recurrenceType as TransactionRecurrenceType | null,
+    recurrenceType: displayKind === "recurring-instance" ? "monthly" : null,
     recurrenceMode: input.recurrenceMode as TransactionRecurrenceMode | null,
     recurrenceDay: input.recurrenceDay,
     recurrenceStartDate: input.recurrenceStartDate,
@@ -210,7 +306,10 @@ function buildPreviewTransaction(
     recurrenceMonths: input.recurrenceMonths,
     lastGeneratedAt: null,
     createdAt,
-  };
+    occurrenceId: `preview-occurrence-${index}`,
+    occurrenceStatus: occurrence.status,
+    isCustomized: false,
+  }));
 }
 
 function createApiPreviewProfile(
@@ -223,15 +322,12 @@ function createApiPreviewProfile(
     return null;
   }
 
-  const previewTransaction = buildPreviewTransaction(normalizedInput);
+  const previewLineItems = buildPreviewLineItems(normalizedInput);
 
-  return applyTransactionAutomation({
+  return {
     initialBalance: 0,
-    transactions: sortTransactionsByMostRecent([
-      previewTransaction,
-      ...transactions,
-    ]),
-  });
+    transactions: sortTransactionsByMostRecent([...previewLineItems, ...transactions]),
+  };
 }
 
 export function useImpactSimulation({

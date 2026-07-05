@@ -15,7 +15,9 @@ import {
 } from "@/lib/api/transactions";
 import { GOAL_WRITE_COMPLETED_EVENT } from "@/lib/api/goals";
 import { RULE_PROCESSING_COMPLETED_EVENT } from "@/lib/api/rule-processing";
+import type { ApiTransaction } from "@/types/api-transaction";
 import type { DashboardSummary } from "@/types/dashboard";
+import type { OccurrenceStatus } from "@/types/occurrence";
 import type { Profile } from "@/types/profile";
 import type {
   Transaction,
@@ -25,6 +27,7 @@ import type {
 } from "@/types/transaction";
 
 type FinanceDataState = {
+  apiContractTransactions: ApiTransaction[];
   currentBalance: number;
   dashboard: DashboardSummary | null;
   errorMessage: string | null;
@@ -58,55 +61,35 @@ function getSelectedProfile(profiles: Profile[]) {
   return profiles.find((profile) => profile.isPrimary) ?? profiles[0] ?? null;
 }
 
-function toKebabCase(value: string) {
-  return value
-    .trim()
-    .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
-    .replace(/_/g, "-")
-    .toLowerCase();
-}
-
 function normalizeTransactionType(value: string): TransactionType {
   return value.trim().toLowerCase() === "income" ? "income" : "expense";
 }
 
-function normalizeTransactionKind(value: string, isRecurring: boolean): TransactionKind {
-  const normalizedValue = toKebabCase(value);
+/**
+ * O contrato (ApiTransaction.transactionKind) só assume "Single"/"Installment"/"Recurring"
+ * no modelo novo (seção 21 do CLAUDE.md). O check por substring também cobre defensivamente
+ * os valores legados depreciados (InstallmentTemplate/Instance, RecurringTemplate/Instance)
+ * caso alguma linha antiga ainda exista no banco.
+ */
+function getDisplayKindForOccurrence(contractKind: string): TransactionKind {
+  const normalizedValue = contractKind.trim().toLowerCase();
 
-  if (
-    normalizedValue === "single" ||
-    normalizedValue === "installment-template" ||
-    normalizedValue === "installment-instance" ||
-    normalizedValue === "recurring-template" ||
-    normalizedValue === "recurring-instance"
-  ) {
-    return normalizedValue;
+  if (normalizedValue.includes("installment")) {
+    return "installment-instance";
   }
 
-  return isRecurring ? "recurring-instance" : "single";
+  if (normalizedValue.includes("recurring")) {
+    return "recurring-instance";
+  }
+
+  return "single";
 }
 
-function normalizeRecurrenceMode(
-  value: string | null,
-): TransactionRecurrenceMode | null {
-  if (!value) {
-    return null;
-  }
-
-  const normalizedValue = toKebabCase(value);
-
-  if (
-    normalizedValue === "indefinite" ||
-    normalizedValue === "until-date" ||
-    normalizedValue === "for-months"
-  ) {
-    return normalizedValue;
-  }
-
-  return null;
+function normalizeOccurrenceStatus(value: string): OccurrenceStatus {
+  return value.trim().toLowerCase() === "paid" ? "paid" : "pending";
 }
 
-function inferRecurrenceMode(transaction: Awaited<ReturnType<typeof getTransactions>>[number]) {
+function inferRecurrenceMode(transaction: ApiTransaction): TransactionRecurrenceMode | null {
   if (transaction.recurrenceEndDate) {
     return "until-date";
   }
@@ -118,62 +101,44 @@ function inferRecurrenceMode(transaction: Awaited<ReturnType<typeof getTransacti
   return transaction.isRecurring ? "indefinite" : null;
 }
 
-function getTodayDateValue() {
-  return new Date().toISOString().slice(0, 10);
-}
+/**
+ * No modelo novo, GET /api/Transactions retorna 1 linha por CONTRATO (Single/Installment/
+ * Recurring), cada uma com as Occurrences reais embutidas (seção 21 do CLAUDE.md). A UI,
+ * porém, continua precisando de 1 linha por ocorrência (parcela/competência), então cada
+ * Transaction vira N linhas de Transaction "achatadas" — uma por Occurrence.
+ */
+function flattenApiTransactionToLineItems(transaction: ApiTransaction): Transaction[] {
+  const displayKind = getDisplayKindForOccurrence(transaction.transactionKind);
+  const recurrenceMode = inferRecurrenceMode(transaction);
 
-function isTransactionPosted(transaction: Transaction) {
-  const transactionDate =
-    transaction.occurrenceDate ??
-    transaction.recurrenceStartDate ??
-    transaction.installmentStartDate;
-
-  if (!transactionDate) {
-    return true;
-  }
-
-  return transactionDate <= getTodayDateValue();
-}
-
-function mapApiTransactionToTransaction(
-  transaction: Awaited<ReturnType<typeof getTransactions>>[number],
-): Transaction {
-  const transactionKind = normalizeTransactionKind(
-    transaction.transactionKind,
-    transaction.isRecurring,
-  );
-  const recurrenceStartDate =
-    transaction.recurrenceStartDate ??
-    (transactionKind === "recurring-template" ? transaction.transactionDate : null);
-  const occurrenceDate = transaction.transactionDate;
-
-  return {
-    id: transaction.id,
+  return transaction.occurrences.map((occurrence) => ({
+    id: occurrence.id,
     title: transaction.title,
-    amount: transaction.amount,
+    amount: occurrence.amount,
     type: normalizeTransactionType(transaction.type),
     category: transaction.category,
-    transactionKind,
-    sourceId: transaction.sourceId,
-    occurrenceDate,
-    installmentIndex: transaction.installmentIndex,
+    transactionKind: displayKind,
+    sourceId: transaction.id,
+    occurrenceDate: occurrence.dueDate,
+    installmentIndex: occurrence.installmentIndex,
     installmentCount: transaction.installmentCount,
-    installmentStartDate:
-      transactionKind === "installment-template" ? transaction.transactionDate : null,
-    recurringSourceId:
-      transactionKind === "recurring-instance" ? transaction.sourceId : null,
+    installmentStartDate: null,
+    recurringSourceId: displayKind === "recurring-instance" ? transaction.id : null,
     recurringOccurrenceDate:
-      transactionKind === "recurring-instance" ? occurrenceDate : null,
+      displayKind === "recurring-instance" ? occurrence.dueDate : null,
     isRecurring: transaction.isRecurring,
-    recurrenceType: transactionKind === "recurring-template" ? "monthly" : null,
-    recurrenceMode: inferRecurrenceMode(transaction),
+    recurrenceType: displayKind === "recurring-instance" ? "monthly" : null,
+    recurrenceMode,
     recurrenceDay: transaction.recurrenceDay,
-    recurrenceStartDate,
+    recurrenceStartDate: transaction.recurrenceStartDate,
     recurrenceEndDate: transaction.recurrenceEndDate,
     recurrenceMonths: transaction.recurrenceMonths,
     lastGeneratedAt: null,
     createdAt: transaction.createdAt,
-  };
+    occurrenceId: occurrence.id,
+    occurrenceStatus: normalizeOccurrenceStatus(occurrence.status),
+    isCustomized: occurrence.isCustomized,
+  }));
 }
 
 export function useFinanceData(
@@ -184,6 +149,9 @@ export function useFinanceData(
   const localFinance = options.localFinance;
   const [apiDashboard, setApiDashboard] = useState<DashboardSummary | null>(null);
   const [apiTransactions, setApiTransactions] = useState<Transaction[]>([]);
+  const [apiContractTransactions, setApiContractTransactions] = useState<
+    ApiTransaction[]
+  >([]);
   const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isApiLoading, setIsApiLoading] = useState(false);
@@ -233,6 +201,7 @@ export function useFinanceData(
     if (!isSourceLoaded || source !== "api" || !token) {
       setApiDashboard(null);
       setApiTransactions([]);
+      setApiContractTransactions([]);
       setSelectedProfile(null);
       setErrorMessage(null);
       setIsApiLoading(false);
@@ -258,6 +227,7 @@ export function useFinanceData(
           setSelectedProfile(null);
           setApiDashboard(null);
           setApiTransactions([]);
+          setApiContractTransactions([]);
           return;
         }
 
@@ -273,7 +243,8 @@ export function useFinanceData(
         }
 
         setApiDashboard(dashboard);
-        setApiTransactions(transactions.map(mapApiTransactionToTransaction));
+        setApiContractTransactions(transactions);
+        setApiTransactions(transactions.flatMap(flattenApiTransactionToLineItems));
       } catch (error) {
         if (!isMounted) {
           return;
@@ -282,6 +253,7 @@ export function useFinanceData(
         setSelectedProfile(null);
         setApiDashboard(null);
         setApiTransactions([]);
+        setApiContractTransactions([]);
         setErrorMessage(getFriendlyErrorMessage(error));
       } finally {
         if (isMounted) {
@@ -319,18 +291,13 @@ export function useFinanceData(
   );
 
   const apiPostedTransactions = useMemo(
-    () =>
-      apiTransactions.filter(
-        (transaction) =>
-          transaction.transactionKind !== "recurring-template" &&
-          transaction.transactionKind !== "installment-template" &&
-          isTransactionPosted(transaction),
-      ),
+    () => apiTransactions.filter((transaction) => transaction.occurrenceStatus === "paid"),
     [apiTransactions],
   );
 
   if (source === "local") {
     return {
+      apiContractTransactions: [],
       currentBalance: localFinance.currentBalance,
       source,
       initialBalance: localFinance.initialBalance,
@@ -347,6 +314,7 @@ export function useFinanceData(
   }
 
   return {
+    apiContractTransactions,
     currentBalance: apiDashboard?.currentBalance ?? 0,
     source,
     initialBalance: apiDashboard?.initialBalance ?? 0,

@@ -1,3 +1,5 @@
+import type { ApiOccurrence } from "@/types/api-occurrence";
+
 export type ApiTransaction = {
   id: string;
   title: string;
@@ -16,4 +18,5 @@ export type ApiTransaction = {
   recurrenceEndDate: string | null;
   recurrenceDay: number | null;
   recurrenceMonths: number | null;
+  occurrences: ApiOccurrence[];
 };

@@ -27,13 +27,11 @@ type UseCreateTransactionReturn = {
 function getBackendTransactionKind(value: TransactionKind | undefined) {
   switch (value) {
     case "installment-template":
-      return "InstallmentTemplate";
     case "installment-instance":
-      return "InstallmentInstance";
+      return "Installment";
     case "recurring-template":
-      return "RecurringTemplate";
     case "recurring-instance":
-      return "RecurringInstance";
+      return "Recurring";
     case "single":
     default:
       return "Single";

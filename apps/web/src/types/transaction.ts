@@ -1,3 +1,5 @@
+import type { OccurrenceStatus } from "@/types/occurrence";
+
 export type TransactionType = "income" | "expense";
 
 export const TRANSACTION_RECURRENCE_TYPES = ["monthly"] as const;
@@ -54,4 +56,10 @@ export type Transaction = {
   recurrenceMonths: number | null;
   lastGeneratedAt: string | null;
   createdAt: string;
+  /** Preenchido apenas no modo API — id da Occurrence real que originou esta linha. */
+  occurrenceId?: string | null;
+  /** Preenchido apenas no modo API — status real da Occurrence (Cancelled já vem filtrada pelo backend). */
+  occurrenceStatus?: OccurrenceStatus | null;
+  /** Preenchido apenas no modo API — reflete Occurrence.IsCustomized. */
+  isCustomized?: boolean;
 };

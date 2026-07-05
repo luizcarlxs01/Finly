@@ -46,6 +46,17 @@ type TransactionEditModalProps = {
     installmentCount?: number | null;
     installmentStartDate?: string | null;
   }) => Promise<void> | void;
+  /** Presente apenas no modo API — edita a Occurrence real (data/valor), não o contrato. */
+  onSaveOccurrence?: (input: {
+    id: string;
+    dueDate: string;
+    amount: number;
+  }) => Promise<void> | void;
+  onMarkOccurrencePaid?: (occurrenceId: string) => Promise<void> | void;
+  onMarkOccurrencePending?: (occurrenceId: string) => Promise<void> | void;
+  isSubmittingOccurrence?: boolean;
+  /** Abre a confirmação de exclusão do contrato inteiro (todas as ocorrências). */
+  onRequestDeleteContract?: (contractId: string) => void;
 };
 
 const fieldClassName =
@@ -97,6 +108,11 @@ export function TransactionEditModal({
   onOpenChange,
   isSubmitting = false,
   onSave,
+  onSaveOccurrence,
+  onMarkOccurrencePaid,
+  onMarkOccurrencePending,
+  isSubmittingOccurrence = false,
+  onRequestDeleteContract,
 }: TransactionEditModalProps) {
   const [title, setTitle] = useState(transaction?.title ?? "");
   const [amount, setAmount] = useState(transaction ? String(transaction.amount) : "");
@@ -126,6 +142,12 @@ export function TransactionEditModal({
   const [recurrenceMonths, setRecurrenceMonths] = useState(
     String(transaction?.recurrenceMonths ?? 3),
   );
+  const [occurrenceDueDate, setOccurrenceDueDate] = useState(
+    formatDateForInput(transaction?.occurrenceDate),
+  );
+  const [occurrenceAmount, setOccurrenceAmount] = useState(
+    transaction ? String(transaction.amount) : "",
+  );
 
   useEffect(() => {
     if (!open || !transaction) {
@@ -147,6 +169,8 @@ export function TransactionEditModal({
     setRecurrenceMode(transaction.recurrenceMode ?? "indefinite");
     setRecurrenceEndDate(formatDateForInput(transaction.recurrenceEndDate));
     setRecurrenceMonths(String(transaction.recurrenceMonths ?? 3));
+    setOccurrenceDueDate(formatDateForInput(transaction.occurrenceDate));
+    setOccurrenceAmount(String(transaction.amount));
   }, [open, transaction]);
 
   useEffect(() => {
@@ -326,6 +350,57 @@ export function TransactionEditModal({
     } catch {
       // A mensagem de erro é tratada na página principal.
     }
+  }
+
+  async function handleSaveOccurrence() {
+    if (!transaction?.occurrenceId) {
+      return;
+    }
+
+    const parsedOccurrenceAmount = Number(occurrenceAmount);
+    const normalizedOccurrenceDueDate = occurrenceDueDate.trim();
+
+    if (
+      Number.isNaN(parsedOccurrenceAmount) ||
+      parsedOccurrenceAmount <= 0 ||
+      !normalizedOccurrenceDueDate
+    ) {
+      return;
+    }
+
+    try {
+      await onSaveOccurrence?.({
+        id: transaction.occurrenceId,
+        dueDate: normalizedOccurrenceDueDate,
+        amount: parsedOccurrenceAmount,
+      });
+    } catch {
+      // A mensagem de erro é tratada na página principal.
+    }
+  }
+
+  async function handleToggleOccurrenceStatus() {
+    if (!transaction?.occurrenceId) {
+      return;
+    }
+
+    try {
+      if (transaction.occurrenceStatus === "paid") {
+        await onMarkOccurrencePending?.(transaction.occurrenceId);
+      } else {
+        await onMarkOccurrencePaid?.(transaction.occurrenceId);
+      }
+    } catch {
+      // A mensagem de erro é tratada na página principal.
+    }
+  }
+
+  function handleRequestDeleteContract() {
+    if (!transaction?.sourceId) {
+      return;
+    }
+
+    onRequestDeleteContract?.(transaction.sourceId);
   }
 
   return (
@@ -702,6 +777,106 @@ export function TransactionEditModal({
                       />
                     </div>
                   ) : null}
+                </div>
+              ) : null}
+
+              {transaction.occurrenceId ? (
+                <div className="space-y-4 rounded-2xl border border-border/60 bg-background/60 p-4">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-foreground">
+                      Esta ocorrência
+                    </p>
+                    <p className="text-sm leading-6 text-muted-foreground">
+                      Data e valor apenas desta parcela ou competência, sem afetar as
+                      demais da série.
+                    </p>
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <label
+                        htmlFor="edit-occurrence-due-date"
+                        className="text-sm font-medium text-foreground"
+                      >
+                        Data de vencimento
+                      </label>
+
+                      <input
+                        id="edit-occurrence-due-date"
+                        type="date"
+                        value={occurrenceDueDate}
+                        onChange={(event) => setOccurrenceDueDate(event.target.value)}
+                        className={fieldClassName}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label
+                        htmlFor="edit-occurrence-amount"
+                        className="text-sm font-medium text-foreground"
+                      >
+                        Valor desta ocorrência
+                      </label>
+
+                      <input
+                        id="edit-occurrence-amount"
+                        type="number"
+                        step="0.01"
+                        value={occurrenceAmount}
+                        onChange={(event) => setOccurrenceAmount(event.target.value)}
+                        className={fieldClassName}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-3 sm:flex-row">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full rounded-xl sm:w-auto"
+                      disabled={isSubmittingOccurrence}
+                      onClick={handleSaveOccurrence}
+                    >
+                      Salvar esta ocorrência
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full rounded-xl sm:w-auto"
+                      disabled={isSubmittingOccurrence}
+                      onClick={handleToggleOccurrenceStatus}
+                    >
+                      {transaction.occurrenceStatus === "paid"
+                        ? "Marcar como pendente"
+                        : "Marcar como paga"}
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
+
+              {transaction.occurrenceId ? (
+                <div className="space-y-3 rounded-2xl border border-destructive/40 bg-destructive/5 p-4">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-foreground">
+                      Excluir toda a série
+                    </p>
+                    <p className="text-sm leading-6 text-muted-foreground">
+                      Remove o lançamento inteiro e todas as suas parcelas ou
+                      competências, incluindo as já pagas. Essa ação não pode ser
+                      desfeita.
+                    </p>
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    className="w-full rounded-xl sm:w-auto"
+                    disabled={isSubmittingOccurrence}
+                    onClick={handleRequestDeleteContract}
+                  >
+                    Excluir toda a série
+                  </Button>
                 </div>
               ) : null}
             </div>

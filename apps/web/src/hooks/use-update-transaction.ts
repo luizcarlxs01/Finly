@@ -8,9 +8,9 @@ import {
   type UpdateApiTransactionRequest,
   updateTransaction as updateTransactionWithApi,
 } from "@/lib/api/transactions";
+import type { ApiTransaction } from "@/types/api-transaction";
 import type { Transaction, TransactionKind } from "@/types/transaction";
 import type { Profile } from "@/types/profile";
-import { getTodayDateValue } from "@/utils/recurring-transactions";
 
 type UpdateTransactionInput = {
   id: string;
@@ -32,6 +32,7 @@ type UpdateTransactionInput = {
 };
 
 type UseUpdateTransactionOptions = {
+  apiContractTransactions: ApiTransaction[];
   updateLocalTransaction: (input: UpdateTransactionInput) => void;
   selectedProfile: Profile | null;
   transactions: Transaction[];
@@ -43,170 +44,93 @@ type UseUpdateTransactionReturn = {
   updateTransaction: (input: UpdateTransactionInput) => Promise<void>;
 };
 
+/**
+ * O formulário/modal ainda fala o vocabulário antigo de kind ("-template"/"-instance"),
+ * mas o contrato no backend novo só conhece Single/Installment/Recurring (seção 21 do
+ * CLAUDE.md) — tanto o valor "-template" (escolhido ao converter um Single) quanto
+ * "-instance" (kind já resolvido de uma linha achatada) mapeiam para o mesmo valor.
+ */
 function getBackendTransactionKind(value: TransactionKind | undefined) {
   switch (value) {
     case "installment-template":
-      return "InstallmentTemplate";
     case "installment-instance":
-      return "InstallmentInstance";
+      return "Installment";
     case "recurring-template":
-      return "RecurringTemplate";
     case "recurring-instance":
-      return "RecurringInstance";
+      return "Recurring";
     case "single":
     default:
       return "Single";
   }
 }
 
-function inferRecurrenceMode(transaction: Transaction) {
-  if (transaction.recurrenceEndDate) {
+function inferApiRecurrenceMode(contract: ApiTransaction) {
+  if (contract.recurrenceEndDate) {
     return "until-date";
   }
 
-  if (transaction.recurrenceMonths) {
+  if (contract.recurrenceMonths) {
     return "for-months";
   }
 
   return "indefinite";
 }
 
-function resolveTransactionToEdit(
-  currentTransaction: Transaction,
-  transactions: Transaction[],
-) {
-  const isGeneratedInstance =
-    currentTransaction.transactionKind === "installment-instance" ||
-    currentTransaction.transactionKind === "recurring-instance";
-
-  if (!isGeneratedInstance || !currentTransaction.sourceId) {
-    return currentTransaction;
-  }
-
-  return (
-    transactions.find((transaction) => transaction.id === currentTransaction.sourceId) ??
-    currentTransaction
-  );
-}
-
-function getResolvedTransactionKind(
-  currentTransaction: Transaction,
-  transactionToEdit: Transaction,
-  input: UpdateTransactionInput,
-) {
-  const isGeneratedInstance =
-    currentTransaction.transactionKind === "installment-instance" ||
-    currentTransaction.transactionKind === "recurring-instance";
-
-  return isGeneratedInstance
-    ? transactionToEdit.transactionKind
-    : input.transactionKind ?? transactionToEdit.transactionKind;
-}
-
-function getTransactionDateForRequest(
-  input: UpdateTransactionInput,
-  transactionToEdit: Transaction,
-  resolvedTransactionKind: TransactionKind,
-) {
-  if (resolvedTransactionKind === "installment-template") {
-    return (
-      input.installmentStartDate ??
-      transactionToEdit.installmentStartDate ??
-      transactionToEdit.occurrenceDate ??
-      getTodayDateValue()
-    );
-  }
-
-  if (resolvedTransactionKind === "recurring-template") {
-    return (
-      input.recurrenceStartDate ??
-      transactionToEdit.recurrenceStartDate ??
-      transactionToEdit.occurrenceDate ??
-      getTodayDateValue()
-    );
-  }
-
-  return (
-    input.transactionDate ??
-    transactionToEdit.occurrenceDate ??
-    transactionToEdit.createdAt.slice(0, 10) ??
-    getTodayDateValue()
-  );
-}
-
-function mapToUpdateRequest(
-  currentTransaction: Transaction,
-  transactionToEdit: Transaction,
+/**
+ * Constrói o payload de PUT a partir do contrato CRU (ApiTransaction), não da linha
+ * achatada. Isso evita dois bugs: (1) usar a DueDate da ocorrência clicada como
+ * TransactionDate do contrato inteiro, e (2) usar o id do contrato (repropósito de
+ * Transaction.sourceId no FE) como se fosse o SourceId real do backend (vínculo com
+ * FinancialRule), o que corromperia o dedup do RuleProcessingService.
+ */
+function buildApiContractUpdateRequest(
+  contract: ApiTransaction,
   input: UpdateTransactionInput,
   financialProfileId: string,
-): {
-  request: UpdateApiTransactionRequest;
-  targetTransactionId: string;
-} {
-  const resolvedTransactionKind = getResolvedTransactionKind(
-    currentTransaction,
-    transactionToEdit,
-    input,
-  );
-  const transactionDate = getTransactionDateForRequest(
-    input,
-    transactionToEdit,
-    resolvedTransactionKind,
-  );
-  const recurrenceMode =
-    input.recurrenceMode ??
-    transactionToEdit.recurrenceMode ??
-    inferRecurrenceMode(transactionToEdit);
+): UpdateApiTransactionRequest {
+  const backendKind = input.transactionKind
+    ? getBackendTransactionKind(input.transactionKind)
+    : contract.transactionKind;
+
+  const transactionDate =
+    input.installmentStartDate ??
+    input.recurrenceStartDate ??
+    input.transactionDate ??
+    contract.transactionDate;
+
+  const recurrenceMode = input.recurrenceMode ?? inferApiRecurrenceMode(contract);
 
   return {
-    targetTransactionId: transactionToEdit.id,
-    request: {
-      financialProfileId,
-      title: input.title.trim(),
-      amount: input.amount,
-      type: input.type === "income" ? "Income" : "Expense",
-      category: input.category.trim().toLowerCase(),
-      transactionKind: getBackendTransactionKind(resolvedTransactionKind),
-      transactionDate,
-      sourceId:
-        resolvedTransactionKind === "installment-instance" ||
-        resolvedTransactionKind === "recurring-instance"
-          ? transactionToEdit.sourceId
-          : null,
-      installmentIndex:
-        resolvedTransactionKind === "installment-instance"
-          ? transactionToEdit.installmentIndex
-          : null,
-      installmentCount:
-        resolvedTransactionKind === "installment-template"
-          ? input.installmentCount ?? transactionToEdit.installmentCount
-          : resolvedTransactionKind === "installment-instance"
-            ? transactionToEdit.installmentCount
-            : null,
-      isRecurring: resolvedTransactionKind === "recurring-template",
-      recurrenceStartDate:
-        resolvedTransactionKind === "recurring-template"
-          ? input.recurrenceStartDate ??
-            transactionToEdit.recurrenceStartDate ??
-            transactionDate
-          : null,
-      recurrenceEndDate:
-        resolvedTransactionKind === "recurring-template"
-          ? recurrenceMode === "until-date"
-            ? input.recurrenceEndDate ?? transactionToEdit.recurrenceEndDate
-            : null
-          : null,
-      recurrenceDay:
-        resolvedTransactionKind === "recurring-template"
-          ? input.recurrenceDay ?? transactionToEdit.recurrenceDay
-          : null,
-      recurrenceMonths:
-        resolvedTransactionKind === "recurring-template"
-          ? recurrenceMode === "for-months"
-            ? input.recurrenceMonths ?? transactionToEdit.recurrenceMonths
-            : null
-          : null,
-    },
+    financialProfileId,
+    title: input.title.trim(),
+    amount: input.amount,
+    type: input.type === "income" ? "Income" : "Expense",
+    category: input.category.trim().toLowerCase(),
+    transactionKind: backendKind,
+    transactionDate,
+    sourceId: contract.sourceId,
+    installmentIndex: null,
+    installmentCount:
+      backendKind === "Installment"
+        ? input.installmentCount ?? contract.installmentCount
+        : null,
+    isRecurring: backendKind === "Recurring",
+    recurrenceStartDate:
+      backendKind === "Recurring"
+        ? input.recurrenceStartDate ?? contract.recurrenceStartDate
+        : null,
+    recurrenceEndDate:
+      backendKind === "Recurring" && recurrenceMode === "until-date"
+        ? input.recurrenceEndDate ?? contract.recurrenceEndDate
+        : null,
+    recurrenceDay:
+      backendKind === "Recurring"
+        ? input.recurrenceDay ?? contract.recurrenceDay
+        : null,
+    recurrenceMonths:
+      backendKind === "Recurring" && recurrenceMode === "for-months"
+        ? input.recurrenceMonths ?? contract.recurrenceMonths
+        : null,
   };
 }
 
@@ -219,6 +143,7 @@ function getFriendlyErrorMessage(error: unknown) {
 }
 
 export function useUpdateTransaction({
+  apiContractTransactions,
   updateLocalTransaction,
   selectedProfile,
   transactions,
@@ -262,21 +187,27 @@ export function useUpdateTransaction({
       throw new Error(nextErrorMessage);
     }
 
+    const contractId = currentTransaction.sourceId;
+    const contract = apiContractTransactions.find(
+      (transaction) => transaction.id === contractId,
+    );
+
+    if (!contract) {
+      const nextErrorMessage = "Não foi possível localizar o lançamento original.";
+      setErrorMessage(nextErrorMessage);
+      throw new Error(nextErrorMessage);
+    }
+
     setIsSubmitting(true);
 
     try {
-      const transactionToEdit = resolveTransactionToEdit(
-        currentTransaction,
-        transactions,
-      );
-      const { request, targetTransactionId } = mapToUpdateRequest(
-        currentTransaction,
-        transactionToEdit,
+      const request = buildApiContractUpdateRequest(
+        contract,
         input,
         selectedProfile.id,
       );
 
-      await updateTransactionWithApi(targetTransactionId, request, session.token);
+      await updateTransactionWithApi(contract.id, request, session.token);
       window.dispatchEvent(new Event(TRANSACTION_WRITE_COMPLETED_EVENT));
       setErrorMessage(null);
     } catch (error) {

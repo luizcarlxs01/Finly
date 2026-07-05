@@ -17,13 +17,17 @@ import { FinancialRulesManager } from "@/components/dashboard/financial-rules-ma
 import { useFinanceSource } from "@/contexts/finance-source-context";
 import { useCreateTransaction } from "@/hooks/use-create-transaction";
 import { useCreateGoal } from "@/hooks/use-create-goal";
+import { useCancelOccurrence } from "@/hooks/use-cancel-occurrence";
 import { useDeleteGoal } from "@/hooks/use-delete-goal";
 import { useDeleteTransaction } from "@/hooks/use-delete-transaction";
 import { useFinanceData } from "@/hooks/use-finance-data";
 import { useFinancialRulesData } from "@/hooks/use-financial-rules-data";
 import { useGoalsData } from "@/hooks/use-goals-data";
 import { useImpactSimulation } from "@/hooks/use-impact-simulation";
+import { useMarkOccurrencePaid } from "@/hooks/use-mark-occurrence-paid";
+import { useMarkOccurrencePending } from "@/hooks/use-mark-occurrence-pending";
 import { useUpdateGoalProgress } from "@/hooks/use-update-goal-progress";
+import { useUpdateOccurrence } from "@/hooks/use-update-occurrence";
 import { useUpdateTransaction } from "@/hooks/use-update-transaction";
 import { useUpdateInitialBalance } from "@/hooks/use-update-initial-balance";
 import { GoalForm } from "@/components/dashboard/goal-form";
@@ -43,6 +47,7 @@ import type { Goal } from "@/types/goal";
 import { getTransactionCategoryLabel } from "@/types/transaction-category";
 import { getDashboardInsights } from "@/utils/dashboard-insights";
 import { getNextRecurringOccurrenceDate } from "@/utils/recurring-transactions";
+import { getUpcomingOccurrencesByMonth } from "@/utils/upcoming-occurrences";
 import { getUpcomingTransactionsByMonth } from "@/utils/upcoming-transactions";
 import type { TransactionSortOption } from "@/components/dashboard/transaction-advanced-filters";
 
@@ -221,6 +226,8 @@ export default function HomePage() {
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
   const [pendingRemovalTransactionId, setPendingRemovalTransactionId] =
     useState<string | null>(null);
+  const [pendingContractDeletionId, setPendingContractDeletionId] =
+    useState<string | null>(null);
   const [writeModeMessage, setWriteModeMessage] = useState<string | null>(null);
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [isStatementProjectionModalOpen, setIsStatementProjectionModalOpen] = useState(false);
@@ -286,6 +293,7 @@ export default function HomePage() {
     isSubmitting: isUpdatingTransaction,
     updateTransaction: updateTransactionUnified,
   } = useUpdateTransaction({
+    apiContractTransactions: financeData.apiContractTransactions,
     updateLocalTransaction: updateTransaction,
     selectedProfile: financeData.selectedProfile,
     transactions,
@@ -297,6 +305,26 @@ export default function HomePage() {
   } = useDeleteTransaction({
     removeLocalTransaction: removeTransaction,
   });
+  const {
+    updateOccurrence,
+    errorMessage: updateOccurrenceErrorMessage,
+    isSubmitting: isUpdatingOccurrence,
+  } = useUpdateOccurrence();
+  const {
+    markAsPaid: markOccurrenceAsPaid,
+    errorMessage: markOccurrencePaidErrorMessage,
+    isSubmitting: isMarkingOccurrencePaid,
+  } = useMarkOccurrencePaid();
+  const {
+    markAsPending: markOccurrenceAsPending,
+    errorMessage: markOccurrencePendingErrorMessage,
+    isSubmitting: isMarkingOccurrencePending,
+  } = useMarkOccurrencePending();
+  const {
+    cancelOccurrence,
+    errorMessage: cancelOccurrenceErrorMessage,
+    isSubmitting: isCancellingOccurrence,
+  } = useCancelOccurrence();
   const {
     createRule,
     deleteRule,
@@ -404,13 +432,17 @@ export default function HomePage() {
   ]);
 
   const upcomingTransactions = useMemo(() => {
-    return getUpcomingTransactionsByMonth({
+    const getUpcomingByMonth = isApiMode
+      ? getUpcomingOccurrencesByMonth
+      : getUpcomingTransactionsByMonth;
+
+    return getUpcomingByMonth({
       transactions: projectionTransactions,
       monthsAhead: 3,
       referenceDate: new Date(),
       baseBalance: projectionSnapshot.currentBalance,
     });
-  }, [projectionSnapshot.currentBalance, projectionTransactions]);
+  }, [isApiMode, projectionSnapshot.currentBalance, projectionTransactions]);
 
   const forecast = useMemo(() => {
     return {
@@ -516,6 +548,38 @@ export default function HomePage() {
     setWriteModeMessage(deleteTransactionErrorMessage);
   }, [deleteTransactionErrorMessage]);
 
+  useEffect(() => {
+    if (!updateOccurrenceErrorMessage) {
+      return;
+    }
+
+    setWriteModeMessage(updateOccurrenceErrorMessage);
+  }, [updateOccurrenceErrorMessage]);
+
+  useEffect(() => {
+    if (!markOccurrencePaidErrorMessage) {
+      return;
+    }
+
+    setWriteModeMessage(markOccurrencePaidErrorMessage);
+  }, [markOccurrencePaidErrorMessage]);
+
+  useEffect(() => {
+    if (!markOccurrencePendingErrorMessage) {
+      return;
+    }
+
+    setWriteModeMessage(markOccurrencePendingErrorMessage);
+  }, [markOccurrencePendingErrorMessage]);
+
+  useEffect(() => {
+    if (!cancelOccurrenceErrorMessage) {
+      return;
+    }
+
+    setWriteModeMessage(cancelOccurrenceErrorMessage);
+  }, [cancelOccurrenceErrorMessage]);
+
   function handleClearAdvancedFilters() {
     setSearchTerm("");
     setCategoryFilter(DEFAULT_CATEGORY_FILTER);
@@ -565,10 +629,52 @@ export default function HomePage() {
     }
 
     try {
-      await deleteTransactionUnified(pendingRemovalTransactionId);
+      if (isApiMode) {
+        await cancelOccurrence(pendingRemovalTransactionId);
+      } else {
+        await deleteTransactionUnified(pendingRemovalTransactionId);
+      }
       setWriteModeMessage(null);
       clearSimulation();
       setPendingRemovalTransactionId(null);
+    } catch {
+      // A mensagem de erro é tratada na página principal.
+    }
+  }
+
+  async function handleSaveOccurrence(input: { id: string; dueDate: string; amount: number }) {
+    await updateOccurrence(input);
+    setWriteModeMessage(null);
+    clearSimulation();
+  }
+
+  async function handleMarkOccurrencePaid(occurrenceId: string) {
+    await markOccurrenceAsPaid(occurrenceId);
+    setWriteModeMessage(null);
+    clearSimulation();
+  }
+
+  async function handleMarkOccurrencePending(occurrenceId: string) {
+    await markOccurrenceAsPending(occurrenceId);
+    setWriteModeMessage(null);
+    clearSimulation();
+  }
+
+  function handleRequestDeleteContract(contractId: string) {
+    setEditingTransaction(null);
+    setPendingContractDeletionId(contractId);
+  }
+
+  async function handleConfirmDeleteContract() {
+    if (!pendingContractDeletionId) {
+      return;
+    }
+
+    try {
+      await deleteTransactionUnified(pendingContractDeletionId);
+      setWriteModeMessage(null);
+      clearSimulation();
+      setPendingContractDeletionId(null);
     } catch {
       // A mensagem de erro é tratada na página principal.
     }
@@ -666,7 +772,8 @@ export default function HomePage() {
         isCreatingTransaction ||
         isUpdatingInitialBalance ||
         isUpdatingTransaction ||
-        isDeletingTransaction
+        isDeletingTransaction ||
+        isCancellingOccurrence
       }
       isPreviewActive={isPreviewActive}
       onEditTransaction={handleOpenEditModal}
@@ -866,7 +973,8 @@ export default function HomePage() {
                   isCreatingTransaction ||
                   isUpdatingInitialBalance ||
                   isUpdatingTransaction ||
-                  isDeletingTransaction
+                  isDeletingTransaction ||
+                  isCancellingOccurrence
                 }
               />
             </div>
@@ -916,6 +1024,13 @@ export default function HomePage() {
         onOpenChange={handleEditModalChange}
         isSubmitting={isUpdatingTransaction}
         onSave={handleUpdateTransaction}
+        onSaveOccurrence={handleSaveOccurrence}
+        onMarkOccurrencePaid={handleMarkOccurrencePaid}
+        onMarkOccurrencePending={handleMarkOccurrencePending}
+        isSubmittingOccurrence={
+          isUpdatingOccurrence || isMarkingOccurrencePaid || isMarkingOccurrencePending
+        }
+        onRequestDeleteContract={handleRequestDeleteContract}
       />
 
       <GoalProgressModal
@@ -929,14 +1044,32 @@ export default function HomePage() {
 
       <ConfirmationModal
         open={Boolean(pendingRemovalTransactionId)}
-        title="Remover item"
-        description="Tem certeza que deseja remover este item? Essa ação não pode ser desfeita."
+        title={isApiMode ? "Cancelar ocorrência" : "Remover item"}
+        description={
+          isApiMode
+            ? "Tem certeza que deseja cancelar esta ocorrência? Essa ação não pode ser desfeita."
+            : "Tem certeza que deseja remover este item? Essa ação não pode ser desfeita."
+        }
         cancelLabel="Cancelar"
-        confirmLabel="Remover"
+        confirmLabel={isApiMode ? "Cancelar ocorrência" : "Remover"}
         onConfirm={handleConfirmRemoveTransaction}
         onOpenChange={(open) => {
           if (!open) {
             setPendingRemovalTransactionId(null);
+          }
+        }}
+      />
+
+      <ConfirmationModal
+        open={Boolean(pendingContractDeletionId)}
+        title="Excluir toda a série"
+        description="Isso remove o lançamento inteiro e todas as suas parcelas ou competências, incluindo as já pagas. Essa ação não pode ser desfeita."
+        cancelLabel="Cancelar"
+        confirmLabel="Excluir toda a série"
+        onConfirm={handleConfirmDeleteContract}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPendingContractDeletionId(null);
           }
         }}
       />
