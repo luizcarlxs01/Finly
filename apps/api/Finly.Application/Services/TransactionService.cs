@@ -124,6 +124,7 @@ public class TransactionService : ITransactionService
     {
         var transaction = await _context.Transactions
             .Include(x => x.FinancialProfile)
+            .Include(x => x.Occurrences)
             .FirstOrDefaultAsync(
                 x => x.Id == transactionId && x.FinancialProfile.UserId == userId,
                 cancellationToken);
@@ -171,6 +172,17 @@ public class TransactionService : ITransactionService
         transaction.RecurrenceEndDate = request.RecurrenceEndDate;
         transaction.RecurrenceDay = request.RecurrenceDay;
         transaction.RecurrenceMonths = request.RecurrenceMonths;
+
+        if (transactionKind == TransactionKind.Single)
+        {
+            var occurrence = transaction.Occurrences.FirstOrDefault();
+
+            if (occurrence is not null)
+            {
+                occurrence.Amount = request.Amount;
+                occurrence.DueDate = request.TransactionDate;
+            }
+        }
 
         await _context.SaveChangesAsync(cancellationToken);
 

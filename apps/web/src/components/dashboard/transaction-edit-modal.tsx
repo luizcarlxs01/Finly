@@ -780,7 +780,7 @@ export function TransactionEditModal({
                 </div>
               ) : null}
 
-              {transaction.occurrenceId ? (
+              {transaction.occurrenceId && transaction.transactionKind !== "single" ? (
                 <div className="space-y-4 rounded-2xl border border-border/60 bg-background/60 p-4">
                   <div className="space-y-1">
                     <p className="text-sm font-medium text-foreground">
