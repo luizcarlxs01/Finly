@@ -73,6 +73,20 @@ public class OccurrenceService : IOccurrenceService
         return MapToResponse(occurrence);
     }
 
+    public async Task<OccurrenceResponseDto> CancelAsync(
+        Guid userId,
+        Guid occurrenceId,
+        CancellationToken cancellationToken = default)
+    {
+        var occurrence = await GetOwnedOccurrenceAsync(userId, occurrenceId, cancellationToken);
+
+        occurrence.Status = OccurrenceStatus.Cancelled;
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return MapToResponse(occurrence);
+    }
+
     private async Task<Occurrence> GetOwnedOccurrenceAsync(
         Guid userId,
         Guid occurrenceId,

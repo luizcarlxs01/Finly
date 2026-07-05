@@ -86,4 +86,22 @@ public class OccurrencesController : ApiControllerBase
             return BadRequest(new { message = ex.Message });
         }
     }
+
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Cancel(Guid id, CancellationToken cancellationToken)
+    {
+        if (GetAuthenticatedUserId() is not { } userId)
+            return Unauthorized();
+
+        try
+        {
+            var cancelledOccurrence = await _occurrenceService.CancelAsync(userId, id, cancellationToken);
+
+            return Ok(cancelledOccurrence);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
 }

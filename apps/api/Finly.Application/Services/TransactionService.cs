@@ -215,6 +215,7 @@ public class TransactionService : ITransactionService
             RecurrenceMonths = transaction.RecurrenceMonths,
             CreatedAt = transaction.CreatedAt,
             Occurrences = transaction.Occurrences
+                .Where(x => x.Status != OccurrenceStatus.Cancelled)
                 .OrderBy(x => x.DueDate)
                 .Select(x => new OccurrenceResponseDto
                 {

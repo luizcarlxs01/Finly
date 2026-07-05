@@ -24,4 +24,9 @@ public interface IOccurrenceService
         Guid userId,
         Guid occurrenceId,
         CancellationToken cancellationToken = default);
+
+    Task<OccurrenceResponseDto> CancelAsync(
+        Guid userId,
+        Guid occurrenceId,
+        CancellationToken cancellationToken = default);
 }
