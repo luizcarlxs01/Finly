@@ -1,9 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useFinanceSource } from "@/contexts/finance-source-context";
 import { useAuthSession } from "@/hooks/use-auth-session";
 import { markAsPaid } from "@/lib/api/occurrences";
 import { TRANSACTION_WRITE_COMPLETED_EVENT } from "@/lib/api/transactions";
+
+type UseMarkOccurrencePaidOptions = {
+  markLocalOccurrencePaid: (occurrenceId: string) => void;
+};
 
 type UseMarkOccurrencePaidReturn = {
   errorMessage: string | null;
@@ -19,13 +24,21 @@ function getFriendlyErrorMessage(error: unknown) {
   return "Não foi possível marcar a ocorrência como paga agora.";
 }
 
-export function useMarkOccurrencePaid(): UseMarkOccurrencePaidReturn {
+export function useMarkOccurrencePaid({
+  markLocalOccurrencePaid,
+}: UseMarkOccurrencePaidOptions): UseMarkOccurrencePaidReturn {
+  const { source } = useFinanceSource();
   const { session } = useAuthSession();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   async function handleMarkAsPaid(occurrenceId: string) {
     setErrorMessage(null);
+
+    if (source === "local") {
+      markLocalOccurrencePaid(occurrenceId);
+      return;
+    }
 
     if (isSubmitting) {
       return;

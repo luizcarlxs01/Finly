@@ -11,6 +11,10 @@ import {
 import type { ApiTransaction } from "@/types/api-transaction";
 import type { Transaction, TransactionKind } from "@/types/transaction";
 import type { Profile } from "@/types/profile";
+import {
+  getBackendTransactionKind,
+  inferContractRecurrenceMode,
+} from "@/utils/transaction-normalization";
 
 type UpdateTransactionInput = {
   id: string;
@@ -45,38 +49,6 @@ type UseUpdateTransactionReturn = {
 };
 
 /**
- * O formulário/modal ainda fala o vocabulário antigo de kind ("-template"/"-instance"),
- * mas o contrato no backend novo só conhece Single/Installment/Recurring (seção 21 do
- * CLAUDE.md) — tanto o valor "-template" (escolhido ao converter um Single) quanto
- * "-instance" (kind já resolvido de uma linha achatada) mapeiam para o mesmo valor.
- */
-function getBackendTransactionKind(value: TransactionKind | undefined) {
-  switch (value) {
-    case "installment-template":
-    case "installment-instance":
-      return "Installment";
-    case "recurring-template":
-    case "recurring-instance":
-      return "Recurring";
-    case "single":
-    default:
-      return "Single";
-  }
-}
-
-function inferApiRecurrenceMode(contract: ApiTransaction) {
-  if (contract.recurrenceEndDate) {
-    return "until-date";
-  }
-
-  if (contract.recurrenceMonths) {
-    return "for-months";
-  }
-
-  return "indefinite";
-}
-
-/**
  * Constrói o payload de PUT a partir do contrato CRU (ApiTransaction), não da linha
  * achatada. Isso evita dois bugs: (1) usar a DueDate da ocorrência clicada como
  * TransactionDate do contrato inteiro, e (2) usar o id do contrato (repropósito de
@@ -98,7 +70,7 @@ function buildApiContractUpdateRequest(
     input.transactionDate ??
     contract.transactionDate;
 
-  const recurrenceMode = input.recurrenceMode ?? inferApiRecurrenceMode(contract);
+  const recurrenceMode = input.recurrenceMode ?? inferContractRecurrenceMode(contract);
 
   return {
     financialProfileId,

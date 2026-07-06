@@ -424,3 +424,44 @@ export function normalizeTransaction(transaction: Transaction): Transaction {
     lastGeneratedAt: null,
   };
 }
+
+/**
+ * Converte o vocabulário de kind do formulário/modal ("-template"/"-instance") para o
+ * vocabulário do contrato (Single/Installment/Recurring, seção 21 do CLAUDE.md). Os dois
+ * valores "-template" e "-instance" mapeiam para o mesmo kind de contrato — usado tanto para
+ * criar quanto para editar, no modo API (via HTTP) e no modo local (persistindo direto).
+ */
+export function getBackendTransactionKind(value: TransactionKind | undefined) {
+  switch (value) {
+    case "installment-template":
+    case "installment-instance":
+      return "Installment";
+    case "recurring-template":
+    case "recurring-instance":
+      return "Recurring";
+    case "single":
+    default:
+      return "Single";
+  }
+}
+
+/**
+ * Dado que já sabemos que o contrato é Recurring, infere o modo de recorrência a partir dos
+ * campos persistidos. Diferente de inferRecurrenceMode (utils/flatten-transaction.ts), que
+ * também decide se a transação é recorrente ou não — aqui a recorrência já é garantida pelo
+ * contexto de chamada, então o fallback é sempre "indefinite", nunca null.
+ */
+export function inferContractRecurrenceMode(contract: {
+  recurrenceEndDate: string | null;
+  recurrenceMonths: number | null;
+}): TransactionRecurrenceMode {
+  if (contract.recurrenceEndDate) {
+    return "until-date";
+  }
+
+  if (contract.recurrenceMonths) {
+    return "for-months";
+  }
+
+  return "indefinite";
+}

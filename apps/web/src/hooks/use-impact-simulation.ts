@@ -2,38 +2,20 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { FinanceSource } from "@/contexts/finance-source-context";
-import type {
-  LocalFinanceTransactionInput,
+import {
+  isValidTransactionInput,
+  normalizeTransactionInput,
+  type LocalFinanceTransactionInput,
 } from "@/hooks/use-local-finance";
-import type { LocalFinanceProfile } from "@/types/local-finance-profile";
 import type {
   Transaction,
   TransactionKind,
   TransactionRecurrenceMode,
 } from "@/types/transaction";
-import type { OccurrenceStatus } from "@/types/occurrence";
-import {
-  createMonthlyOccurrence,
-  formatDateValue,
-  getTodayDateValue,
-  parseDateValue,
-} from "@/utils/recurring-transactions";
-import {
-  normalizeInstallmentCount,
-  normalizeInstallmentStartDate,
-  normalizeTransactionKind,
-  normalizeTransactionRecurrenceDay,
-  normalizeTransactionRecurrenceEndDate,
-  normalizeTransactionRecurrenceMode,
-  normalizeTransactionRecurrenceMonths,
-  normalizeTransactionRecurrenceStartDate,
-  normalizeTransactionRecurrenceType,
-} from "@/utils/transaction-normalization";
+import { generateOccurrences } from "@/utils/occurrence-generation";
+import { getTodayDateValue, parseDateValue } from "@/utils/recurring-transactions";
 
 type UseImpactSimulationInput = {
-  createLocalPreviewProfile: (
-    input: LocalFinanceTransactionInput,
-  ) => LocalFinanceProfile | null;
   source: FinanceSource;
   transactions: Transaction[];
 };
@@ -52,226 +34,24 @@ function sortTransactionsByMostRecent(transactions: Transaction[]) {
   );
 }
 
-function getTransactionCreatedAt(
-  transactionDate: string | null | undefined,
-  fallbackDate?: string,
-) {
+function getTransactionCreatedAt(transactionDate: string | null | undefined) {
   const normalizedDate =
-    parseDateValue(transactionDate) ??
-    parseDateValue(fallbackDate) ??
-    parseDateValue(getTodayDateValue());
+    parseDateValue(transactionDate) ?? parseDateValue(getTodayDateValue());
 
   return normalizedDate ? normalizedDate.toISOString() : new Date().toISOString();
 }
 
-function normalizeTransactionInput(input: LocalFinanceTransactionInput) {
-  const normalizedTransactionKind = normalizeTransactionKind(
-    input.transactionKind,
-    input.isRecurring === true,
-  );
-
-  const isRecurring =
-    normalizedTransactionKind === "recurring-template" ||
-    normalizedTransactionKind === "recurring-instance";
-
-  const transactionKind = normalizedTransactionKind;
-
-  const recurrenceType = isRecurring
-    ? normalizeTransactionRecurrenceType(input.recurrenceType) ?? "monthly"
-    : null;
-
-  const recurrenceStartDate = isRecurring
-    ? normalizeTransactionRecurrenceStartDate(
-        input.recurrenceStartDate,
-        getTodayDateValue(),
-      )
-    : null;
-
-  const recurrenceDay =
-    isRecurring && recurrenceStartDate
-      ? normalizeTransactionRecurrenceDay(input.recurrenceDay, recurrenceStartDate)
-      : null;
-
-  const recurrenceMode = isRecurring
-    ? normalizeTransactionRecurrenceMode(input.recurrenceMode) ?? "indefinite"
-    : null;
-
-  const recurrenceEndDate =
-    isRecurring && recurrenceMode === "until-date" && recurrenceStartDate
-      ? normalizeTransactionRecurrenceEndDate(
-          input.recurrenceEndDate,
-          recurrenceStartDate,
-        )
-      : null;
-
-  const recurrenceMonths =
-    isRecurring && recurrenceMode === "for-months"
-      ? normalizeTransactionRecurrenceMonths(input.recurrenceMonths)
-      : null;
-
-  const installmentCount =
-    transactionKind === "installment-template"
-      ? normalizeInstallmentCount(input.installmentCount)
-      : null;
-
-  const installmentStartDate =
-    transactionKind === "installment-template"
-      ? normalizeInstallmentStartDate(
-          input.installmentStartDate,
-          getTodayDateValue(),
-        )
-      : null;
-
-  const transactionDate =
-    transactionKind === "single"
-      ? input.transactionDate?.trim() || getTodayDateValue()
-      : null;
-
-  return {
-    title: input.title.trim(),
-    amount: Number(input.amount),
-    type: input.type,
-    category: input.category.trim().toLowerCase(),
-    transactionKind,
-    isRecurring,
-    recurrenceType,
-    recurrenceMode,
-    recurrenceDay,
-    recurrenceStartDate,
-    recurrenceEndDate,
-    recurrenceMonths,
-    installmentCount,
-    installmentStartDate,
-    transactionDate,
-  };
-}
-
-function isValidTransactionInput(
-  input: ReturnType<typeof normalizeTransactionInput>,
-) {
-  return (
-    Boolean(input.title) &&
-    !Number.isNaN(input.amount) &&
-    input.amount > 0 &&
-    Boolean(input.category) &&
-    (input.transactionKind !== "installment-template" ||
-      (Boolean(input.installmentCount) && Boolean(input.installmentStartDate))) &&
-    (!input.isRecurring ||
-      (Boolean(input.recurrenceType) &&
-        Boolean(input.recurrenceDay) &&
-        Boolean(input.recurrenceStartDate) &&
-        (input.recurrenceMode !== "until-date" ||
-          Boolean(input.recurrenceEndDate)) &&
-        (input.recurrenceMode !== "for-months" ||
-          Boolean(input.recurrenceMonths))))
-  );
-}
-
-type PreviewOccurrence = {
-  dueDate: string;
-  amount: number;
-  installmentIndex: number | null;
-  status: OccurrenceStatus;
-};
-
-function addMonthsToDate(date: Date, monthOffset: number) {
-  const totalMonths = date.getMonth() + monthOffset;
-  const year = date.getFullYear() + Math.floor(totalMonths / 12);
-  const monthIndex = ((totalMonths % 12) + 12) % 12;
-
-  return { year, monthIndex };
-}
-
-function buildOccurrenceDate(anchorDate: Date, dayOfMonth: number, monthOffset: number) {
-  const { year, monthIndex } = addMonthsToDate(anchorDate, monthOffset);
-
-  return createMonthlyOccurrence(year, monthIndex, dayOfMonth);
-}
-
 /**
- * Replica em memória, só para o preview, as mesmas regras do backend
- * (Finly.Application/Services/OccurrenceGenerationService.cs) — Single gera 1 occurrence,
- * Installment gera N mensais a partir da data informada, Recurring gera até a condição de
- * parada (until-date/for-months/12 meses se indefinido). Status Paid/Pending é decidido do
- * mesmo jeito: DueDate <= hoje. Isso é dívida técnica conhecida — duplica a regra do backend
- * só para fins de simulação, já que o preview nunca é persistido.
+ * Constrói as linhas de preview usando generateOccurrences (utils/occurrence-generation.ts) —
+ * a mesma geração real usada por use-local-finance.ts para persistir de verdade. Como o
+ * formato de linha achatada agora é idêntico nos dois modos (Fases C e D), um único preview
+ * serve tanto para local quanto para API — não persiste em nenhum dos dois, só mescla com a
+ * lista real de transações para simular o impacto.
  */
-function generatePreviewOccurrences(
-  input: ReturnType<typeof normalizeTransactionInput>,
-): PreviewOccurrence[] {
-  const today = parseDateValue(getTodayDateValue())!;
-
-  function buildOccurrence(dueDate: Date, installmentIndex: number | null): PreviewOccurrence {
-    return {
-      dueDate: formatDateValue(dueDate),
-      amount: input.amount,
-      installmentIndex,
-      status: dueDate <= today ? "paid" : "pending",
-    };
-  }
-
-  if (input.transactionKind === "installment-template") {
-    const startDate = parseDateValue(input.installmentStartDate);
-
-    if (!startDate || !input.installmentCount) {
-      return [];
-    }
-
-    const dayOfMonth = startDate.getDate();
-    const occurrences: PreviewOccurrence[] = [];
-
-    for (let index = 0; index < input.installmentCount; index += 1) {
-      const dueDate = buildOccurrenceDate(startDate, dayOfMonth, index);
-      occurrences.push(buildOccurrence(dueDate, index + 1));
-    }
-
-    return occurrences;
-  }
-
-  if (input.transactionKind === "recurring-template") {
-    const startDate = parseDateValue(input.recurrenceStartDate);
-
-    if (!startDate) {
-      return [];
-    }
-
-    const dayOfMonth = input.recurrenceDay ?? startDate.getDate();
-    const mode = input.recurrenceMode ?? "indefinite";
-    const endDate = parseDateValue(input.recurrenceEndDate);
-    const occurrences: PreviewOccurrence[] = [];
-    let monthOffset = 0;
-
-    while (true) {
-      const dueDate = buildOccurrenceDate(startDate, dayOfMonth, monthOffset);
-
-      if (mode === "until-date") {
-        if (endDate && dueDate > endDate) {
-          break;
-        }
-      } else if (mode === "for-months") {
-        if (monthOffset >= (input.recurrenceMonths ?? 0)) {
-          break;
-        }
-      } else if (monthOffset >= 12) {
-        break;
-      }
-
-      occurrences.push(buildOccurrence(dueDate, monthOffset + 1));
-      monthOffset += 1;
-    }
-
-    return occurrences;
-  }
-
-  const transactionDate = parseDateValue(input.transactionDate) ?? today;
-
-  return [buildOccurrence(transactionDate, null)];
-}
-
 function buildPreviewLineItems(
   input: ReturnType<typeof normalizeTransactionInput>,
 ): Transaction[] {
-  const previewOccurrences = generatePreviewOccurrences(input);
+  const previewOccurrences = generateOccurrences(input);
   const displayKind: TransactionKind =
     input.transactionKind === "installment-template"
       ? "installment-instance"
@@ -312,26 +92,7 @@ function buildPreviewLineItems(
   }));
 }
 
-function createApiPreviewProfile(
-  transactions: Transaction[],
-  input: LocalFinanceTransactionInput,
-) {
-  const normalizedInput = normalizeTransactionInput(input);
-
-  if (!isValidTransactionInput(normalizedInput)) {
-    return null;
-  }
-
-  const previewLineItems = buildPreviewLineItems(normalizedInput);
-
-  return {
-    initialBalance: 0,
-    transactions: sortTransactionsByMostRecent([...previewLineItems, ...transactions]),
-  };
-}
-
 export function useImpactSimulation({
-  createLocalPreviewProfile,
   source,
   transactions,
 }: UseImpactSimulationInput): UseImpactSimulationReturn {
@@ -346,16 +107,22 @@ export function useImpactSimulation({
     setPreviewTransactions(null);
   }, []);
 
-  const simulateImpact = useCallback((input: LocalFinanceTransactionInput) => {
-    if (source === "local") {
-      const previewProfile = createLocalPreviewProfile(input);
-      setPreviewTransactions(previewProfile?.transactions ?? null);
-      return;
-    }
+  const simulateImpact = useCallback(
+    (input: LocalFinanceTransactionInput) => {
+      const normalizedInput = normalizeTransactionInput(input);
 
-    const previewProfile = createApiPreviewProfile(transactions, input);
-    setPreviewTransactions(previewProfile?.transactions ?? null);
-  }, [createLocalPreviewProfile, source, transactions]);
+      if (!isValidTransactionInput(normalizedInput)) {
+        setPreviewTransactions(null);
+        return;
+      }
+
+      const previewLineItems = buildPreviewLineItems(normalizedInput);
+      setPreviewTransactions(
+        sortTransactionsByMostRecent([...previewLineItems, ...transactions]),
+      );
+    },
+    [transactions],
+  );
 
   return {
     clearSimulation,

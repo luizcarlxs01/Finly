@@ -9,9 +9,9 @@ import {
   TRANSACTION_WRITE_COMPLETED_EVENT,
   type CreateApiTransactionRequest,
 } from "@/lib/api/transactions";
-import type { TransactionKind } from "@/types/transaction";
 import type { Profile } from "@/types/profile";
 import { getTodayDateValue } from "@/utils/recurring-transactions";
+import { getBackendTransactionKind } from "@/utils/transaction-normalization";
 
 type UseCreateTransactionOptions = {
   addLocalTransaction: (input: LocalFinanceTransactionInput) => void;
@@ -23,20 +23,6 @@ type UseCreateTransactionReturn = {
   errorMessage: string | null;
   isSubmitting: boolean;
 };
-
-function getBackendTransactionKind(value: TransactionKind | undefined) {
-  switch (value) {
-    case "installment-template":
-    case "installment-instance":
-      return "Installment";
-    case "recurring-template":
-    case "recurring-instance":
-      return "Recurring";
-    case "single":
-    default:
-      return "Single";
-  }
-}
 
 function getTransactionDate(input: LocalFinanceTransactionInput) {
   if (input.transactionKind === "installment-template") {

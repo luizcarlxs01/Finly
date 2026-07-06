@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useFinanceSource } from "@/contexts/finance-source-context";
 import { useAuthSession } from "@/hooks/use-auth-session";
 import { updateOccurrence as updateOccurrenceWithApi } from "@/lib/api/occurrences";
 import { TRANSACTION_WRITE_COMPLETED_EVENT } from "@/lib/api/transactions";
@@ -9,6 +10,10 @@ type UpdateOccurrenceInput = {
   id: string;
   dueDate: string;
   amount: number;
+};
+
+type UseUpdateOccurrenceOptions = {
+  updateLocalOccurrence: (input: UpdateOccurrenceInput) => void;
 };
 
 type UseUpdateOccurrenceReturn = {
@@ -25,13 +30,21 @@ function getFriendlyErrorMessage(error: unknown) {
   return "Não foi possível atualizar a ocorrência agora.";
 }
 
-export function useUpdateOccurrence(): UseUpdateOccurrenceReturn {
+export function useUpdateOccurrence({
+  updateLocalOccurrence,
+}: UseUpdateOccurrenceOptions): UseUpdateOccurrenceReturn {
+  const { source } = useFinanceSource();
   const { session } = useAuthSession();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   async function updateOccurrence(input: UpdateOccurrenceInput) {
     setErrorMessage(null);
+
+    if (source === "local") {
+      updateLocalOccurrence(input);
+      return;
+    }
 
     if (isSubmitting) {
       return;

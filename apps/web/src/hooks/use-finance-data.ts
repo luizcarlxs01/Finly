@@ -17,14 +17,9 @@ import { GOAL_WRITE_COMPLETED_EVENT } from "@/lib/api/goals";
 import { RULE_PROCESSING_COMPLETED_EVENT } from "@/lib/api/rule-processing";
 import type { ApiTransaction } from "@/types/api-transaction";
 import type { DashboardSummary } from "@/types/dashboard";
-import type { OccurrenceStatus } from "@/types/occurrence";
 import type { Profile } from "@/types/profile";
-import type {
-  Transaction,
-  TransactionKind,
-  TransactionRecurrenceMode,
-  TransactionType,
-} from "@/types/transaction";
+import type { Transaction } from "@/types/transaction";
+import { flattenApiTransactionToLineItems } from "@/utils/flatten-transaction";
 
 type FinanceDataState = {
   apiContractTransactions: ApiTransaction[];
@@ -59,86 +54,6 @@ function getFriendlyErrorMessage(error: unknown) {
 
 function getSelectedProfile(profiles: Profile[]) {
   return profiles.find((profile) => profile.isPrimary) ?? profiles[0] ?? null;
-}
-
-function normalizeTransactionType(value: string): TransactionType {
-  return value.trim().toLowerCase() === "income" ? "income" : "expense";
-}
-
-/**
- * O contrato (ApiTransaction.transactionKind) só assume "Single"/"Installment"/"Recurring"
- * no modelo novo (seção 21 do CLAUDE.md). O check por substring também cobre defensivamente
- * os valores legados depreciados (InstallmentTemplate/Instance, RecurringTemplate/Instance)
- * caso alguma linha antiga ainda exista no banco.
- */
-function getDisplayKindForOccurrence(contractKind: string): TransactionKind {
-  const normalizedValue = contractKind.trim().toLowerCase();
-
-  if (normalizedValue.includes("installment")) {
-    return "installment-instance";
-  }
-
-  if (normalizedValue.includes("recurring")) {
-    return "recurring-instance";
-  }
-
-  return "single";
-}
-
-function normalizeOccurrenceStatus(value: string): OccurrenceStatus {
-  return value.trim().toLowerCase() === "paid" ? "paid" : "pending";
-}
-
-function inferRecurrenceMode(transaction: ApiTransaction): TransactionRecurrenceMode | null {
-  if (transaction.recurrenceEndDate) {
-    return "until-date";
-  }
-
-  if (transaction.recurrenceMonths) {
-    return "for-months";
-  }
-
-  return transaction.isRecurring ? "indefinite" : null;
-}
-
-/**
- * No modelo novo, GET /api/Transactions retorna 1 linha por CONTRATO (Single/Installment/
- * Recurring), cada uma com as Occurrences reais embutidas (seção 21 do CLAUDE.md). A UI,
- * porém, continua precisando de 1 linha por ocorrência (parcela/competência), então cada
- * Transaction vira N linhas de Transaction "achatadas" — uma por Occurrence.
- */
-function flattenApiTransactionToLineItems(transaction: ApiTransaction): Transaction[] {
-  const displayKind = getDisplayKindForOccurrence(transaction.transactionKind);
-  const recurrenceMode = inferRecurrenceMode(transaction);
-
-  return transaction.occurrences.map((occurrence) => ({
-    id: occurrence.id,
-    title: transaction.title,
-    amount: occurrence.amount,
-    type: normalizeTransactionType(transaction.type),
-    category: transaction.category,
-    transactionKind: displayKind,
-    sourceId: transaction.id,
-    occurrenceDate: occurrence.dueDate,
-    installmentIndex: occurrence.installmentIndex,
-    installmentCount: transaction.installmentCount,
-    installmentStartDate: null,
-    recurringSourceId: displayKind === "recurring-instance" ? transaction.id : null,
-    recurringOccurrenceDate:
-      displayKind === "recurring-instance" ? occurrence.dueDate : null,
-    isRecurring: transaction.isRecurring,
-    recurrenceType: displayKind === "recurring-instance" ? "monthly" : null,
-    recurrenceMode,
-    recurrenceDay: transaction.recurrenceDay,
-    recurrenceStartDate: transaction.recurrenceStartDate,
-    recurrenceEndDate: transaction.recurrenceEndDate,
-    recurrenceMonths: transaction.recurrenceMonths,
-    lastGeneratedAt: null,
-    createdAt: transaction.createdAt,
-    occurrenceId: occurrence.id,
-    occurrenceStatus: normalizeOccurrenceStatus(occurrence.status),
-    isCustomized: occurrence.isCustomized,
-  }));
 }
 
 export function useFinanceData(

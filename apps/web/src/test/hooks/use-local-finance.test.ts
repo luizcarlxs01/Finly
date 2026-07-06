@@ -13,44 +13,10 @@ vi.mock("@/utils/recurring-transactions", async () => {
   };
 });
 
-import type {
-  LocalFinanceProfile,
-  Transaction,
-  TransactionRecurrenceMode,
-} from "@/types/finance";
+import type { LocalFinanceProfile } from "@/types/local-finance-profile";
 import { useLocalFinance } from "@/hooks/use-local-finance";
 
 const LOCAL_STORAGE_KEY = "finly:local-finance";
-
-function createStoredTransaction(
-  overrides: Partial<Transaction> = {},
-): Transaction {
-  return {
-    id: "tx-1",
-    title: "Transacao teste",
-    amount: 100,
-    type: "expense",
-    category: "geral",
-    transactionKind: "single",
-    sourceId: null,
-    occurrenceDate: null,
-    installmentIndex: null,
-    installmentCount: null,
-    installmentStartDate: null,
-    recurringSourceId: null,
-    recurringOccurrenceDate: null,
-    isRecurring: false,
-    recurrenceType: null,
-    recurrenceMode: null,
-    recurrenceDay: null,
-    recurrenceStartDate: null,
-    recurrenceEndDate: null,
-    recurrenceMonths: null,
-    lastGeneratedAt: null,
-    createdAt: "2026-04-01T12:00:00.000Z",
-    ...overrides,
-  };
-}
 
 function createStoredProfile(
   overrides: Partial<LocalFinanceProfile> = {},
@@ -58,27 +24,9 @@ function createStoredProfile(
   return {
     initialBalance: 0,
     transactions: [],
+    occurrences: [],
     ...overrides,
   };
-}
-
-function createRecurringTemplateTransaction(
-  overrides: Partial<Transaction> = {},
-): Transaction {
-  return createStoredTransaction({
-    id: "recurring-template-1",
-    title: "Academia",
-    amount: 90,
-    category: "saude",
-    transactionKind: "recurring-template",
-    isRecurring: true,
-    recurrenceType: "monthly",
-    recurrenceMode: "indefinite",
-    recurrenceDay: 5,
-    recurrenceStartDate: "2026-02-05",
-    createdAt: "2026-04-15T12:00:00.000Z",
-    ...overrides,
-  });
 }
 
 function mockRandomUUIDSequence(ids: string[]) {
@@ -91,7 +39,7 @@ function mockRandomUUIDSequence(ids: string[]) {
       throw new Error("UUID sequence exhausted during test");
     }
 
-    return nextId;
+    return nextId as ReturnType<typeof globalThis.crypto.randomUUID>;
   });
 }
 
@@ -115,20 +63,36 @@ describe("useLocalFinance", () => {
     const storedProfile = createStoredProfile({
       initialBalance: 500,
       transactions: [
-        createStoredTransaction({
-          id: "older-income",
+        {
+          id: "contract-1",
           title: "Salario",
-          type: "income",
           amount: 1500,
+          type: "Income",
+          category: "salario",
+          transactionDate: "2026-04-01",
           createdAt: "2026-04-01T12:00:00.000Z",
-        }),
-        createStoredTransaction({
-          id: "newer-expense",
-          title: "Mercado",
-          type: "expense",
-          amount: 200,
-          createdAt: "2026-04-03T12:00:00.000Z",
-        }),
+          transactionKind: "Single",
+          sourceId: null,
+          installmentCount: null,
+          isRecurring: false,
+          recurrenceStartDate: null,
+          recurrenceEndDate: null,
+          recurrenceDay: null,
+          recurrenceMonths: null,
+        },
+      ],
+      occurrences: [
+        {
+          id: "occ-1",
+          transactionId: "contract-1",
+          installmentIndex: null,
+          dueDate: "2026-04-01",
+          amount: 1500,
+          status: "Paid",
+          paidAt: "2026-04-01T12:00:00.000Z",
+          isCustomized: false,
+          createdAt: "2026-04-01T12:00:00.000Z",
+        },
       ],
     });
 
@@ -137,19 +101,18 @@ describe("useLocalFinance", () => {
     const { result } = await renderLoadedHook();
 
     expect(result.current.initialBalance).toBe(500);
-    expect(result.current.transactions).toHaveLength(2);
-    expect(result.current.transactions.map((transaction) => transaction.id)).toEqual([
-      "newer-expense",
-      "older-income",
-    ]);
-    expect(result.current.postedTransactions).toHaveLength(2);
-    expect(result.current.totalIncome).toBe(1500);
-    expect(result.current.totalExpense).toBe(200);
-    expect(result.current.currentBalance).toBe(1800);
-    expect(result.current.profile).toEqual({
-      initialBalance: 500,
-      transactions: result.current.transactions,
+    expect(result.current.transactions).toHaveLength(1);
+    expect(result.current.transactions[0]).toMatchObject({
+      id: "occ-1",
+      title: "Salario",
+      amount: 1500,
+      type: "income",
+      occurrenceStatus: "paid",
     });
+    expect(result.current.postedTransactions).toHaveLength(1);
+    expect(result.current.totalIncome).toBe(1500);
+    expect(result.current.totalExpense).toBe(0);
+    expect(result.current.currentBalance).toBe(2000);
   });
 
   it("deve iniciar com valores padrao quando o storage estiver vazio", async () => {
@@ -157,10 +120,6 @@ describe("useLocalFinance", () => {
 
     const { result } = await renderLoadedHook();
 
-    expect(result.current.profile).toEqual({
-      initialBalance: 0,
-      transactions: [],
-    });
     expect(result.current.transactions).toEqual([]);
     expect(result.current.postedTransactions).toEqual([]);
     expect(result.current.totalIncome).toBe(0);
@@ -170,10 +129,7 @@ describe("useLocalFinance", () => {
     await waitFor(() => {
       expect(setItemSpy).toHaveBeenCalledWith(
         LOCAL_STORAGE_KEY,
-        JSON.stringify({
-          initialBalance: 0,
-          transactions: [],
-        }),
+        JSON.stringify({ initialBalance: 0, transactions: [], occurrences: [] }),
       );
     });
   });
@@ -183,26 +139,18 @@ describe("useLocalFinance", () => {
 
     const { result } = await renderLoadedHook();
 
-    expect(result.current.profile).toEqual({
-      initialBalance: 0,
-      transactions: [],
-    });
     expect(result.current.isLoaded).toBe(true);
+    expect(result.current.transactions).toEqual([]);
 
     await waitFor(() => {
       expect(window.localStorage.getItem(LOCAL_STORAGE_KEY)).toBe(
-        JSON.stringify({
-          initialBalance: 0,
-          transactions: [],
-        }),
+        JSON.stringify({ initialBalance: 0, transactions: [], occurrences: [] }),
       );
     });
   });
 
-  it("deve persistir criacao, edicao e remocao mantendo os dados retornados consistentes", async () => {
-    const randomUuidSpy = vi
-      .spyOn(globalThis.crypto, "randomUUID")
-      .mockReturnValue("generated-transaction-id");
+  it("deve criar uma transacao Single gerando 1 occurrence e refletir no saldo", async () => {
+    const randomUuidSpy = mockRandomUUIDSequence(["contract-1", "occurrence-1"]);
 
     const { result } = await renderLoadedHook();
 
@@ -229,29 +177,42 @@ describe("useLocalFinance", () => {
       expect(result.current.transactions).toHaveLength(1);
     });
 
-    expect(randomUuidSpy).toHaveBeenCalled();
+    expect(randomUuidSpy).toHaveBeenCalledTimes(2);
     expect(result.current.transactions[0]).toMatchObject({
-      id: "generated-transaction-id",
+      id: "occurrence-1",
+      occurrenceId: "occurrence-1",
+      sourceId: "contract-1",
       title: "Mercado",
       amount: 250,
       type: "expense",
       category: "lazer",
       transactionKind: "single",
+      occurrenceStatus: "paid",
     });
-    expect(result.current.postedTransactions).toHaveLength(1);
-    expect(result.current.totalIncome).toBe(0);
     expect(result.current.totalExpense).toBe(250);
     expect(result.current.currentBalance).toBe(750);
+  });
+
+  it("deve criar uma transacao parcelada gerando N occurrences com status correto", async () => {
+    mockRandomUUIDSequence([
+      "installment-contract",
+      "occ-1",
+      "occ-2",
+      "occ-3",
+      "occ-4",
+    ]);
+
+    const { result } = await renderLoadedHook();
 
     act(() => {
-      result.current.updateTransaction({
-        id: "generated-transaction-id",
-        title: "Mercado ajustado",
-        amount: 300,
-        type: "income",
-        category: "SALARIO",
-        transactionKind: "single",
-        transactionDate: "2026-04-12",
+      result.current.addTransaction({
+        title: "Notebook",
+        amount: 250,
+        type: "expense",
+        category: "compras",
+        transactionKind: "installment-template",
+        installmentCount: 4,
+        installmentStartDate: "2026-02-10",
         isRecurring: false,
         recurrenceType: null,
         recurrenceDay: null,
@@ -260,64 +221,30 @@ describe("useLocalFinance", () => {
     });
 
     await waitFor(() => {
-      expect(result.current.transactions[0]).toMatchObject({
-        id: "generated-transaction-id",
-        title: "Mercado ajustado",
-        amount: 300,
-        type: "income",
-        category: "salario",
-      });
+      expect(result.current.transactions).toHaveLength(4);
     });
 
-    expect(result.current.totalIncome).toBe(300);
-    expect(result.current.totalExpense).toBe(0);
-    expect(result.current.currentBalance).toBe(1300);
+    const sorted = [...result.current.transactions].sort(
+      (left, right) => (left.installmentIndex ?? 0) - (right.installmentIndex ?? 0),
+    );
 
-    await waitFor(() => {
-      const persistedProfile = JSON.parse(
-        window.localStorage.getItem(LOCAL_STORAGE_KEY) ?? "null",
-      ) as LocalFinanceProfile;
-
-      expect(persistedProfile.initialBalance).toBe(1000);
-      expect(persistedProfile.transactions).toHaveLength(1);
-      expect(persistedProfile.transactions[0]).toMatchObject({
-        id: "generated-transaction-id",
-        title: "Mercado ajustado",
-        amount: 300,
-        type: "income",
-        category: "salario",
-      });
-    });
-
-    act(() => {
-      result.current.removeTransaction("generated-transaction-id");
-    });
-
-    await waitFor(() => {
-      expect(result.current.transactions).toHaveLength(0);
-    });
-
-    expect(result.current.postedTransactions).toEqual([]);
-    expect(result.current.totalIncome).toBe(0);
-    expect(result.current.totalExpense).toBe(0);
-    expect(result.current.currentBalance).toBe(1000);
-
-    await waitFor(() => {
-      expect(window.localStorage.getItem(LOCAL_STORAGE_KEY)).toBe(
-        JSON.stringify({
-          initialBalance: 1000,
-          transactions: [],
-        }),
-      );
-    });
+    expect(sorted.map((t) => t.occurrenceDate)).toEqual([
+      "2026-02-10",
+      "2026-03-10",
+      "2026-04-10",
+      "2026-05-10",
+    ]);
+    expect(sorted.map((t) => t.occurrenceStatus)).toEqual([
+      "paid",
+      "paid",
+      "paid",
+      "pending",
+    ]);
+    expect(result.current.totalExpense).toBe(750);
   });
 
-  it("deve criar preview com automacao aplicada sem mutar o estado persistido", async () => {
-    const randomUuidSpy = mockRandomUUIDSequence([
-      "preview-instance-1",
-      "preview-instance-2",
-      "preview-instance-3",
-    ]);
+  it("deve editar uma transacao Single propagando Amount/DueDate para a unica occurrence", async () => {
+    mockRandomUUIDSequence(["contract-1", "occurrence-1"]);
 
     const { result } = await renderLoadedHook();
 
@@ -325,273 +252,270 @@ describe("useLocalFinance", () => {
       result.current.updateInitialBalance(1000);
     });
 
-    await waitFor(() => {
-      expect(window.localStorage.getItem(LOCAL_STORAGE_KEY)).toBe(
-        JSON.stringify({
-          initialBalance: 1000,
-          transactions: [],
-        }),
-      );
-    });
-
-    const previewProfile = result.current.createPreviewProfile({
-      title: "  Assinatura streaming  ",
-      amount: 80,
-      type: "expense",
-      category: "  LAZER  ",
-      transactionKind: "recurring-template",
-      isRecurring: true,
-      recurrenceType: "monthly",
-      recurrenceMode: "indefinite",
-      recurrenceDay: 10,
-      recurrenceStartDate: "2026-02-10",
-    });
-
-    expect(randomUuidSpy).toHaveBeenCalledTimes(3);
-    expect(previewProfile).not.toBeNull();
-    expect(previewProfile).toMatchObject({
-      initialBalance: 1000,
-    });
-    expect(previewProfile?.transactions).toHaveLength(4);
-    expect(
-      previewProfile?.transactions.find((transaction) => transaction.id === "preview-transaction"),
-    ).toMatchObject({
-      title: "Assinatura streaming",
-      amount: 80,
-      category: "lazer",
-      transactionKind: "recurring-template",
-    });
-
-    const previewInstances =
-      previewProfile?.transactions.filter(
-        (transaction) => transaction.transactionKind === "recurring-instance",
-      ) ?? [];
-
-    expect(previewInstances).toHaveLength(3);
-    expect(previewInstances.map((transaction) => transaction.occurrenceDate)).toEqual([
-      "2026-04-10",
-      "2026-03-10",
-      "2026-02-10",
-    ]);
-    expect(previewInstances.every((transaction) => transaction.sourceId === "preview-transaction")).toBe(
-      true,
-    );
-
-    expect(result.current.transactions).toEqual([]);
-    expect(result.current.postedTransactions).toEqual([]);
-    expect(result.current.currentBalance).toBe(1000);
-    expect(window.localStorage.getItem(LOCAL_STORAGE_KEY)).toBe(
-      JSON.stringify({
-        initialBalance: 1000,
-        transactions: [],
-      }),
-    );
-  });
-
-  it("deve retornar null no preview quando os dados forem invalidos", async () => {
-    const randomUuidSpy = vi.spyOn(globalThis.crypto, "randomUUID");
-    const { result } = await renderLoadedHook();
-
-    const previewProfile = result.current.createPreviewProfile({
-      title: "   ",
-      amount: 0,
-      type: "expense",
-      category: "geral",
-      transactionKind: "single",
-      transactionDate: "2026-04-15",
-      isRecurring: false,
-      recurrenceType: null,
-      recurrenceDay: null,
-      recurrenceStartDate: null,
-    });
-
-    expect(previewProfile).toBeNull();
-    expect(randomUuidSpy).not.toHaveBeenCalled();
-    expect(result.current.transactions).toEqual([]);
-  });
-
-  it("deve gerar recorrencias, expor a proxima ocorrencia e manter postedTransactions sem o template", async () => {
-    const randomUuidSpy = mockRandomUUIDSequence([
-      "recurring-template-id",
-      "recurring-instance-1",
-      "recurring-instance-2",
-      "recurring-instance-3",
-    ]);
-
-    const { result } = await renderLoadedHook();
-
-    act(() => {
-      result.current.updateInitialBalance(500);
-    });
-
     act(() => {
       result.current.addTransaction({
-        title: "Academia",
-        amount: 90,
-        type: "expense",
-        category: "saude",
-        transactionKind: "recurring-template",
-        isRecurring: true,
-        recurrenceType: "monthly",
-        recurrenceMode: "indefinite",
-        recurrenceDay: 5,
-        recurrenceStartDate: "2026-02-05",
+        title: "Freela",
+        amount: 400,
+        type: "income",
+        category: "salario",
+        transactionKind: "single",
+        transactionDate: "2026-04-05",
+        isRecurring: false,
+        recurrenceType: null,
+        recurrenceDay: null,
+        recurrenceStartDate: null,
       });
     });
 
     await waitFor(() => {
-      expect(result.current.transactions).toHaveLength(4);
+      expect(result.current.transactions).toHaveLength(1);
     });
 
-    expect(randomUuidSpy).toHaveBeenCalledTimes(4);
-
-    const recurringTemplate = result.current.transactions.find(
-      (transaction) => transaction.id === "recurring-template-id",
-    );
-
-    const recurringInstances = result.current.transactions.filter(
-      (transaction) => transaction.transactionKind === "recurring-instance",
-    );
-
-    expect(recurringTemplate).toMatchObject({
-      title: "Academia",
-      transactionKind: "recurring-template",
-      recurrenceDay: 5,
-      recurrenceStartDate: "2026-02-05",
-    });
-    expect(recurringInstances).toHaveLength(3);
-    expect(recurringInstances.map((transaction) => transaction.occurrenceDate)).toEqual([
-      "2026-04-05",
-      "2026-03-05",
-      "2026-02-05",
-    ]);
-    expect(recurringInstances.every((transaction) => transaction.sourceId === "recurring-template-id")).toBe(
-      true,
-    );
-    expect(result.current.postedTransactions).toHaveLength(3);
-    expect(result.current.totalExpense).toBe(270);
-    expect(result.current.currentBalance).toBe(230);
-    expect(result.current.getNextRecurringOccurrence(recurringTemplate!)).toBe(
-      "2026-05-05",
-    );
-    expect(
-      result.current.getNextRecurringOccurrence(recurringInstances[0]),
-    ).toBe("2026-05-05");
-    expect(
-      result.current.getNextRecurringOccurrence(createStoredTransaction()),
-    ).toBeNull();
-  });
-
-  it("deve editar uma serie recorrente a partir de uma instancia gerada e regenerar os itens relacionados", async () => {
-    const randomUuidSpy = mockRandomUUIDSequence([
-      "recurring-template-id",
-      "recurring-instance-1",
-      "recurring-instance-2",
-      "recurring-instance-3",
-      "regenerated-instance-1",
-      "regenerated-instance-2",
-      "regenerated-instance-3",
-    ]);
-
-    const { result } = await renderLoadedHook();
-
-    act(() => {
-      result.current.addTransaction({
-        title: "Academia",
-        amount: 90,
-        type: "expense",
-        category: "saude",
-        transactionKind: "recurring-template",
-        isRecurring: true,
-        recurrenceType: "monthly",
-        recurrenceMode: "indefinite",
-        recurrenceDay: 5,
-        recurrenceStartDate: "2026-02-05",
-      });
-    });
-
-    await waitFor(() => {
-      expect(result.current.transactions).toHaveLength(4);
-    });
-
-    const generatedInstance = result.current.transactions.find(
-      (transaction) =>
-        transaction.transactionKind === "recurring-instance" &&
-        transaction.occurrenceDate === "2026-03-05",
-    );
-
-    expect(generatedInstance).toBeDefined();
+    expect(result.current.currentBalance).toBe(1400);
 
     act(() => {
       result.current.updateTransaction({
-        id: generatedInstance!.id,
-        title: "  Academia premium  ",
-        amount: 120,
-        type: "expense",
-        category: "  SERVICOS  ",
+        id: "occurrence-1",
+        title: "Freela ajustado",
+        amount: 999,
+        type: "income",
+        category: "salario",
         transactionKind: "single",
+        transactionDate: "2026-04-05",
         isRecurring: false,
         recurrenceType: null,
-        recurrenceMode: "indefinite" satisfies TransactionRecurrenceMode,
-        recurrenceDay: 5,
-        recurrenceStartDate: "2026-02-05",
+        recurrenceDay: null,
+        recurrenceStartDate: null,
       });
     });
 
     await waitFor(() => {
-      const template = result.current.transactions.find(
-        (transaction) => transaction.id === "recurring-template-id",
-      );
+      expect(result.current.currentBalance).toBe(1999);
+    });
 
-      expect(template).toMatchObject({
-        title: "Academia premium",
-        amount: 120,
-        category: "servicos",
-        transactionKind: "recurring-template",
+    expect(result.current.transactions[0]).toMatchObject({
+      title: "Freela ajustado",
+      amount: 999,
+    });
+  });
+
+  it("nao deve alterar as occurrences existentes ao editar o contrato de uma Installment", async () => {
+    mockRandomUUIDSequence([
+      "installment-contract",
+      "occ-1",
+      "occ-2",
+      "occ-3",
+    ]);
+
+    const { result } = await renderLoadedHook();
+
+    act(() => {
+      result.current.addTransaction({
+        title: "Parcelada",
+        amount: 150,
+        type: "expense",
+        category: "geral",
+        transactionKind: "installment-template",
+        installmentCount: 3,
+        installmentStartDate: "2026-02-10",
+        isRecurring: false,
+        recurrenceType: null,
+        recurrenceDay: null,
+        recurrenceStartDate: null,
       });
     });
 
-    expect(randomUuidSpy).toHaveBeenCalledTimes(7);
-    expect(result.current.transactions).toHaveLength(4);
-    expect(
-      result.current.transactions.some(
-        (transaction) =>
-          transaction.id === "recurring-instance-1" ||
-          transaction.id === "recurring-instance-2" ||
-          transaction.id === "recurring-instance-3",
-      ),
-    ).toBe(false);
+    await waitFor(() => {
+      expect(result.current.transactions).toHaveLength(3);
+    });
 
-    const regeneratedInstances = result.current.transactions.filter(
-      (transaction) => transaction.transactionKind === "recurring-instance",
-    );
+    const firstOccurrenceId = result.current.transactions[0].occurrenceId!;
 
-    expect(regeneratedInstances.map((transaction) => transaction.id)).toEqual([
-      "regenerated-instance-3",
-      "regenerated-instance-2",
-      "regenerated-instance-1",
-    ]);
-    expect(regeneratedInstances.every((transaction) => transaction.title === "Academia premium")).toBe(
-      true,
-    );
-    expect(regeneratedInstances.every((transaction) => transaction.amount === 120)).toBe(
-      true,
-    );
-    expect(regeneratedInstances.every((transaction) => transaction.category === "servicos")).toBe(
-      true,
-    );
-    expect(result.current.totalExpense).toBe(360);
-    expect(
-      result.current.getNextRecurringOccurrence(regeneratedInstances[0]),
-    ).toBe("2026-05-05");
+    act(() => {
+      result.current.updateTransaction({
+        id: firstOccurrenceId,
+        title: "Parcelada renomeada",
+        amount: 150,
+        type: "expense",
+        category: "geral",
+        transactionKind: "installment-instance",
+        isRecurring: false,
+        recurrenceType: null,
+        recurrenceDay: null,
+        recurrenceStartDate: null,
+      });
+    });
+
+    await waitFor(() => {
+      expect(result.current.transactions.every((t) => t.title === "Parcelada renomeada")).toBe(
+        true,
+      );
+    });
+
+    expect(result.current.transactions.map((t) => t.amount)).toEqual([150, 150, 150]);
   });
 
-  it("deve gerar parcelamentos e remover a serie inteira ao excluir uma instancia gerada", async () => {
-    const randomUuidSpy = mockRandomUUIDSequence([
-      "installment-template-id",
-      "installment-instance-1",
-      "installment-instance-2",
-      "installment-instance-3",
+  it("deve marcar uma occurrence como paga e refletir no saldo", async () => {
+    mockRandomUUIDSequence([
+      "installment-contract",
+      "occ-1",
+      "occ-2",
+      "occ-3",
+      "occ-4",
+    ]);
+
+    const { result } = await renderLoadedHook();
+
+    act(() => {
+      result.current.addTransaction({
+        title: "Notebook",
+        amount: 250,
+        type: "expense",
+        category: "compras",
+        transactionKind: "installment-template",
+        installmentCount: 4,
+        installmentStartDate: "2026-02-10",
+        isRecurring: false,
+        recurrenceType: null,
+        recurrenceDay: null,
+        recurrenceStartDate: null,
+      });
+    });
+
+    await waitFor(() => {
+      expect(result.current.transactions).toHaveLength(4);
+    });
+
+    expect(result.current.totalExpense).toBe(750);
+
+    const pendingOccurrence = result.current.transactions.find(
+      (t) => t.occurrenceStatus === "pending",
+    )!;
+
+    act(() => {
+      result.current.markOccurrencePaid(pendingOccurrence.occurrenceId!);
+    });
+
+    await waitFor(() => {
+      expect(result.current.totalExpense).toBe(1000);
+    });
+
+    act(() => {
+      result.current.markOccurrencePending(pendingOccurrence.occurrenceId!);
+    });
+
+    await waitFor(() => {
+      expect(result.current.totalExpense).toBe(750);
+    });
+  });
+
+  it("deve editar data e valor de uma occurrence especifica marcando isCustomized", async () => {
+    mockRandomUUIDSequence(["contract-1", "occurrence-1"]);
+
+    const { result } = await renderLoadedHook();
+
+    act(() => {
+      result.current.addTransaction({
+        title: "Mercado",
+        amount: 200,
+        type: "expense",
+        category: "geral",
+        transactionKind: "single",
+        transactionDate: "2026-04-10",
+        isRecurring: false,
+        recurrenceType: null,
+        recurrenceDay: null,
+        recurrenceStartDate: null,
+      });
+    });
+
+    await waitFor(() => {
+      expect(result.current.transactions).toHaveLength(1);
+    });
+
+    act(() => {
+      result.current.updateOccurrence({
+        id: "occurrence-1",
+        dueDate: "2026-04-20",
+        amount: 350,
+      });
+    });
+
+    await waitFor(() => {
+      expect(result.current.transactions[0]).toMatchObject({
+        amount: 350,
+        occurrenceDate: "2026-04-20",
+        isCustomized: true,
+      });
+    });
+  });
+
+  it("deve cancelar uma occurrence via soft-delete, removendo-a da lista e do saldo sem apagar as demais", async () => {
+    mockRandomUUIDSequence([
+      "installment-contract",
+      "occ-1",
+      "occ-2",
+      "occ-3",
+      "occ-4",
+    ]);
+
+    const { result } = await renderLoadedHook();
+
+    act(() => {
+      result.current.addTransaction({
+        title: "Notebook",
+        amount: 250,
+        type: "expense",
+        category: "compras",
+        transactionKind: "installment-template",
+        installmentCount: 4,
+        installmentStartDate: "2026-02-10",
+        isRecurring: false,
+        recurrenceType: null,
+        recurrenceDay: null,
+        recurrenceStartDate: null,
+      });
+    });
+
+    await waitFor(() => {
+      expect(result.current.transactions).toHaveLength(4);
+    });
+
+    const paidOccurrence = result.current.transactions.find(
+      (t) => t.occurrenceStatus === "paid",
+    )!;
+
+    act(() => {
+      result.current.cancelOccurrence(paidOccurrence.occurrenceId!);
+    });
+
+    await waitFor(() => {
+      expect(result.current.transactions).toHaveLength(3);
+    });
+
+    expect(
+      result.current.transactions.some((t) => t.occurrenceId === paidOccurrence.occurrenceId),
+    ).toBe(false);
+
+    await waitFor(() => {
+      const persistedProfile = JSON.parse(
+        window.localStorage.getItem(LOCAL_STORAGE_KEY) ?? "null",
+      ) as LocalFinanceProfile;
+
+      expect(persistedProfile.occurrences).toHaveLength(4);
+      expect(
+        persistedProfile.occurrences.find((o) => o.id === paidOccurrence.occurrenceId)?.status,
+      ).toBe("Cancelled");
+    });
+  });
+
+  it("deve remover o contrato inteiro em cascade com todas as suas occurrences", async () => {
+    mockRandomUUIDSequence([
+      "installment-contract",
+      "occ-1",
+      "occ-2",
+      "occ-3",
+      "occ-4",
     ]);
 
     const { result } = await renderLoadedHook();
@@ -620,87 +544,23 @@ describe("useLocalFinance", () => {
       expect(result.current.transactions).toHaveLength(4);
     });
 
-    expect(randomUuidSpy).toHaveBeenCalledTimes(4);
-
-    const installmentInstances = result.current.transactions.filter(
-      (transaction) => transaction.transactionKind === "installment-instance",
-    );
-
-    expect(installmentInstances).toHaveLength(3);
-    expect(installmentInstances.map((transaction) => transaction.occurrenceDate)).toEqual([
-      "2026-04-10",
-      "2026-03-10",
-      "2026-02-10",
-    ]);
-    expect(installmentInstances.map((transaction) => transaction.installmentIndex)).toEqual([
-      3,
-      2,
-      1,
-    ]);
-    expect(result.current.totalExpense).toBe(750);
-    expect(result.current.currentBalance).toBe(250);
-
     act(() => {
-      result.current.removeTransaction("installment-instance-2");
+      result.current.removeTransaction("installment-contract");
     });
 
     await waitFor(() => {
       expect(result.current.transactions).toHaveLength(0);
     });
 
-    expect(
-      result.current.transactions.find(
-        (transaction) => transaction.id === "installment-template-id",
-      ),
-    ).toBeUndefined();
-    expect(result.current.postedTransactions).toEqual([]);
-    expect(result.current.totalExpense).toBe(0);
     expect(result.current.currentBalance).toBe(1000);
 
     await waitFor(() => {
-      expect(window.localStorage.getItem(LOCAL_STORAGE_KEY)).toBe(
-        JSON.stringify({
-          initialBalance: 1000,
-          transactions: [],
-        }),
-      );
+      const persistedProfile = JSON.parse(
+        window.localStorage.getItem(LOCAL_STORAGE_KEY) ?? "null",
+      ) as LocalFinanceProfile;
+
+      expect(persistedProfile.transactions).toHaveLength(0);
+      expect(persistedProfile.occurrences).toHaveLength(0);
     });
-  });
-
-  it("deve resolver a proxima recorrencia a partir de uma instancia legada com sourceId", async () => {
-    const storedProfile = createStoredProfile({
-      transactions: [
-        createRecurringTemplateTransaction({
-          id: "legacy-template",
-          recurrenceDay: 12,
-          recurrenceStartDate: "2026-03-12",
-          lastGeneratedAt: "2026-04-12T12:00:00.000Z",
-        }),
-        createStoredTransaction({
-          id: "legacy-instance",
-          title: "Academia",
-          amount: 90,
-          category: "saude",
-          transactionKind: "recurring-instance",
-          sourceId: "legacy-template",
-          occurrenceDate: "2026-04-12",
-          recurringSourceId: "legacy-template",
-          recurringOccurrenceDate: "2026-04-12",
-          createdAt: "2026-04-12T12:00:00.000Z",
-        }),
-      ],
-    });
-
-    window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(storedProfile));
-
-    const { result } = await renderLoadedHook();
-
-    const legacyInstance = result.current.transactions.find(
-      (transaction) => transaction.id === "legacy-instance",
-    );
-
-    expect(result.current.getNextRecurringOccurrence(legacyInstance!)).toBe(
-      "2026-05-12",
-    );
   });
 });

@@ -179,12 +179,13 @@ Account Access Card, App Floating Header, Login Form
 
 **Modo local** — possui exatamente as mesmas regras da API. `transactions ≠ postedTransactions`.
 
-> ⚠️ No **backend**, a partir da Fase A/B (ver seção 21), o mecanismo mudou: saldo
-> atual passou a ser a soma de `Occurrence.Amount` onde `Status = Paid`, em vez de
-> filtrar `Transaction.Amount` por `TransactionDate <= hoje`. O invariante acima
-> (nunca considerar o futuro) continua valendo, só a implementação é outra. O
-> **frontend e o modo local ainda não foram migrados** — continuam no modelo
-> antigo descrito aqui. Ver seção 21 antes de mexer em saldo/transações no backend.
+> ⚠️ A partir da Fase A/B (backend) e das Fases C/D (frontend — ver seção 21), o
+> mecanismo mudou nos três: saldo atual passou a ser a soma de `Occurrence.Amount`
+> (ou `occurrence.amount` no modo local) onde `Status/status = Paid/"paid"`, em vez
+> de filtrar `Transaction.Amount` por `TransactionDate <= hoje`. O invariante acima
+> (nunca considerar o futuro) continua valendo, só a implementação é outra. Backend,
+> frontend modo API e frontend modo local estão **todos migrados** para o modelo
+> Transaction + Occurrence. Ver seção 21 antes de mexer em saldo/transações.
 
 ---
 
@@ -245,6 +246,22 @@ Erros de TypeScript pré-existentes nos testes, fora do escopo da Fase 1:
 - `transaction-list.test.tsx`
 
 Esses erros já existiam antes da Fase 1 e precisam ser corrigidos em momento dedicado.
+
+**Falhas de teste com texto de UI desatualizado (auditadas na Fase D)**
+
+19 testes falham em 8 arquivos (`dashboard-transactions-view`, `finance-summary-card`,
+`transaction-list`, `dashboard-home-view`, `dashboard-insights-view`, `hero-section`,
+`goal-list`) por procurarem textos/elementos que não existem mais desde
+refinamentos de UI de sessões anteriores à Fase D (ex.: card colapsável do
+`FinanceSummaryCard` desde `eba87aa`, reorganização de Lançamentos desde
+`255deca`/`777b1b3`). Auditado rodando a suíte completa com e sem o diff da
+Fase D (`git stash`) — as 19 falhas são idênticas nos dois estados, confirmando
+que nenhuma é regressão da Fase D. Precisam ser reescritos para o texto/estrutura
+atual em momento dedicado, junto com os erros de TypeScript acima.
+
+Separadamente, `src/test/app/page.test.tsx` falha o arquivo inteiro com
+`NEXT_PUBLIC_API_URL não está definida` — o test runner não carrega
+`.env.local`. Também pré-existente, não relacionado à Fase D.
 
 ---
 
@@ -466,11 +483,12 @@ style:     formatação, sem alteração de lógica
 
 ---
 
-## 21. Arquitetura de Transações — Transaction + Occurrence (nova)
+## 21. Arquitetura de Transações — Transaction + Occurrence
 
-> Mudança de arquitetura do backend, implementada nas Fases A e B desta sessão.
-> Leia esta seção inteira antes de tocar em Transações, Regras Financeiras ou
-> Dashboard no backend.
+> Mudança de arquitetura de dados (backend nas Fases A/B, frontend modo API na
+> Fase C, frontend modo local na Fase D). Migração **concluída nos três lados**
+> (backend, modo API, modo local). Leia esta seção inteira antes de tocar em
+> Transações, Regras Financeiras ou Dashboard, em qualquer um dos três.
 
 ### Contexto do problema resolvido
 
@@ -546,26 +564,64 @@ separadamente.
 - ✅ **Fix** — Dedup de `RuleProcessingService` trocada de `DueDate` para
   `InstallmentIndex` sequencial (evita duplicata ao customizar a data de uma
   occurrence).
-- ⏳ **Fase C** — Frontend modo API (pendente).
-- ⏳ **Fase D** — Frontend modo local / `localStorage` (pendente).
-- ⏳ **Fase E** — Remoção de código morto: `synchronizeInstallmentTransactions`,
-  `synchronizeRecurringTransactions`, `createProjectedRecurringItems`,
-  `createProjectedInstallmentItems`, `getNextRecurringOccurrenceDate` — esses
-  arquivos **ainda existem e ainda são usados pelo frontend**. **NÃO foram
-  tocados nesta sessão** — o frontend ainda está 100% no modelo antigo.
+- ✅ **Fase C** — Frontend modo API consome Occurrences reais. Inclui os fixes:
+  Bug 1 (editar Valor de uma transação Single via "Dados gerais" não atualizava
+  o saldo — `TransactionService.UpdateAsync` agora propaga Amount/DueDate para
+  a Occurrence quando `TransactionKind == Single`) e Bug 2 (bloco "Esta
+  ocorrência" aparecia também para Single — corrigido para exigir
+  `transactionKind !== "single"`).
+- ✅ **Fase D** — Frontend modo local (`localStorage`) espelha o mesmo modelo.
+  Implementado e validado nesta sessão:
+  - `types/local-finance-profile.ts` — schema novo com `occurrences` (schema
+    **resetado**, sem migração de dados antigos do `localStorage`, decisão
+    tomada nesta sessão).
+  - `hooks/use-local-finance.ts` reescrito — `addTransaction`/`updateTransaction`/
+    `removeTransaction` geram e sincronizam Occurrences reais; novos
+    `updateOccurrence`, `markOccurrencePaid`, `markOccurrencePending`,
+    `cancelOccurrence` (soft-delete via status `Cancelled`, mesma semântica do
+    backend). `updateTransaction` replica o fix do Bug 1 da Fase C: quando o
+    kind é Single, propaga `amount`/`dueDate` para a única Occurrence.
+  - `utils/occurrence-generation.ts` (novo) — réplica em TypeScript de
+    `OccurrenceGenerationService.cs`; é a fonte única de geração de occurrences
+    no modo local, reaproveitada também por `use-impact-simulation.ts` (preview
+    para os dois modos). Não duplicar esta lógica.
+  - `utils/flatten-transaction.ts` (novo) — achata um contrato (Transaction) +
+    Occurrences em N linhas de UI (1 por ocorrência), reaproveitado por modo
+    local e modo API.
+  - `transaction-normalization.ts` ganhou `getBackendTransactionKind` e
+    `inferContractRecurrenceMode`, compartilhados entre os dois modos.
+  - Componentes de UI (`transaction-edit-modal.tsx`, `transaction-list.tsx`,
+    `schedule-modal.tsx`) já eram agnósticos de modo — nenhuma alteração de
+    gating local/API foi necessária.
+  - **Validado por Playwright** (fluxo completo no modo sem conta): criar
+    Single/Installment(4x)/Recurring(indefinido→12 ocorrências), editar valor
+    de uma ocorrência específica, marcar ocorrência como paga, cancelar
+    ocorrência (soft-delete), abrir Agenda com ocorrências futuras agrupadas
+    por mês, editar Single via "Dados gerais" propagando para a Occurrence, e
+    excluir a série inteira de uma Recurring. Saldo conferido matematicamente
+    em cada transição (todas corretas), zero erros de console.
+  - **Arquivos removidos** (código morto do modelo antigo, sem uso após a
+    reescrita): `utils/installment-transactions.ts` (+ teste),
+    `services/local-finance-service.ts` (já estava morto, nenhum import),
+    `utils/upcoming-transactions.ts` reduzido a apenas tipos.
+- ⏳ **Fase E** — Auditoria final de código morto remanescente. Confirmado
+  nesta sessão que ainda restam candidatos em
+  `apps/web/src/utils/recurring-transactions.ts`:
+  - `synchronizeRecurringTransactions` — **confirmado morto**, só é referenciada
+    pelo próprio teste (`test/utils/recurring-transactions.test.ts`), nenhum
+    hook ou componente chama mais.
+  - `getNextRecurringOccurrenceDate` — **ainda em uso** (`app/page.tsx`, cálculo
+    de "próxima ocorrência" exibido na lista), não remover.
+  - `getOccurrenceKey`, `getNextMonthlyOccurrenceAfter`, `createDateValue` —
+    aparentam não ter uso fora do próprio arquivo/teste, mas **não foram
+    auditados linha a linha** nesta sessão; confirmar antes de remover.
+  - Esta auditoria de `recurring-transactions.ts` foi apenas um `grep`
+    superficial, não uma revisão completa — é o próximo passo de fato pendente
+    antes de considerar a migração 100% encerrada.
 
-### IMPORTANTE para a próxima sessão
+### Estado atual (fim da Fase D)
 
-**O frontend AINDA NÃO FOI ALTERADO.** Ele continua funcionando com o modelo
-antigo (calculando parcelas/recorrências em tempo real no cliente), e o backend
-agora tem o modelo novo (Transaction + Occurrence) rodando **em paralelo, sem o
-frontend saber disso**. Isso significa que criar uma transação parcelada pelo
-formulário hoje ainda funciona visualmente, mas os dados reais de `Occurrence`
-gerados pelo backend não são exibidos nem editados pela UI ainda.
-
-Antes de iniciar a Fase C, ler:
-
-- `apps/web/src/hooks/use-finance-data.ts`
-- `apps/web/src/hooks/use-local-finance.ts`
-- `apps/web/src/types/api-transaction.ts`
-- `apps/web/src/types/transaction.ts`
+Backend, frontend modo API e frontend modo local estão todos no modelo
+Transaction + Occurrence. A migração de arquitetura em si está **funcionalmente
+concluída** — o que resta (Fase E) é limpeza de código morto remanescente em
+`recurring-transactions.ts`, não mudança de comportamento.

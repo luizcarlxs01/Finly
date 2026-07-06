@@ -48,7 +48,6 @@ import { getTransactionCategoryLabel } from "@/types/transaction-category";
 import { getDashboardInsights } from "@/utils/dashboard-insights";
 import { getNextRecurringOccurrenceDate } from "@/utils/recurring-transactions";
 import { getUpcomingOccurrencesByMonth } from "@/utils/upcoming-occurrences";
-import { getUpcomingTransactionsByMonth } from "@/utils/upcoming-transactions";
 import type { TransactionSortOption } from "@/components/dashboard/transaction-advanced-filters";
 
 const DEFAULT_CATEGORY_FILTER = "all";
@@ -84,88 +83,8 @@ function sortTransactions<
   });
 }
 
-function isDateFuture(dateValue?: string | null) {
-  if (!dateValue) {
-    return false;
-  }
-
-  const today = new Date();
-  const todayValue = new Date(
-    today.getFullYear(),
-    today.getMonth(),
-    today.getDate(),
-  );
-
-  const [year, month, day] = dateValue.split("-").map(Number);
-  const targetDate = new Date(year, month - 1, day);
-
-  return targetDate.getTime() > todayValue.getTime();
-}
-
-function getTransactionDisplayDateValue(transaction: Transaction) {
-  if (transaction.transactionKind === "installment-template") {
-    return transaction.installmentStartDate;
-  }
-
-  if (transaction.transactionKind === "recurring-template") {
-    return transaction.recurrenceStartDate;
-  }
-
-  return (
-    transaction.occurrenceDate ??
-    transaction.recurringOccurrenceDate ??
-    transaction.createdAt
-  );
-}
-
-function buildStatementTransactions(
-  transactions: Transaction[],
-  postedTransactions: Transaction[],
-) {
-  const futureTransactions = transactions.filter((transaction) => {
-    if (transaction.transactionKind === "installment-template") {
-      return false;
-    }
-
-    if (transaction.transactionKind === "recurring-template") {
-      return false;
-    }
-
-    return isDateFuture(getTransactionDisplayDateValue(transaction));
-  });
-
-  const futureEditableTemplates = transactions.filter((transaction) => {
-    if (transaction.transactionKind === "installment-template") {
-      return isDateFuture(transaction.installmentStartDate);
-    }
-
-    if (transaction.transactionKind === "recurring-template") {
-      return isDateFuture(transaction.recurrenceStartDate);
-    }
-
-    return false;
-  });
-
-  const merged = [
-    ...postedTransactions,
-    ...futureTransactions,
-    ...futureEditableTemplates,
-  ];
-  const uniqueById = new Map<string, Transaction>();
-
-  for (const transaction of merged) {
-    uniqueById.set(transaction.id, transaction);
-  }
-
-  return Array.from(uniqueById.values());
-}
-
 function getPostedTransactions(transactions: Transaction[]) {
-  return transactions.filter(
-    (transaction) =>
-      transaction.transactionKind !== "recurring-template" &&
-      transaction.transactionKind !== "installment-template",
-  );
+  return transactions.filter((transaction) => transaction.occurrenceStatus === "paid");
 }
 
 function getProjectionSnapshot(
@@ -205,7 +124,10 @@ export default function HomePage() {
     addTransaction,
     updateTransaction,
     removeTransaction,
-    createPreviewProfile,
+    updateOccurrence: updateLocalOccurrence,
+    markOccurrencePaid: markLocalOccurrencePaid,
+    markOccurrencePending: markLocalOccurrencePending,
+    cancelOccurrence: cancelLocalOccurrence,
   } = localFinance;
 
   const {
@@ -309,22 +231,22 @@ export default function HomePage() {
     updateOccurrence,
     errorMessage: updateOccurrenceErrorMessage,
     isSubmitting: isUpdatingOccurrence,
-  } = useUpdateOccurrence();
+  } = useUpdateOccurrence({ updateLocalOccurrence });
   const {
     markAsPaid: markOccurrenceAsPaid,
     errorMessage: markOccurrencePaidErrorMessage,
     isSubmitting: isMarkingOccurrencePaid,
-  } = useMarkOccurrencePaid();
+  } = useMarkOccurrencePaid({ markLocalOccurrencePaid });
   const {
     markAsPending: markOccurrenceAsPending,
     errorMessage: markOccurrencePendingErrorMessage,
     isSubmitting: isMarkingOccurrencePending,
-  } = useMarkOccurrencePending();
+  } = useMarkOccurrencePending({ markLocalOccurrencePending });
   const {
     cancelOccurrence,
     errorMessage: cancelOccurrenceErrorMessage,
     isSubmitting: isCancellingOccurrence,
-  } = useCancelOccurrence();
+  } = useCancelOccurrence({ cancelLocalOccurrence });
   const {
     createRule,
     deleteRule,
@@ -346,18 +268,11 @@ export default function HomePage() {
     previewTransactions,
     simulateImpact,
   } = useImpactSimulation({
-    createLocalPreviewProfile: createPreviewProfile,
     source,
     transactions,
   });
 
-  const statementTransactions = useMemo(() => {
-    if (isApiMode) {
-      return transactions;
-    }
-
-    return buildStatementTransactions(transactions, postedTransactions);
-  }, [isApiMode, transactions, postedTransactions]);
+  const statementTransactions = transactions;
 
   const filteredTransactions = useMemo(() => {
     const normalizedSearchTerm = normalizeSearchValue(searchTerm);
@@ -424,7 +339,6 @@ export default function HomePage() {
   }, [
     currentBalance,
     initialBalance,
-    isApiMode,
     postedTransactions,
     previewTransactions,
     totalExpense,
@@ -432,17 +346,13 @@ export default function HomePage() {
   ]);
 
   const upcomingTransactions = useMemo(() => {
-    const getUpcomingByMonth = isApiMode
-      ? getUpcomingOccurrencesByMonth
-      : getUpcomingTransactionsByMonth;
-
-    return getUpcomingByMonth({
+    return getUpcomingOccurrencesByMonth({
       transactions: projectionTransactions,
       monthsAhead: 3,
       referenceDate: new Date(),
       baseBalance: projectionSnapshot.currentBalance,
     });
-  }, [isApiMode, projectionSnapshot.currentBalance, projectionTransactions]);
+  }, [projectionSnapshot.currentBalance, projectionTransactions]);
 
   const forecast = useMemo(() => {
     return {
@@ -482,15 +392,12 @@ export default function HomePage() {
     : "Assim que você registrar movimentações, elas aparecerão organizadas aqui.";
 
   useEffect(() => {
-    if (!isApiMode) {
-      return;
-    }
-
     clearSimulation();
     setEditingTransaction(null);
     setSelectedGoal(null);
     setPendingRemovalTransactionId(null);
-  }, [clearSimulation, isApiMode]);
+    setPendingContractDeletionId(null);
+  }, [clearSimulation, source]);
 
   useEffect(() => {
     if (!createTransactionErrorMessage) {
@@ -629,11 +536,7 @@ export default function HomePage() {
     }
 
     try {
-      if (isApiMode) {
-        await cancelOccurrence(pendingRemovalTransactionId);
-      } else {
-        await deleteTransactionUnified(pendingRemovalTransactionId);
-      }
+      await cancelOccurrence(pendingRemovalTransactionId);
       setWriteModeMessage(null);
       clearSimulation();
       setPendingRemovalTransactionId(null);
@@ -1044,14 +947,10 @@ export default function HomePage() {
 
       <ConfirmationModal
         open={Boolean(pendingRemovalTransactionId)}
-        title={isApiMode ? "Cancelar ocorrência" : "Remover item"}
-        description={
-          isApiMode
-            ? "Tem certeza que deseja cancelar esta ocorrência? Essa ação não pode ser desfeita."
-            : "Tem certeza que deseja remover este item? Essa ação não pode ser desfeita."
-        }
+        title="Cancelar ocorrência"
+        description="Tem certeza que deseja cancelar esta ocorrência? Essa ação não pode ser desfeita."
         cancelLabel="Cancelar"
-        confirmLabel={isApiMode ? "Cancelar ocorrência" : "Remover"}
+        confirmLabel="Cancelar ocorrência"
         onConfirm={handleConfirmRemoveTransaction}
         onOpenChange={(open) => {
           if (!open) {

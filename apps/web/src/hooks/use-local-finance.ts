@@ -1,25 +1,26 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import type { ApiOccurrence } from "@/types/api-occurrence";
 import type {
   LocalFinanceProfile,
+  LocalTransactionContract,
+} from "@/types/local-finance-profile";
+import type {
   Transaction,
   TransactionKind,
   TransactionRecurrenceMode,
   TransactionRecurrenceType,
   TransactionType,
-} from "@/types/finance";
-import { synchronizeInstallmentTransactions } from "@/utils/installment-transactions";
+} from "@/types/transaction";
+import { flattenApiTransactionToLineItems } from "@/utils/flatten-transaction";
+import { generateOccurrences } from "@/utils/occurrence-generation";
+import { getTodayDateValue, parseDateValue } from "@/utils/recurring-transactions";
 import {
-  getNextRecurringOccurrenceDate,
-  getTodayDateValue,
-  parseDateValue,
-  synchronizeRecurringTransactions,
-} from "@/utils/recurring-transactions";
-import {
+  getBackendTransactionKind,
+  inferContractRecurrenceMode,
   normalizeInstallmentCount,
   normalizeInstallmentStartDate,
-  normalizeTransaction,
   normalizeTransactionKind,
   normalizeTransactionRecurrenceDay,
   normalizeTransactionRecurrenceEndDate,
@@ -53,84 +54,19 @@ type UpdateTransactionInput = LocalFinanceTransactionInput & {
   id: string;
 };
 
+type UpdateOccurrenceInput = {
+  id: string;
+  dueDate: string;
+  amount: number;
+};
+
 const defaultProfile: LocalFinanceProfile = {
   initialBalance: 0,
   transactions: [],
+  occurrences: [],
 };
 
-function sortTransactionsByMostRecent(transactions: Transaction[]) {
-  return [...transactions].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-  );
-}
-
-function isTemplateTransaction(transaction: Transaction) {
-  return (
-    transaction.transactionKind === "recurring-template" ||
-    transaction.transactionKind === "installment-template"
-  );
-}
-
-function isGeneratedInstance(transaction: Transaction) {
-  return (
-    transaction.transactionKind === "recurring-instance" ||
-    transaction.transactionKind === "installment-instance"
-  );
-}
-
-function getTransactionSourceId(transaction: Transaction) {
-  if (typeof transaction.sourceId === "string" && transaction.sourceId.trim()) {
-    return transaction.sourceId.trim();
-  }
-
-  if (
-    typeof transaction.recurringSourceId === "string" &&
-    transaction.recurringSourceId.trim()
-  ) {
-    return transaction.recurringSourceId.trim();
-  }
-
-  return null;
-}
-
-function getTransactionSeriesId(transaction: Transaction) {
-  if (
-    transaction.transactionKind === "recurring-template" ||
-    transaction.transactionKind === "installment-template"
-  ) {
-    return transaction.id;
-  }
-
-  if (typeof transaction.sourceId === "string" && transaction.sourceId.trim()) {
-    return transaction.sourceId.trim();
-  }
-
-  if (
-    typeof transaction.recurringSourceId === "string" &&
-    transaction.recurringSourceId.trim()
-  ) {
-    return transaction.recurringSourceId.trim();
-  }
-
-  return null;
-}
-
-function removeLinkedGeneratedTransactions(
-  transactions: Transaction[],
-  sourceId: string,
-) {
-  return transactions.filter((transaction) => {
-    const transactionSourceId = getTransactionSourceId(transaction);
-
-    if (!isGeneratedInstance(transaction)) {
-      return true;
-    }
-
-    return transactionSourceId !== sourceId;
-  });
-}
-
-function normalizeTransactionInput(input: LocalFinanceTransactionInput) {
+export function normalizeTransactionInput(input: LocalFinanceTransactionInput) {
   const normalizedTransactionKind = normalizeTransactionKind(
     input.transactionKind,
     input.isRecurring === true,
@@ -212,7 +148,7 @@ function normalizeTransactionInput(input: LocalFinanceTransactionInput) {
   };
 }
 
-function isValidTransactionInput(
+export function isValidTransactionInput(
   input: ReturnType<typeof normalizeTransactionInput>,
 ) {
   return (
@@ -233,69 +169,102 @@ function isValidTransactionInput(
   );
 }
 
-function applyTransactionAutomation(profile: LocalFinanceProfile) {
-  const recurringProfile = synchronizeRecurringTransactions({
-    transactions: profile.transactions,
-  });
-
-  const installmentProfile = synchronizeInstallmentTransactions({
-    transactions: recurringProfile.transactions,
-  });
-
-  return {
-    ...profile,
-    transactions: sortTransactionsByMostRecent(installmentProfile.transactions),
-  };
+function getContractAnchorDate(input: ReturnType<typeof normalizeTransactionInput>) {
+  return (
+    input.installmentStartDate ??
+    input.recurrenceStartDate ??
+    input.transactionDate ??
+    getTodayDateValue()
+  );
 }
 
-function getTransactionCreatedAt(
-  transactionDate: string | null | undefined,
-  fallbackDate?: string,
-) {
+function getTransactionCreatedAt(transactionDate: string | null | undefined) {
   const normalizedDate =
-    parseDateValue(transactionDate) ??
-    parseDateValue(fallbackDate) ??
-    parseDateValue(getTodayDateValue());
+    parseDateValue(transactionDate) ?? parseDateValue(getTodayDateValue());
 
   return normalizedDate ? normalizedDate.toISOString() : new Date().toISOString();
 }
 
-function isDateOnOrBeforeToday(dateValue: string | null | undefined) {
-  const normalizedDate = parseDateValue(dateValue);
-  const todayDate = parseDateValue(getTodayDateValue());
-
-  if (!normalizedDate || !todayDate) {
-    return true;
-  }
-
-  return normalizedDate.getTime() <= todayDate.getTime();
+function buildContract(
+  contractId: string,
+  input: ReturnType<typeof normalizeTransactionInput>,
+  createdAt: string,
+): LocalTransactionContract {
+  return {
+    id: contractId,
+    title: input.title,
+    amount: input.amount,
+    type: input.type === "income" ? "Income" : "Expense",
+    category: input.category,
+    transactionDate: getContractAnchorDate(input),
+    createdAt,
+    transactionKind: getBackendTransactionKind(input.transactionKind),
+    sourceId: null,
+    installmentCount: input.installmentCount,
+    isRecurring: input.isRecurring,
+    recurrenceStartDate: input.recurrenceStartDate,
+    recurrenceEndDate: input.recurrenceEndDate,
+    recurrenceDay: input.recurrenceDay,
+    recurrenceMonths: input.recurrenceMonths,
+  };
 }
 
-function getTransactionPostingDate(transaction: Transaction) {
-  if (transaction.transactionKind === "recurring-template") {
-    return transaction.recurrenceStartDate;
-  }
+/**
+ * Gera as Occurrences reais de um contrato usando generateOccurrences
+ * (utils/occurrence-generation.ts) — a mesma função usada para o preview de simulação,
+ * réplica das regras de Finly.Application/Services/OccurrenceGenerationService.cs. No modo
+ * local isso persiste de verdade no localStorage, não é só preview.
+ */
+function buildOccurrences(
+  contractId: string,
+  input: ReturnType<typeof normalizeTransactionInput>,
+): ApiOccurrence[] {
+  const generated = generateOccurrences(input);
+  const nowIso = new Date().toISOString();
 
-  if (transaction.transactionKind === "installment-template") {
-    return transaction.installmentStartDate;
-  }
+  return generated.map((occurrence) => ({
+    id: crypto.randomUUID(),
+    transactionId: contractId,
+    installmentIndex: occurrence.installmentIndex,
+    dueDate: occurrence.dueDate,
+    amount: occurrence.amount,
+    status: occurrence.status === "paid" ? "Paid" : "Pending",
+    paidAt: occurrence.status === "paid" ? nowIso : null,
+    isCustomized: false,
+    createdAt: nowIso,
+  }));
+}
 
-  return (
-    transaction.occurrenceDate ??
-    transaction.recurringOccurrenceDate ??
-    transaction.createdAt
+/**
+ * Achata contratos + Occurrences em linhas de UI reutilizando flattenApiTransactionToLineItems
+ * (utils/flatten-transaction.ts) — a mesma função usada pelo modo API. Occurrences Cancelled
+ * são excluídas aqui, espelhando o filtro que o backend aplica em TransactionService.MapToResponse
+ * (seção 21 do CLAUDE.md) — nenhum consumidor da UI precisa se lembrar de filtrar.
+ */
+function flattenLocalProfile(profile: LocalFinanceProfile): Transaction[] {
+  const flattened = profile.transactions.flatMap((contract) =>
+    flattenApiTransactionToLineItems({
+      ...contract,
+      financialProfileId: "",
+      installmentIndex: null,
+      occurrences: profile.occurrences.filter(
+        (occurrence) =>
+          occurrence.transactionId === contract.id && occurrence.status !== "Cancelled",
+      ),
+    }),
+  );
+
+  return [...flattened].sort(
+    (left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
   );
 }
 
-function normalizeProfile(profile: LocalFinanceProfile): LocalFinanceProfile {
-  return applyTransactionAutomation({
+function normalizeStoredProfile(profile: LocalFinanceProfile): LocalFinanceProfile {
+  return {
     initialBalance: profile.initialBalance ?? 0,
-    transactions: sortTransactionsByMostRecent(
-      (profile.transactions ?? []).map((transaction) =>
-        normalizeTransaction(transaction),
-      ),
-    ),
-  });
+    transactions: profile.transactions ?? [],
+    occurrences: profile.occurrences ?? [],
+  };
 }
 
 export function useLocalFinance() {
@@ -312,7 +281,7 @@ export function useLocalFinance() {
 
     try {
       const parsedValue = JSON.parse(storedValue) as LocalFinanceProfile;
-      setProfile(normalizeProfile(parsedValue));
+      setProfile(normalizeStoredProfile(parsedValue));
     } catch {
       setProfile(defaultProfile);
     } finally {
@@ -325,14 +294,12 @@ export function useLocalFinance() {
     window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(profile));
   }, [profile, isLoaded]);
 
-  const postedTransactions = useMemo(() => {
-    return profile.transactions.filter(
-      (transaction) =>
-        transaction.transactionKind !== "recurring-template" &&
-        transaction.transactionKind !== "installment-template" &&
-        isDateOnOrBeforeToday(getTransactionPostingDate(transaction)),
-    );
-  }, [profile.transactions]);
+  const transactions = useMemo(() => flattenLocalProfile(profile), [profile]);
+
+  const postedTransactions = useMemo(
+    () => transactions.filter((transaction) => transaction.occurrenceStatus === "paid"),
+    [transactions],
+  );
 
   const totalIncome = useMemo(() => {
     return postedTransactions
@@ -357,52 +324,6 @@ export function useLocalFinance() {
     }));
   }
 
-  function createPreviewProfile(input: LocalFinanceTransactionInput) {
-    const normalizedInput = normalizeTransactionInput(input);
-
-    if (!isValidTransactionInput(normalizedInput)) {
-      return null;
-    }
-
-    const createdAt = getTransactionCreatedAt(normalizedInput.transactionDate);
-
-    const previewTransaction: Transaction = {
-      id: "preview-transaction",
-      title: normalizedInput.title,
-      amount: normalizedInput.amount,
-      type: normalizedInput.type,
-      category: normalizedInput.category,
-      transactionKind: normalizedInput.transactionKind,
-      sourceId: null,
-      occurrenceDate:
-        normalizedInput.transactionKind === "single"
-          ? normalizedInput.transactionDate
-          : null,
-      installmentIndex: null,
-      installmentCount: normalizedInput.installmentCount,
-      installmentStartDate: normalizedInput.installmentStartDate,
-      recurringSourceId: null,
-      recurringOccurrenceDate: null,
-      isRecurring: normalizedInput.isRecurring,
-      recurrenceType: normalizedInput.recurrenceType,
-      recurrenceMode: normalizedInput.recurrenceMode,
-      recurrenceDay: normalizedInput.recurrenceDay,
-      recurrenceStartDate: normalizedInput.recurrenceStartDate,
-      recurrenceEndDate: normalizedInput.recurrenceEndDate,
-      recurrenceMonths: normalizedInput.recurrenceMonths,
-      lastGeneratedAt: null,
-      createdAt,
-    };
-
-    return applyTransactionAutomation({
-      ...profile,
-      transactions: sortTransactionsByMostRecent([
-        previewTransaction,
-        ...profile.transactions,
-      ]),
-    });
-  }
-
   function addTransaction(input: LocalFinanceTransactionInput) {
     const normalizedInput = normalizeTransactionInput(input);
 
@@ -410,227 +331,157 @@ export function useLocalFinance() {
       return;
     }
 
-    const createdAt = getTransactionCreatedAt(normalizedInput.transactionDate);
+    const contractId = crypto.randomUUID();
+    const createdAt = getTransactionCreatedAt(getContractAnchorDate(normalizedInput));
+    const contract = buildContract(contractId, normalizedInput, createdAt);
+    const newOccurrences = buildOccurrences(contractId, normalizedInput);
 
-    const newTransaction: Transaction = {
-      id: crypto.randomUUID(),
-      title: normalizedInput.title,
-      amount: normalizedInput.amount,
-      type: normalizedInput.type,
-      category: normalizedInput.category,
-      transactionKind: normalizedInput.transactionKind,
-      sourceId: null,
-      occurrenceDate:
-        normalizedInput.transactionKind === "single"
-          ? normalizedInput.transactionDate
-          : null,
-      installmentIndex: null,
-      installmentCount: normalizedInput.installmentCount,
-      installmentStartDate: normalizedInput.installmentStartDate,
-      recurringSourceId: null,
-      recurringOccurrenceDate: null,
-      isRecurring: normalizedInput.isRecurring,
-      recurrenceType: normalizedInput.recurrenceType,
-      recurrenceMode: normalizedInput.recurrenceMode,
-      recurrenceDay: normalizedInput.recurrenceDay,
-      recurrenceStartDate: normalizedInput.recurrenceStartDate,
-      recurrenceEndDate: normalizedInput.recurrenceEndDate,
-      recurrenceMonths: normalizedInput.recurrenceMonths,
-      lastGeneratedAt: null,
-      createdAt,
-    };
-
-    setProfile((currentProfile) =>
-      applyTransactionAutomation({
-        ...currentProfile,
-        transactions: sortTransactionsByMostRecent([
-          newTransaction,
-          ...currentProfile.transactions,
-        ]),
-      }),
-    );
+    setProfile((currentProfile) => ({
+      ...currentProfile,
+      transactions: [contract, ...currentProfile.transactions],
+      occurrences: [...currentProfile.occurrences, ...newOccurrences],
+    }));
   }
 
+  /**
+   * Espelha TransactionService.UpdateAsync (apps/api): edita os campos do contrato e, quando
+   * o kind resolvido é Single, propaga Amount/DueDate para a única Occurrence associada — a
+   * mesma correção de "Bug 1" da Fase C (contrato e ocorrência são a mesma coisa para Single).
+   * Para Installment/Recurring, as Occurrences existentes permanecem intocadas.
+   */
   function updateTransaction(input: UpdateTransactionInput) {
     setProfile((currentProfile) => {
-      const currentTransaction = currentProfile.transactions.find(
-        (transaction) => transaction.id === input.id,
+      const occurrence = currentProfile.occurrences.find(
+        (candidate) => candidate.id === input.id,
       );
 
-      if (!currentTransaction) {
+      if (!occurrence) {
         return currentProfile;
       }
 
-      const seriesId = getTransactionSeriesId(currentTransaction);
+      const contract = currentProfile.transactions.find(
+        (candidate) => candidate.id === occurrence.transactionId,
+      );
 
-      const transactionToEdit =
-        seriesId && isGeneratedInstance(currentTransaction)
-          ? currentProfile.transactions.find((transaction) => transaction.id === seriesId) ??
-            currentTransaction
-          : currentTransaction;
+      if (!contract) {
+        return currentProfile;
+      }
 
-      const resolvedTransactionKind = isGeneratedInstance(currentTransaction)
-        ? transactionToEdit.transactionKind
-        : input.transactionKind ?? transactionToEdit.transactionKind;
+      const backendKind = input.transactionKind
+        ? getBackendTransactionKind(input.transactionKind)
+        : contract.transactionKind;
 
-      const normalizedInput = normalizeTransactionInput({
-        ...input,
-        transactionKind: resolvedTransactionKind,
+      const transactionDate =
+        input.installmentStartDate ??
+        input.recurrenceStartDate ??
+        input.transactionDate ??
+        contract.transactionDate;
+
+      const recurrenceMode = input.recurrenceMode ?? inferContractRecurrenceMode(contract);
+
+      const updatedContract: LocalTransactionContract = {
+        ...contract,
+        title: input.title.trim(),
+        amount: input.amount,
+        type: input.type === "income" ? "Income" : "Expense",
+        category: input.category.trim().toLowerCase(),
+        transactionKind: backendKind,
+        transactionDate,
         installmentCount:
-          input.installmentCount ?? transactionToEdit.installmentCount,
-        installmentStartDate:
-          input.installmentStartDate ?? transactionToEdit.installmentStartDate,
-        recurrenceMode: input.recurrenceMode ?? transactionToEdit.recurrenceMode,
+          backendKind === "Installment"
+            ? input.installmentCount ?? contract.installmentCount
+            : null,
+        isRecurring: backendKind === "Recurring",
+        recurrenceStartDate:
+          backendKind === "Recurring"
+            ? input.recurrenceStartDate ?? contract.recurrenceStartDate
+            : null,
         recurrenceEndDate:
-          input.recurrenceEndDate ?? transactionToEdit.recurrenceEndDate,
+          backendKind === "Recurring" && recurrenceMode === "until-date"
+            ? input.recurrenceEndDate ?? contract.recurrenceEndDate
+            : null,
+        recurrenceDay:
+          backendKind === "Recurring" ? input.recurrenceDay ?? contract.recurrenceDay : null,
         recurrenceMonths:
-          input.recurrenceMonths ?? transactionToEdit.recurrenceMonths,
-      });
+          backendKind === "Recurring" && recurrenceMode === "for-months"
+            ? input.recurrenceMonths ?? contract.recurrenceMonths
+            : null,
+      };
 
-      if (!isValidTransactionInput(normalizedInput)) {
-        return currentProfile;
-      }
-
-      const baseTransactions = isTemplateTransaction(transactionToEdit)
-        ? removeLinkedGeneratedTransactions(
-            currentProfile.transactions,
-            transactionToEdit.id,
-          )
-        : currentProfile.transactions;
-
-      const targetId = transactionToEdit.id;
-      const nextTransactionKind = normalizedInput.transactionKind;
-
-      return applyTransactionAutomation({
-        ...currentProfile,
-        transactions: sortTransactionsByMostRecent(
-          baseTransactions.map((transaction) => {
-            if (transaction.id !== targetId) {
-              return transaction;
-            }
-
-            return {
-              ...transaction,
-              title: normalizedInput.title,
-              amount: normalizedInput.amount,
-              type: normalizedInput.type,
-              category: normalizedInput.category,
-              createdAt:
-                nextTransactionKind === "single"
-                  ? getTransactionCreatedAt(
-                      normalizedInput.transactionDate,
-                      transaction.createdAt,
-                    )
-                  : transaction.createdAt,
-              transactionKind: nextTransactionKind,
-              sourceId: null,
-              occurrenceDate:
-                nextTransactionKind === "single"
-                  ? normalizedInput.transactionDate
-                  : null,
-              installmentIndex: null,
-              installmentCount:
-                nextTransactionKind === "installment-template"
-                  ? normalizedInput.installmentCount
-                  : null,
-              installmentStartDate:
-                nextTransactionKind === "installment-template"
-                  ? normalizedInput.installmentStartDate
-                  : null,
-              recurringSourceId: null,
-              recurringOccurrenceDate: null,
-              isRecurring: nextTransactionKind === "recurring-template",
-              recurrenceType:
-                nextTransactionKind === "recurring-template"
-                  ? normalizedInput.recurrenceType
-                  : null,
-              recurrenceMode:
-                nextTransactionKind === "recurring-template"
-                  ? normalizedInput.recurrenceMode
-                  : null,
-              recurrenceDay:
-                nextTransactionKind === "recurring-template"
-                  ? normalizedInput.recurrenceDay
-                  : null,
-              recurrenceStartDate:
-                nextTransactionKind === "recurring-template"
-                  ? normalizedInput.recurrenceStartDate
-                  : null,
-              recurrenceEndDate:
-                nextTransactionKind === "recurring-template"
-                  ? normalizedInput.recurrenceEndDate
-                  : null,
-              recurrenceMonths:
-                nextTransactionKind === "recurring-template"
-                  ? normalizedInput.recurrenceMonths
-                  : null,
-              lastGeneratedAt: null,
-            };
-          }),
-        ),
-      });
-    });
-  }
-
-  function removeTransaction(id: string) {
-    setProfile((currentProfile) => {
-      const transactionToRemove = currentProfile.transactions.find(
-        (transaction) => transaction.id === id,
-      );
-
-      if (!transactionToRemove) {
-        return currentProfile;
-      }
-
-      const seriesId = getTransactionSeriesId(transactionToRemove);
-      const targetId =
-        seriesId && isGeneratedInstance(transactionToRemove)
-          ? seriesId
-          : transactionToRemove.id;
-
-      const transactionsWithoutCurrent = currentProfile.transactions.filter(
-        (transaction) => transaction.id !== targetId,
-      );
-
-      const nextTransactions = seriesId
-        ? removeLinkedGeneratedTransactions(transactionsWithoutCurrent, targetId)
-        : transactionsWithoutCurrent;
+      const updatedOccurrences =
+        backendKind === "Single"
+          ? currentProfile.occurrences.map((candidate) =>
+              candidate.transactionId === contract.id
+                ? { ...candidate, amount: input.amount, dueDate: transactionDate }
+                : candidate,
+            )
+          : currentProfile.occurrences;
 
       return {
         ...currentProfile,
-        transactions: nextTransactions,
+        transactions: currentProfile.transactions.map((candidate) =>
+          candidate.id === contract.id ? updatedContract : candidate,
+        ),
+        occurrences: updatedOccurrences,
       };
     });
   }
 
-  function getNextRecurringOccurrence(transaction: Transaction) {
-    if (transaction.transactionKind === "recurring-template") {
-      return getNextRecurringOccurrenceDate(transaction);
-    }
+  /** Exclusão do contrato inteiro — cascade nas suas Occurrences, espelhando DeleteAsync. */
+  function removeTransaction(id: string) {
+    setProfile((currentProfile) => ({
+      ...currentProfile,
+      transactions: currentProfile.transactions.filter((transaction) => transaction.id !== id),
+      occurrences: currentProfile.occurrences.filter(
+        (occurrence) => occurrence.transactionId !== id,
+      ),
+    }));
+  }
 
-    if (
-      transaction.transactionKind === "recurring-instance" &&
-      transaction.sourceId
-    ) {
-      const recurringTemplate = profile.transactions.find(
-        (item) =>
-          item.id === transaction.sourceId &&
-          item.transactionKind === "recurring-template",
-      );
+  function updateOccurrence(input: UpdateOccurrenceInput) {
+    setProfile((currentProfile) => ({
+      ...currentProfile,
+      occurrences: currentProfile.occurrences.map((occurrence) =>
+        occurrence.id === input.id
+          ? { ...occurrence, amount: input.amount, dueDate: input.dueDate, isCustomized: true }
+          : occurrence,
+      ),
+    }));
+  }
 
-      if (!recurringTemplate) {
-        return null;
-      }
+  function markOccurrencePaid(id: string) {
+    setProfile((currentProfile) => ({
+      ...currentProfile,
+      occurrences: currentProfile.occurrences.map((occurrence) =>
+        occurrence.id === id
+          ? { ...occurrence, status: "Paid", paidAt: new Date().toISOString() }
+          : occurrence,
+      ),
+    }));
+  }
 
-      return getNextRecurringOccurrenceDate(recurringTemplate);
-    }
+  function markOccurrencePending(id: string) {
+    setProfile((currentProfile) => ({
+      ...currentProfile,
+      occurrences: currentProfile.occurrences.map((occurrence) =>
+        occurrence.id === id ? { ...occurrence, status: "Pending", paidAt: null } : occurrence,
+      ),
+    }));
+  }
 
-    return null;
+  /** Soft-delete — igual ao backend, não remove a linha, só marca Status = Cancelled. */
+  function cancelOccurrence(id: string) {
+    setProfile((currentProfile) => ({
+      ...currentProfile,
+      occurrences: currentProfile.occurrences.map((occurrence) =>
+        occurrence.id === id ? { ...occurrence, status: "Cancelled" } : occurrence,
+      ),
+    }));
   }
 
   return {
     profile,
-    transactions: profile.transactions,
+    transactions,
     postedTransactions,
     initialBalance: profile.initialBalance,
     totalIncome,
@@ -641,7 +492,9 @@ export function useLocalFinance() {
     addTransaction,
     updateTransaction,
     removeTransaction,
-    getNextRecurringOccurrence,
-    createPreviewProfile,
+    updateOccurrence,
+    markOccurrencePaid,
+    markOccurrencePending,
+    cancelOccurrence,
   };
 }
