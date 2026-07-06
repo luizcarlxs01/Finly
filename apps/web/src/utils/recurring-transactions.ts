@@ -1,15 +1,5 @@
 import type { Transaction } from "@/types/transaction";
 
-type SynchronizeRecurringTransactionsInput = {
-  transactions: Transaction[];
-  referenceDate?: string;
-};
-
-type SynchronizeRecurringTransactionsResult = {
-  transactions: Transaction[];
-  generatedCount: number;
-};
-
 export function createDateValue(year: number, monthIndex: number, day: number) {
   return new Date(year, monthIndex, day, 12);
 }
@@ -80,10 +70,6 @@ export function createMonthlyOccurrence(
   return createDateValue(year, monthIndex, day);
 }
 
-export function getOccurrenceKey(sourceId: string, occurrenceDate: Date) {
-  return `${sourceId}:${formatDateValue(occurrenceDate)}`;
-}
-
 export function getNextMonthlyOccurrenceAfter(
   occurrenceDate: Date,
   recurrenceDay: number,
@@ -96,26 +82,6 @@ export function getNextMonthlyOccurrenceAfter(
       : occurrenceDate.getFullYear();
 
   return createMonthlyOccurrence(nextYear, nextMonthIndex, recurrenceDay);
-}
-
-function getSourceId(transaction: Transaction) {
-  if (typeof transaction.sourceId === "string" && transaction.sourceId.trim()) {
-    return transaction.sourceId.trim();
-  }
-
-  if (
-    typeof transaction.recurringSourceId === "string" &&
-    transaction.recurringSourceId.trim()
-  ) {
-    return transaction.recurringSourceId.trim();
-  }
-
-  return null;
-}
-
-function getOccurrenceDate(transaction: Transaction) {
-  return parseDateValue(transaction.occurrenceDate) ??
-    parseDateValue(transaction.recurringOccurrenceDate);
 }
 
 function getMonthDifference(startDate: Date, endDate: Date) {
@@ -214,127 +180,4 @@ export function getNextRecurringOccurrenceDate(
   return isOccurrenceWithinRecurringLimit(transaction, nextOccurrence, startDate)
     ? formatDateValue(nextOccurrence)
     : null;
-}
-
-function createRecurringInstance(
-  transaction: Transaction,
-  dueDate: Date,
-): Transaction {
-  const occurrenceDate = formatDateValue(dueDate);
-
-  return {
-    id: crypto.randomUUID(),
-    title: transaction.title,
-    amount: transaction.amount,
-    type: transaction.type,
-    category: transaction.category,
-    transactionKind: "recurring-instance",
-    sourceId: transaction.id,
-    occurrenceDate,
-    installmentIndex: null,
-    installmentCount: null,
-    installmentStartDate: null,
-    recurringSourceId: transaction.id,
-    recurringOccurrenceDate: occurrenceDate,
-    isRecurring: false,
-    recurrenceType: null,
-    recurrenceMode: null,
-    recurrenceDay: null,
-    recurrenceStartDate: null,
-    recurrenceEndDate: null,
-    recurrenceMonths: null,
-    lastGeneratedAt: null,
-    createdAt: dueDate.toISOString(),
-  };
-}
-
-export function synchronizeRecurringTransactions({
-  transactions,
-  referenceDate,
-}: SynchronizeRecurringTransactionsInput): SynchronizeRecurringTransactionsResult {
-  const synchronizedTransactions = [...transactions];
-  const recurringInstances = new Set<string>();
-  const currentDate = getReferenceDate(referenceDate);
-
-  for (const transaction of transactions) {
-    if (transaction.transactionKind !== "recurring-instance") {
-      continue;
-    }
-
-    const sourceId = getSourceId(transaction);
-    const occurrenceDate = getOccurrenceDate(transaction);
-
-    if (!sourceId || !occurrenceDate) {
-      continue;
-    }
-
-    recurringInstances.add(getOccurrenceKey(sourceId, occurrenceDate));
-  }
-
-  let generatedCount = 0;
-
-  for (let index = 0; index < synchronizedTransactions.length; index += 1) {
-    const transaction = synchronizedTransactions[index];
-    const startDate = parseDateValue(transaction.recurrenceStartDate);
-
-    if (
-      !currentDate ||
-      !startDate ||
-      !isRecurringTemplateTransaction(transaction) ||
-      startDate > currentDate
-    ) {
-      continue;
-    }
-
-    let latestGeneratedOccurrence = getLatestGeneratedOccurrenceDate(transaction);
-    let nextOccurrence = latestGeneratedOccurrence
-      ? getNextMonthlyOccurrenceAfter(
-          latestGeneratedOccurrence,
-          transaction.recurrenceDay!,
-        )
-      : startDate;
-
-    while (
-      nextOccurrence <= currentDate &&
-      isOccurrenceWithinRecurringLimit(transaction, nextOccurrence, startDate)
-    ) {
-      const recurringKey = getOccurrenceKey(transaction.id, nextOccurrence);
-
-      if (!recurringInstances.has(recurringKey)) {
-        synchronizedTransactions.push(
-          createRecurringInstance(transaction, nextOccurrence),
-        );
-        recurringInstances.add(recurringKey);
-        generatedCount += 1;
-      }
-
-      latestGeneratedOccurrence = nextOccurrence;
-      nextOccurrence = getNextMonthlyOccurrenceAfter(
-        latestGeneratedOccurrence,
-        transaction.recurrenceDay!,
-      );
-    }
-
-    const latestGeneratedAt =
-      latestGeneratedOccurrence &&
-      isOccurrenceWithinRecurringLimit(
-        transaction,
-        latestGeneratedOccurrence,
-        startDate,
-      )
-        ? latestGeneratedOccurrence.toISOString()
-        : null;
-
-    if (transaction.lastGeneratedAt !== latestGeneratedAt) {
-      synchronizedTransactions[index] = {
-        ...transaction,
-        lastGeneratedAt: latestGeneratedAt,
-      };
-    }
-  }
-
-  return {
-    transactions: synchronizedTransactions,
-    generatedCount,
-  };
 }

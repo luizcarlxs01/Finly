@@ -486,8 +486,9 @@ style:     formatação, sem alteração de lógica
 ## 21. Arquitetura de Transações — Transaction + Occurrence
 
 > Mudança de arquitetura de dados (backend nas Fases A/B, frontend modo API na
-> Fase C, frontend modo local na Fase D). Migração **concluída nos três lados**
-> (backend, modo API, modo local). Leia esta seção inteira antes de tocar em
+> Fase C, frontend modo local na Fase D, limpeza de código morto na Fase E).
+> Migração **COMPLETA** — backend, modo API e modo local no mesmo modelo, sem
+> resíduo do modelo antigo. Leia esta seção inteira antes de tocar em
 > Transações, Regras Financeiras ou Dashboard, em qualquer um dos três.
 
 ### Contexto do problema resolvido
@@ -604,24 +605,42 @@ separadamente.
     reescrita): `utils/installment-transactions.ts` (+ teste),
     `services/local-finance-service.ts` (já estava morto, nenhum import),
     `utils/upcoming-transactions.ts` reduzido a apenas tipos.
-- ⏳ **Fase E** — Auditoria final de código morto remanescente. Confirmado
-  nesta sessão que ainda restam candidatos em
-  `apps/web/src/utils/recurring-transactions.ts`:
-  - `synchronizeRecurringTransactions` — **confirmado morto**, só é referenciada
-    pelo próprio teste (`test/utils/recurring-transactions.test.ts`), nenhum
-    hook ou componente chama mais.
-  - `getNextRecurringOccurrenceDate` — **ainda em uso** (`app/page.tsx`, cálculo
-    de "próxima ocorrência" exibido na lista), não remover.
-  - `getOccurrenceKey`, `getNextMonthlyOccurrenceAfter`, `createDateValue` —
-    aparentam não ter uso fora do próprio arquivo/teste, mas **não foram
-    auditados linha a linha** nesta sessão; confirmar antes de remover.
-  - Esta auditoria de `recurring-transactions.ts` foi apenas um `grep`
-    superficial, não uma revisão completa — é o próximo passo de fato pendente
-    antes de considerar a migração 100% encerrada.
+- ✅ **Fase E** — Remoção final de código morto da migração. Auditoria completa
+  por `grep` de cada símbolo de `recurring-transactions.ts` contra todo
+  `apps/web/src` (produção + testes), confirmando uso real antes de remover
+  qualquer coisa. Removidos por estarem **100% mortos** (zero uso fora da
+  própria definição/teste):
+  - `synchronizeRecurringTransactions` (função exportada)
+  - `getOccurrenceKey` (função exportada — ficaria órfã após a remoção acima)
+  - `getSourceId` (helper privado, só usado por `synchronizeRecurringTransactions`)
+  - `getOccurrenceDate` (helper privado, idem)
+  - `createRecurringInstance` (helper privado, idem)
+  - `SynchronizeRecurringTransactionsInput` / `SynchronizeRecurringTransactionsResult`
+    (tipos locais só usados na assinatura da função removida)
+  - O describe block correspondente (5 testes) em
+    `test/utils/recurring-transactions.test.ts` também foi removido.
 
-### Estado atual (fim da Fase D)
+  Confirmados **vivos e mantidos intocados** (dependências internas de funções
+  ainda em uso, mesmo sem import externo): `createDateValue`, `getReferenceDate`,
+  `getDaysInMonth`, `getMonthDifference`, `isRecurringTemplateTransaction`,
+  `isOccurrenceWithinRecurringLimit`, `getLatestGeneratedOccurrenceDate` — todas
+  usadas por `getNextRecurringOccurrenceDate` (que por sua vez é usada em
+  `app/page.tsx`) ou por `parseDateValue`/`createMonthlyOccurrence` (usadas em
+  `occurrence-generation.ts`, `transaction-normalization.ts`,
+  `upcoming-occurrences.ts` e outros). `recurring-transactions.ts` **não foi
+  deletado** — continua existindo com o que está em uso.
+
+  Validado após a remoção: `npx tsc --noEmit` limpo (só os 3 arquivos de dívida
+  técnica pré-existente da seção 13); `npx vitest run` com exatamente as mesmas
+  19 falhas do baseline documentado (mesmos 8 arquivos, mesmos testes — nenhuma
+  nova, nenhuma resolvida); `recurring-transactions.test.ts` passando 100% (9
+  testes, os 5 do `synchronizeRecurringTransactions` removidos junto com a
+  função).
+
+### Estado atual — migração COMPLETA (Fases A a E)
 
 Backend, frontend modo API e frontend modo local estão todos no modelo
-Transaction + Occurrence. A migração de arquitetura em si está **funcionalmente
-concluída** — o que resta (Fase E) é limpeza de código morto remanescente em
-`recurring-transactions.ts`, não mudança de comportamento.
+Transaction + Occurrence, sem código morto remanescente do modelo antigo. A
+migração de arquitetura Transaction + Occurrence está **encerrada**. Dívida
+técnica que resta (testes com texto de UI desatualizado e erros de TypeScript
+em testes) é pré-existente e não relacionada a esta migração — ver seção 13.
