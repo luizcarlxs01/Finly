@@ -241,35 +241,13 @@ Account Access Card, App Floating Header, Login Form, Register Form, Password St
 
 ## 13. Dívida técnica conhecida
 
-Erros de TypeScript pré-existentes nos testes, fora do escopo da Fase 1:
-- `financial-forecast-card.test.tsx`
-- `goal-list.test.tsx`
-- `transaction-list.test.tsx`
+**Resolvida em 15/08/2026** — 162/162 testes passando, `npx tsc --noEmit` limpo.
 
-Esses erros já existiam antes da Fase 1 e precisam ser corrigidos em momento dedicado.
+Correções aplicadas (commit `18ad2fc`):
+- **Erros de TypeScript** (Category 1): anotações de tipo em callbacks `getByText`/`getAllByText`; casts `as HTMLElement` nos `within()` — em `financial-forecast-card.test.tsx`, `goal-list.test.tsx`, `transaction-list.test.tsx`
+- **Assertions obsoletas** (Category 2): textos alinhados à UI atual em todos os 8 arquivos afetados; lógica de estado colapsado do `FinanceSummaryCard`; remoção de `StatementProjectionModal` de `DashboardTransactionsView` (movido para `page.tsx`); `page.test.tsx` corrigido com mock de `useFinanceSource`, `cancelOccurrence`, e `NEXT_PUBLIC_API_URL` em `setup.ts`
 
-**Falhas de teste com texto de UI desatualizado (auditadas na Fase D)**
-
-> ⚠️ Baseline atualizado na entrega do Calendário Financeiro (seção 22): agora são
-> **18 falhas nos mesmos 8 arquivos**. O teste
-> `DashboardTransactionsView > deve exibir as acoes principais da tela e os atalhos
-> para extrato e agenda` foi reescrito (virou `... para extrato e calendario e
-> disparar seus callbacks`) e passa. Os 18 restantes seguem idênticos ao baseline
-> original, reconferidos com `git stash`.
-
-19 testes falham em 8 arquivos (`dashboard-transactions-view`, `finance-summary-card`,
-`transaction-list`, `dashboard-home-view`, `dashboard-insights-view`, `hero-section`,
-`goal-list`) por procurarem textos/elementos que não existem mais desde
-refinamentos de UI de sessões anteriores à Fase D (ex.: card colapsável do
-`FinanceSummaryCard` desde `eba87aa`, reorganização de Lançamentos desde
-`255deca`/`777b1b3`). Auditado rodando a suíte completa com e sem o diff da
-Fase D (`git stash`) — as 19 falhas são idênticas nos dois estados, confirmando
-que nenhuma é regressão da Fase D. Precisam ser reescritos para o texto/estrutura
-atual em momento dedicado, junto com os erros de TypeScript acima.
-
-Separadamente, `src/test/app/page.test.tsx` falha o arquivo inteiro com
-`NEXT_PUBLIC_API_URL não está definida` — o test runner não carrega
-`.env.local`. Também pré-existente, não relacionado à Fase D.
+Não há dívida técnica de testes remanescente.
 
 ---
 
