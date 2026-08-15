@@ -153,8 +153,8 @@ Dashboard Home, Dashboard Transactions, Dashboard Goals, Dashboard Insights,
 Finance Summary Card, Financial Forecast Card, Financial Rules Manager,
 Transaction Form, Transaction List, Transaction Edit Modal,
 Goal Form, Goal List, Goal Progress Modal,
-Upcoming Transactions, Schedule Modal, Statement Projection Modal,
-Account Access Card, App Floating Header, Login Form
+Financial Calendar Modal (+ Grid e Day Panel), Statement Projection Modal,
+Account Access Card, App Floating Header, Login Form, Register Form, Password Strength Bar
 
 ---
 
@@ -192,13 +192,14 @@ Account Access Card, App Floating Header, Login Form
 ## 11. O que já está implementado
 
 ✅ Login / Logout / JWT  
+✅ Cadastro de usuários com validação de domínio MX  
 ✅ Dashboard  
 ✅ Saldo Inicial  
 ✅ Criar / Editar / Excluir Transação  
 ✅ Parcelamento  
 ✅ Recorrência  
 ✅ Simular Impacto  
-✅ Agenda  
+✅ Calendário Financeiro (substituiu a Agenda — ver seção 22)  
 ✅ Extrato  
 ✅ Projeção  
 ✅ Criar / Atualizar / Excluir Meta  
@@ -216,7 +217,7 @@ Account Access Card, App Floating Header, Login Form
 **UI / UX (web)**
 - ✅ Reduzir textos da UI (hero, onboarding, insights)
 - ✅ Remover cards decorativos do HeroSection
-- ✅ Atalhos Agenda e Extrato na Home
+- ✅ Atalhos Agenda e Extrato na Home (a Agenda virou **Calendário** — ver seção 22)
 - ✅ Simplificar Saldo Inicial (in-place editing)
 - ✅ Remover cards de onboarding da Home
 - ✅ Reorganização completa do layout
@@ -248,6 +249,13 @@ Erros de TypeScript pré-existentes nos testes, fora do escopo da Fase 1:
 Esses erros já existiam antes da Fase 1 e precisam ser corrigidos em momento dedicado.
 
 **Falhas de teste com texto de UI desatualizado (auditadas na Fase D)**
+
+> ⚠️ Baseline atualizado na entrega do Calendário Financeiro (seção 22): agora são
+> **18 falhas nos mesmos 8 arquivos**. O teste
+> `DashboardTransactionsView > deve exibir as acoes principais da tela e os atalhos
+> para extrato e agenda` foi reescrito (virou `... para extrato e calendario e
+> disparar seus callbacks`) e passa. Os 18 restantes seguem idênticos ao baseline
+> original, reconferidos com `git stash`.
 
 19 testes falham em 8 arquivos (`dashboard-transactions-view`, `finance-summary-card`,
 `transaction-list`, `dashboard-home-view`, `dashboard-insights-view`, `hero-section`,
@@ -335,11 +343,44 @@ docker compose --env-file .env up -d --build
 - `SA_PASSWORD` e `JWT__SecretKey` são gerados localmente por cada desenvolvedor seguindo o `docker/.env.example`
 - Jamais citar o valor real de nenhuma senha ou chave em commits, comentários ou neste arquivo
 
+**Fase F — Cadastro de usuários (CONCLUÍDA)**
+
+Implementação do formulário de registro com validação de domínio e indicador visual de força de senha.
+
+**Backend (apps/api)**
+- ✅ `IEmailDomainValidationService` + `EmailDomainValidationService` — checagem de registro MX via [DnsClient.NET](https://github.com/MichaCo/DnsClient.NET)
+  - Detecta domínios inexistentes ou sem suporte a e-mail
+  - Consulta DNS sem fazer conexão real (sem custo, sem infraestrutura extra)
+  - Integrado ao `AuthService.RegisterAsync` como validação anterior ao duplo check
+- ✅ `AuthService.RegisterAsync` — chama validação de domínio, rejeita com mensagem clara se domínio inválido
+- ✅ Senha mínima mantida em 8 caracteres (seção 2 da Fase 2)
+- ✅ JWT retornado automaticamente após criar a conta
+
+**Frontend (apps/web)**
+- ✅ `utils/password-strength.ts` — heurística minimalista (comprimento 8+, maiúsc/minúsc, número, símbolo)
+  - `weak`: 0-2 critérios
+  - `medium`: 3 critérios
+  - `strong`: 4+ critérios
+- ✅ `components/auth/password-strength-bar.tsx` — barra visual (vermelho/amarelo/verde), só aparece com input
+- ✅ `components/auth/register-form.tsx` — formulário de cadastro (nome, e-mail, senha)
+  - Mesmo padrão visual do `LoginForm`
+  - Inclui `PasswordStrengthBar` integrado
+- ✅ `hooks/use-auth-session.ts` — ganhou método `register()` que salva a sessão automaticamente
+- ✅ `components/auth/account-access-card.tsx` — placeholder "em breve" removido
+  - Agora alterna entre `LoginForm` e `RegisterForm` conforme a intenção (`activeIntent`)
+  - Sem duplicação de componentes, sem branches locale/API
+
+**Validado**
+- Registro com Gmail (domínio válido) → conta criada, login automático, sessão persistida
+- Registro com domínio inexistente → rejeitado pelo backend, mensagem exibida na UI
+- Barra de senha reage em tempo real: "Senha fraca" → "Senha forte"
+- Zero erros de console, fluxo end-to-end validado no browser com API rodando via Docker
+
 **Fase 4 — VPS (PRÓXIMA)**
 - Contratar servidor: 4 GB RAM, 2 vCPU, Ubuntu + Docker + Docker Compose
 - Faixa: R$ 40–80/mês
 - Subir o mesmo `docker-compose.yml` na VPS com as credenciais de produção
-- Pré-requisito: Fase 3 concluída ✅
+- Pré-requisito: Fases 1-3 e F concluídas ✅
 
 ---
 
@@ -627,8 +668,9 @@ separadamente.
   usadas por `getNextRecurringOccurrenceDate` (que por sua vez é usada em
   `app/page.tsx`) ou por `parseDateValue`/`createMonthlyOccurrence` (usadas em
   `occurrence-generation.ts`, `transaction-normalization.ts`,
-  `upcoming-occurrences.ts` e outros). `recurring-transactions.ts` **não foi
-  deletado** — continua existindo com o que está em uso.
+  `upcoming-occurrences.ts` e outros — este último removido depois, na seção 22).
+  `recurring-transactions.ts` **não foi deletado** — continua existindo com o que
+  está em uso.
 
   Validado após a remoção: `npx tsc --noEmit` limpo (só os 3 arquivos de dívida
   técnica pré-existente da seção 13); `npx vitest run` com exatamente as mesmas
@@ -644,3 +686,97 @@ Transaction + Occurrence, sem código morto remanescente do modelo antigo. A
 migração de arquitetura Transaction + Occurrence está **encerrada**. Dívida
 técnica que resta (testes com texto de UI desatualizado e erros de TypeScript
 em testes) é pré-existente e não relacionada a esta migração — ver seção 13.
+
+---
+
+## 22. Calendário Financeiro — substituiu a Agenda
+
+Funcionalidade entregue e validada no browser. **Substitui completamente** a Agenda
+(`schedule-modal.tsx` + lista de "próximos 3 meses"), que foi removida.
+
+### O que é
+
+Modal/overlay com grid mensal estilo Google Calendar, aberto pelo botão
+**Calendário** (antes "Agenda") na Home e na aba Lançamentos.
+
+- Header: navegação `‹ Mês Ano ›` + botão **Hoje** (só aparece fora do mês atual)
+- Resumo do mês: entradas previstas, saídas previstas e **Saldo do mês**
+  (`totalIncome - totalExpense` das Occurrences do mês, `Paid` + `Pending`)
+- Grid: dias 1..N alinhados por dia da semana (células vazias antes do dia 1),
+  incluindo dias passados; dia atual destacado com pill `bg-primary`
+- Pontinhos por dia: **verde** (`emerald`) = `Paid`, **cinza** = `Pending`.
+  Máximo de 4 pontos, excedente vira `+N`. `Cancelled` nunca aparece (já vem
+  filtrada do array achatado, decisão da Fase C/D)
+- Hover no dia: popover leve (CSS puro, `group-hover`, `pointer-events-none`)
+  com até 3 ocorrências + "e mais N". Abre para cima nas 2 últimas semanas para
+  não ser cortado pelo scroll do modal
+- Clique no dia: painel de detalhes **dentro do próprio modal** — coluna à
+  direita no `xl`, empilhado abaixo do grid em telas menores
+- O painel do dia é **somente visualização**. Nenhuma ação nova (marcar pago,
+  cancelar, editar inline) foi implementada — só um botão **Editar** por item,
+  que fecha o calendário e abre o `TransactionEditModal` já existente
+
+> ⚠️ **Saldo do mês ≠ saldo projetado acumulado.** É o resultado líquido daquele
+> mês isolado, bem definido tanto para meses passados quanto futuros. Não soma o
+> saldo atual nem acumula meses intermediários. Se algum dia for preciso o saldo
+> corrido ao final do mês, é mudança de regra de negócio — confirmar antes.
+
+### Arquivos
+
+**Novos**
+- `utils/financial-calendar.ts` — `getCalendarMonthData` (agrupa por dia,
+  monta os dias do mês, calcula o resumo), `isPaidOccurrence`,
+  `CALENDAR_WEEKDAY_LABELS` e `getNextMonthLabel`
+- `components/dashboard/overlays/financial-calendar-modal.tsx`
+- `components/dashboard/overlays/financial-calendar-grid.tsx`
+- `components/dashboard/overlays/financial-calendar-day-panel.tsx`
+
+**Removidos (modelo antigo de lista, 100% morto após a troca)**
+- `components/dashboard/overlays/schedule-modal.tsx`
+- `components/dashboard/upcoming-transactions.tsx`
+- `components/dashboard/upcoming-transactions-month-group.tsx`
+- `utils/upcoming-transactions.ts` (só tipos) e `utils/upcoming-occurrences.ts`
+- Testes: `schedule-modal.test.tsx`, `upcoming-transactions.test.tsx`,
+  `upcoming-transactions-month-group.test.tsx`
+- Mock morto de `@/utils/upcoming-transactions` em `test/app/page.test.tsx`
+  (apontava para `getUpcomingTransactionsByMonth`, que já não existia)
+
+**Alterados**
+- `dashboard-entry-header.tsx`, `dashboard-home-view.tsx`,
+  `dashboard-transactions-view.tsx` — prop `onOpenSchedule` → `onOpenCalendar`,
+  label "Agenda" → "Calendário" (ícone `CalendarDays` mantido)
+- `app/page.tsx` — `isScheduleModalOpen` → `isCalendarModalOpen`; o modal recebe
+  `projectionTransactions` (respeita a simulação de impacto ativa) em vez de
+  `monthGroups`
+- `.claude/launch.json` — criado para o preview do `npm run dev` (dev only)
+
+### Fonte de dados — idêntica nos dois modos
+
+Consome `useFinanceData().transactions`, que passa pela mesma
+`flattenApiTransactionToLineItems` no modo local e no modo API (seção 21).
+Não há nenhum gating `source === "local" | "api"` no calendário.
+
+### Horizonte de Occurrences
+
+Recorrência indefinida gera 12 meses (limitação conhecida da seção 21). Navegar
+além disso mostra o grid vazio com "Nenhum lançamento neste mês" — sem erro e
+sem crash. **Decisão: não projetar datas no client**, porque reintroduziria
+exatamente a lógica de projeção que as Fases D/E removeram de propósito. A
+navegação não tem teto artificial.
+
+### Validação (browser, modo sem conta)
+
+Fluxo validado com dados criados pela própria UI: Single passada (paga), Single
+futura (pendente), Installment 4x cruzando julho→outubro e Recurring indefinida.
+Conferido: resumo do mês batendo na matemática (entradas 5.000 / saídas 720,50 /
+saldo 4.279,50 em agosto), saldo atual correto (4.600 — pendentes não entram),
+pontos verde/cinza corretos por status, "Parcela 2/4" no painel do dia,
+alinhamento semanal (1º/ago/2026 = sábado → 6 células vazias), dia 15 destacado
+como hoje, Editar abrindo o `TransactionEditModal` com o bloco "Esta ocorrência",
+scroll-lock do body restaurado ao fechar (incluindo via `Escape`), recorrente
+indefinida presente em exatamente 12 meses e vazia a partir do 13º, e mobile
+(375px) sem scroll horizontal. Zero erros de console.
+
+`npx tsc --noEmit` limpo (só os 3 arquivos de dívida técnica da seção 13).
+`npx vitest run`: 18 falhas — o baseline de 19 medido com `git stash` no mesmo
+commit, menos o teste da Agenda que foi reescrito. Nenhuma regressão.

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { LoginForm } from "@/components/auth/login-form";
+import { RegisterForm } from "@/components/auth/register-form";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -33,8 +34,15 @@ function AccountIdentity({
 }
 
 export function AccountAccessCard() {
-  const { authenticated, isLoaded, isSubmitting, login, logout, session } =
-    useAuthSession();
+  const {
+    authenticated,
+    isLoaded,
+    isSubmitting,
+    login,
+    register,
+    logout,
+    session,
+  } = useAuthSession();
   const [activeIntent, setActiveIntent] = useState<AccessIntent>("login");
   const [isFormOpen, setIsFormOpen] = useState(false);
 
@@ -118,19 +126,20 @@ export function AccountAccessCard() {
       {isFormOpen ? (
         <div className="space-y-3">
           {activeIntent === "register" ? (
-            <div className="rounded-2xl border border-border/70 bg-card/70 px-4 py-3 text-sm text-muted-foreground">
-              O cadastro visual será conectado em breve. Por enquanto, entre com
-              uma conta já criada no backend do Finly.
-            </div>
-          ) : null}
-
-          <LoginForm
-            isSubmitting={isSubmitting}
-            onSubmit={login}
-            title="Entrar na sua conta"
-            description="Acesse sua conta para sincronizar transações, metas e resumo financeiro."
-            footerText="Seu acesso fica salvo neste navegador para facilitar os próximos acessos."
-          />
+            <RegisterForm
+              isSubmitting={isSubmitting}
+              onSubmit={register}
+              footerText="Sua sessão será criada automaticamente após o cadastro, e ficará salva neste navegador."
+            />
+          ) : (
+            <LoginForm
+              isSubmitting={isSubmitting}
+              onSubmit={login}
+              title="Entrar na sua conta"
+              description="Acesse sua conta para sincronizar transações, metas e resumo financeiro."
+              footerText="Seu acesso fica salvo neste navegador para facilitar os próximos acessos."
+            />
+          )}
         </div>
       ) : null}
     </div>

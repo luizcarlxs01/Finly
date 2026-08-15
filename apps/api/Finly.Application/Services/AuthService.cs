@@ -10,15 +10,18 @@ public class AuthService : IAuthService
     private readonly IAppDbContext _context;
     private readonly IPasswordHasherService _passwordHasherService;
     private readonly ITokenService _tokenService;
+    private readonly IEmailDomainValidationService _emailDomainValidationService;
 
     public AuthService(
         IAppDbContext context,
         IPasswordHasherService passwordHasherService,
-        ITokenService tokenService)
+        ITokenService tokenService,
+        IEmailDomainValidationService emailDomainValidationService)
     {
         _context = context;
         _passwordHasherService = passwordHasherService;
         _tokenService = tokenService;
+        _emailDomainValidationService = emailDomainValidationService;
     }
 
     public async Task<AuthResponseDto> RegisterAsync(
@@ -40,6 +43,10 @@ public class AuthService : IAuthService
 
         if (password.Length < 8)
             throw new InvalidOperationException("A senha deve ter no mínimo 8 caracteres.");
+
+        var hasValidDomain = await _emailDomainValidationService.HasValidMxRecordAsync(email, cancellationToken);
+        if (!hasValidDomain)
+            throw new InvalidOperationException("O domínio do e-mail informado não parece existir ou não pode receber e-mails.");
 
         var userAlreadyExists = await _context.Users
             .AnyAsync(x => x.Email == email, cancellationToken);

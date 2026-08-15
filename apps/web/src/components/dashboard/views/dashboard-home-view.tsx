@@ -2,13 +2,13 @@ import { DashboardEntryHeader } from "@/components/dashboard/dashboard-entry-hea
 
 export type DashboardHomeViewProps = {
   onGoToTransactions: () => void;
-  onOpenSchedule: () => void;
+  onOpenCalendar: () => void;
   onOpenStatementProjection: () => void;
 };
 
 export function DashboardHomeView({
   onGoToTransactions,
-  onOpenSchedule,
+  onOpenCalendar,
   onOpenStatementProjection,
 }: DashboardHomeViewProps) {
   function handleStartTransactions() {
@@ -18,7 +18,7 @@ export function DashboardHomeView({
   return (
     <DashboardEntryHeader
       onStartTransactions={handleStartTransactions}
-      onOpenSchedule={onOpenSchedule}
+      onOpenCalendar={onOpenCalendar}
       onOpenStatementProjection={onOpenStatementProjection}
     />
   );

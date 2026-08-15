@@ -5,7 +5,6 @@ import userEvent from "@testing-library/user-event";
 const mockUseLocalFinance = vi.fn();
 const mockUseLocalGoals = vi.fn();
 const mockGetDashboardInsights = vi.fn();
-const mockGetUpcomingTransactionsByMonth = vi.fn();
 
 vi.mock("@/hooks/use-local-finance", () => ({
   useLocalFinance: () => mockUseLocalFinance(),
@@ -17,11 +16,6 @@ vi.mock("@/hooks/use-local-goals", () => ({
 
 vi.mock("@/utils/dashboard-insights", () => ({
   getDashboardInsights: (...args: unknown[]) => mockGetDashboardInsights(...args),
-}));
-
-vi.mock("@/utils/upcoming-transactions", () => ({
-  getUpcomingTransactionsByMonth: (...args: unknown[]) =>
-    mockGetUpcomingTransactionsByMonth(...args),
 }));
 
 vi.mock("@/components/dashboard/views/dashboard-home-view", () => ({
@@ -291,9 +285,6 @@ function setupLoadedMocks(
   mockGetDashboardInsights.mockReturnValue([
     { id: "insight-1", title: "Saldo estável", description: "ok", tone: "neutral" },
   ]);
-  mockGetUpcomingTransactionsByMonth.mockReturnValue([
-    { id: "month-1", monthLabel: "maio de 2026", items: [] },
-  ]);
 
   return { finance, goals };
 }
@@ -329,7 +320,6 @@ describe("HomePage", () => {
       isLoaded: true,
     });
     mockGetDashboardInsights.mockReturnValue([]);
-    mockGetUpcomingTransactionsByMonth.mockReturnValue([]);
 
     render(<HomePage />);
 
@@ -382,7 +372,6 @@ describe("HomePage", () => {
       },
     });
     mockGetDashboardInsights.mockReturnValue([]);
-    mockGetUpcomingTransactionsByMonth.mockReturnValue([]);
 
     render(<HomePage />);
 

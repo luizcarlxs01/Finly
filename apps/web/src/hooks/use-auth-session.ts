@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { login as loginWithApi } from "@/lib/api/auth";
+import { login as loginWithApi, register as registerWithApi } from "@/lib/api/auth";
 import {
   AUTH_SESSION_EVENT,
   clearAuthSession,
   getAuthSession,
   saveAuthSession,
 } from "@/lib/auth-storage";
-import type { AuthResponse, LoginRequest } from "@/types/auth";
+import type { AuthResponse, LoginRequest, RegisterRequest } from "@/types/auth";
 
 type UseAuthSessionReturn = {
   session: AuthResponse | null;
@@ -16,6 +16,7 @@ type UseAuthSessionReturn = {
   isLoaded: boolean;
   isSubmitting: boolean;
   login: (payload: LoginRequest) => Promise<void>;
+  register: (payload: RegisterRequest) => Promise<void>;
   logout: () => void;
 };
 
@@ -97,6 +98,18 @@ export function useAuthSession(): UseAuthSessionReturn {
     }
   }
 
+  async function register(payload: RegisterRequest) {
+    setIsSubmitting(true);
+
+    try {
+      const nextSession = await registerWithApi(payload);
+      saveAuthSession(nextSession);
+      setSession(nextSession);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
   function logout() {
     clearAuthSession();
     setSession(null);
@@ -108,6 +121,7 @@ export function useAuthSession(): UseAuthSessionReturn {
     isLoaded,
     isSubmitting,
     login,
+    register,
     logout,
   };
 }

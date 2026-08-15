@@ -9,7 +9,7 @@ function renderDashboardHomeView(
 ) {
   const props: React.ComponentProps<typeof DashboardHomeView> = {
     onGoToTransactions: vi.fn(),
-    onOpenSchedule: vi.fn(),
+    onOpenCalendar: vi.fn(),
     onOpenStatementProjection: vi.fn(),
     ...overrides,
   };

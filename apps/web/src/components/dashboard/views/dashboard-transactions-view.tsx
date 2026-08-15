@@ -36,7 +36,7 @@ type DashboardTransactionsViewProps = {
   getNextRecurringOccurrence: (transaction: Transaction) => string | null;
   emptyStateTitle: string;
   emptyStateDescription: string;
-  onOpenSchedule: () => void;
+  onOpenCalendar: () => void;
   onOpenStatementProjection: () => void;
   initialBalance: number;
   totalIncome: number;
@@ -74,7 +74,7 @@ export function DashboardTransactionsView({
   getNextRecurringOccurrence,
   emptyStateTitle,
   emptyStateDescription,
-  onOpenSchedule,
+  onOpenCalendar,
   onOpenStatementProjection,
   initialBalance,
   totalIncome,
@@ -123,10 +123,10 @@ export function DashboardTransactionsView({
                 <Button
                   type="button"
                   className="h-11 justify-start rounded-2xl"
-                  onClick={onOpenSchedule}
+                  onClick={onOpenCalendar}
                 >
                   <CalendarDays className="size-4" />
-                  Agenda
+                  Calendário
                 </Button>
 
                 <Button

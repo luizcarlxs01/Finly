@@ -1,4 +1,5 @@
 using System.Text;
+using DnsClient;
 using Finly.Application.Interfaces;
 using Finly.Infrastructure.Data;
 using Finly.Infrastructure.Security;
@@ -23,6 +24,8 @@ public static class InfrastructureServiceExtensions
         services.AddScoped<IAppDbContext>(provider => provider.GetRequiredService<AppDbContext>());
         services.AddScoped<IPasswordHasherService, PasswordHasherService>();
         services.AddScoped<ITokenService, TokenService>();
+        services.AddSingleton<ILookupClient>(new LookupClient());
+        services.AddScoped<IEmailDomainValidationService, EmailDomainValidationService>();
 
         var jwtSettingsSection = configuration.GetSection(JwtSettings.SectionName);
         services.Configure<JwtSettings>(jwtSettingsSection);

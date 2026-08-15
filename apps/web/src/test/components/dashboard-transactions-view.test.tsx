@@ -4,7 +4,6 @@ import userEvent from "@testing-library/user-event";
 
 import type { LocalFinanceTransactionInput } from "@/hooks/use-local-finance";
 import type { Transaction } from "@/types/finance";
-import type { UpcomingTransactionsMonthGroup } from "@/utils/upcoming-transactions";
 
 vi.mock("@/components/dashboard/transaction-form", () => ({
   TransactionForm: ({
@@ -210,27 +209,6 @@ vi.mock("@/components/dashboard/overlays/statement-projection-modal", () => ({
     ) : null,
 }));
 
-vi.mock("@/components/dashboard/overlays/schedule-modal", () => ({
-  ScheduleModal: ({
-    open,
-    onClose,
-    monthGroups,
-  }: {
-    open: boolean;
-    onClose: () => void;
-    monthGroups: UpcomingTransactionsMonthGroup[];
-  }) =>
-    open ? (
-      <div>
-        <p>ScheduleModal</p>
-        <p>{monthGroups[0]?.monthLabel ?? "Sem grupos"}</p>
-        <button type="button" onClick={onClose}>
-          Close schedule modal
-        </button>
-      </div>
-    ) : null,
-}));
-
 import { DashboardTransactionsView } from "@/components/dashboard/views/dashboard-transactions-view";
 
 const currencyFormatter = new Intl.NumberFormat("pt-BR", {
@@ -273,23 +251,6 @@ function createTransaction(overrides: Partial<Transaction> = {}): Transaction {
   };
 }
 
-function createUpcomingGroup(
-  overrides: Partial<UpcomingTransactionsMonthGroup> = {},
-): UpcomingTransactionsMonthGroup {
-  return {
-    id: "2026-05",
-    monthLabel: "maio de 2026",
-    monthDate: "2026-05-01",
-    items: [],
-    totalIncome: 1000,
-    totalExpense: 300,
-    projectedBalance: 700,
-    balanceTone: "positive",
-    balanceSummary: "Saldo positivo",
-    ...overrides,
-  };
-}
-
 function renderDashboardTransactionsView(
   overrides: Partial<React.ComponentProps<typeof DashboardTransactionsView>> = {},
 ) {
@@ -326,7 +287,7 @@ function renderDashboardTransactionsView(
     getNextRecurringOccurrence: vi.fn(() => null),
     emptyStateTitle: "Nenhuma transação",
     emptyStateDescription: "Cadastre itens para começar.",
-    onOpenSchedule: vi.fn(),
+    onOpenCalendar: vi.fn(),
     onOpenStatementProjection: vi.fn(),
     initialBalance: 1000,
     totalIncome: 3000,
@@ -353,7 +314,7 @@ describe("DashboardTransactionsView", () => {
     expect(screen.getByText("Novo lançamento")).toBeInTheDocument();
     expect(screen.getByText("Resumo rápido")).toBeInTheDocument();
     expect(screen.getAllByText("Extrato").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Agenda").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Calendário").length).toBeGreaterThan(0);
     expect(screen.getByText("FinanceSummaryCard")).toBeInTheDocument();
     expect(screen.getByText("TransactionForm")).toBeInTheDocument();
     expect(screen.getByText("Inicial: 1000")).toBeInTheDocument();
@@ -417,8 +378,10 @@ describe("DashboardTransactionsView", () => {
     const onClearAdvancedFilters = vi.fn();
     const onEditTransaction = vi.fn();
     const onRemoveTransaction = vi.fn();
+    const onOpenCalendar = vi.fn();
 
     renderDashboardTransactionsView({
+      onOpenCalendar,
       onAddTransaction,
       onPreviewTransaction,
       onClearPreview,
@@ -460,12 +423,9 @@ describe("DashboardTransactionsView", () => {
     await user.click(screen.getByRole("button", { name: "Edit first filtered" }));
     await user.click(screen.getByRole("button", { name: "Remove first filtered" }));
     await user.click(screen.getByRole("button", { name: "Close statement modal" }));
-    await user.click(screen.getByRole("button", { name: "Agenda" }));
+    await user.click(screen.getByRole("button", { name: "Calendário" }));
 
-    expect(screen.getByText("ScheduleModal")).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: "Close schedule modal" }));
-
+    expect(onOpenCalendar).toHaveBeenCalledTimes(1);
     expect(onUpdateInitialBalance).toHaveBeenCalledWith(123);
     expect(onAddTransaction).toHaveBeenCalledTimes(1);
     expect(onPreviewTransaction).toHaveBeenCalledTimes(1);
@@ -480,26 +440,25 @@ describe("DashboardTransactionsView", () => {
     expect(onRemoveTransaction).toHaveBeenCalledWith("tx-1");
   });
 
-  it("deve exibir as acoes principais da tela e os atalhos para extrato e agenda", async () => {
+  it("deve exibir os atalhos para extrato e calendario e disparar seus callbacks", async () => {
     const user = userEvent.setup();
+    const onOpenCalendar = vi.fn();
+    const onOpenStatementProjection = vi.fn();
 
-    renderDashboardTransactionsView();
+    renderDashboardTransactionsView({
+      onOpenCalendar,
+      onOpenStatementProjection,
+    });
 
     expect(screen.getByRole("button", { name: "Extrato" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Agenda" })).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Abrir extrato" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Abrir agenda" }),
+      screen.getByRole("button", { name: "Calendário" }),
     ).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Abrir extrato" }));
-    expect(screen.getByText("StatementProjectionModal")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Extrato" }));
+    await user.click(screen.getByRole("button", { name: "Calendário" }));
 
-    await user.click(screen.getByRole("button", { name: "Close statement modal" }));
-    await user.click(screen.getByRole("button", { name: "Abrir agenda" }));
-
-    expect(screen.getByText("ScheduleModal")).toBeInTheDocument();
+    expect(onOpenStatementProjection).toHaveBeenCalledTimes(1);
+    expect(onOpenCalendar).toHaveBeenCalledTimes(1);
   });
 });

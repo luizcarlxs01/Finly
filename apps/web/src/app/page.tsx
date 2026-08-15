@@ -32,7 +32,7 @@ import { useUpdateTransaction } from "@/hooks/use-update-transaction";
 import { useUpdateInitialBalance } from "@/hooks/use-update-initial-balance";
 import { GoalForm } from "@/components/dashboard/goal-form";
 import { GoalProgressModal } from "@/components/dashboard/goal-progress-modal";
-import { ScheduleModal } from "@/components/dashboard/overlays/schedule-modal";
+import { FinancialCalendarModal } from "@/components/dashboard/overlays/financial-calendar-modal";
 import { StatementProjectionModal } from "@/components/dashboard/overlays/statement-projection-modal";
 import { TransactionEditModal } from "@/components/dashboard/transaction-edit-modal";
 import { PageContainer } from "@/components/layout/page-container";
@@ -47,7 +47,7 @@ import type { Goal } from "@/types/goal";
 import { getTransactionCategoryLabel } from "@/types/transaction-category";
 import { getDashboardInsights } from "@/utils/dashboard-insights";
 import { getNextRecurringOccurrenceDate } from "@/utils/recurring-transactions";
-import { getUpcomingOccurrencesByMonth } from "@/utils/upcoming-occurrences";
+import { getNextMonthLabel } from "@/utils/financial-calendar";
 import type { TransactionSortOption } from "@/components/dashboard/transaction-advanced-filters";
 
 const DEFAULT_CATEGORY_FILTER = "all";
@@ -151,7 +151,7 @@ export default function HomePage() {
   const [pendingContractDeletionId, setPendingContractDeletionId] =
     useState<string | null>(null);
   const [writeModeMessage, setWriteModeMessage] = useState<string | null>(null);
-  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
   const [isStatementProjectionModalOpen, setIsStatementProjectionModalOpen] = useState(false);
   const [isAccountCardOpen, setIsAccountCardOpen] = useState(false);
   const [isSpeedDialOpen, setIsSpeedDialOpen] = useState(false);
@@ -345,14 +345,7 @@ export default function HomePage() {
     totalIncome,
   ]);
 
-  const upcomingTransactions = useMemo(() => {
-    return getUpcomingOccurrencesByMonth({
-      transactions: projectionTransactions,
-      monthsAhead: 3,
-      referenceDate: new Date(),
-      baseBalance: projectionSnapshot.currentBalance,
-    });
-  }, [projectionSnapshot.currentBalance, projectionTransactions]);
+  const nextUpcomingMonthLabel = useMemo(() => getNextMonthLabel(), []);
 
   const forecast = useMemo(() => {
     return {
@@ -649,7 +642,7 @@ export default function HomePage() {
   const homeView = (
     <DashboardHomeView
       onGoToTransactions={handleGoToTransactionsSection}
-      onOpenSchedule={() => setIsScheduleModalOpen(true)}
+      onOpenCalendar={() => setIsCalendarModalOpen(true)}
       onOpenStatementProjection={() => setIsStatementProjectionModalOpen(true)}
     />
   );
@@ -684,7 +677,7 @@ export default function HomePage() {
       getNextRecurringOccurrence={getNextRecurringOccurrence}
       emptyStateTitle={emptyStateTitle}
       emptyStateDescription={emptyStateDescription}
-      onOpenSchedule={() => setIsScheduleModalOpen(true)}
+      onOpenCalendar={() => setIsCalendarModalOpen(true)}
       onOpenStatementProjection={() => setIsStatementProjectionModalOpen(true)}
       initialBalance={initialBalance}
       totalIncome={totalIncome}
@@ -694,7 +687,7 @@ export default function HomePage() {
       forecastTotalExpense={forecast.totalExpense}
       forecastProjectedBalance={forecast.projectedBalance}
       onUpdateInitialBalance={handleUpdateInitialBalance}
-      nextUpcomingMonthLabel={upcomingTransactions[0]?.monthLabel}
+      nextUpcomingMonthLabel={nextUpcomingMonthLabel}
     />
   );
 
@@ -973,10 +966,14 @@ export default function HomePage() {
         }}
       />
 
-      <ScheduleModal
-        open={isScheduleModalOpen}
-        onClose={() => setIsScheduleModalOpen(false)}
-        monthGroups={upcomingTransactions}
+      <FinancialCalendarModal
+        open={isCalendarModalOpen}
+        onClose={() => setIsCalendarModalOpen(false)}
+        transactions={projectionTransactions}
+        onEditTransaction={(transaction) => {
+          setIsCalendarModalOpen(false);
+          handleOpenEditModal(transaction);
+        }}
       />
 
       <StatementProjectionModal

@@ -5,13 +5,13 @@ import { Button } from "@/components/ui/button";
 
 type DashboardEntryHeaderProps = {
   onStartTransactions: () => void;
-  onOpenSchedule: () => void;
+  onOpenCalendar: () => void;
   onOpenStatementProjection: () => void;
 };
 
 export function DashboardEntryHeader({
   onStartTransactions,
-  onOpenSchedule,
+  onOpenCalendar,
   onOpenStatementProjection,
 }: DashboardEntryHeaderProps) {
   return (
@@ -22,10 +22,10 @@ export function DashboardEntryHeader({
         <Button
           type="button"
           className="h-11 justify-start rounded-2xl"
-          onClick={onOpenSchedule}
+          onClick={onOpenCalendar}
         >
           <CalendarDays className="size-4" />
-          Agenda
+          Calendário
         </Button>
 
         <Button
