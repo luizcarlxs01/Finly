@@ -14,8 +14,8 @@ import type {
   TransactionType,
 } from "@/types/transaction";
 import { flattenApiTransactionToLineItems } from "@/utils/flatten-transaction";
-import { generateOccurrences } from "@/utils/occurrence-generation";
-import { getTodayDateValue, parseDateValue } from "@/utils/recurring-transactions";
+import { generateOccurrenceExtension, generateOccurrences } from "@/utils/occurrence-generation";
+import { formatDateValue, getTodayDateValue, parseDateValue } from "@/utils/recurring-transactions";
 import {
   getBackendTransactionKind,
   inferContractRecurrenceMode,
@@ -267,6 +267,106 @@ function normalizeStoredProfile(profile: LocalFinanceProfile): LocalFinanceProfi
   };
 }
 
+/**
+ * Espelha TransactionService.ExtendIndefiniteRecurrencesIfNeededAsync do backend.
+ * Para cada contrato Recurring com recurrenceMode indefinido (ou null), verifica se o
+ * horizonte de occurrences está abaixo de 6 meses. Se estiver, gera novas occurrences
+ * até hoje + 12 meses. Idempotente: dedup por installmentIndex.
+ */
+function extendIndefiniteRecurrencesIfNeeded(profile: LocalFinanceProfile): LocalFinanceProfile {
+  const todayRaw = parseDateValue(getTodayDateValue());
+  if (!todayRaw) return profile;
+
+  const thresholdDate = new Date(todayRaw);
+  thresholdDate.setMonth(thresholdDate.getMonth() + 6);
+
+  const horizonEndDate = new Date(todayRaw);
+  horizonEndDate.setMonth(horizonEndDate.getMonth() + 12);
+  const horizonEnd = formatDateValue(horizonEndDate);
+
+  const indefiniteContracts = profile.transactions.filter(
+    (contract) =>
+      contract.transactionKind === "Recurring" &&
+      (contract.recurrenceStartDate !== null) &&
+      (contract.recurrenceEndDate === null) &&
+      (contract.recurrenceMonths === null),
+  );
+
+  if (indefiniteContracts.length === 0) return profile;
+
+  let newOccurrences: typeof profile.occurrences = [];
+
+  for (const contract of indefiniteContracts) {
+    const activeOccurrences = profile.occurrences.filter(
+      (o) => o.transactionId === contract.id && o.status !== "Cancelled",
+    );
+
+    if (activeOccurrences.length === 0) continue;
+
+    const maxDueDateStr = activeOccurrences.reduce(
+      (max, o) => (o.dueDate > max ? o.dueDate : max),
+      activeOccurrences[0]!.dueDate,
+    );
+
+    const maxDueDate = parseDateValue(maxDueDateStr);
+    if (!maxDueDate) continue;
+
+    // Se o horizonte ainda é suficiente, pula
+    if (maxDueDate >= thresholdDate) continue;
+
+    const maxInstallmentIndex = activeOccurrences
+      .filter((o) => o.installmentIndex !== null)
+      .reduce((max, o) => Math.max(max, o.installmentIndex!), 0);
+
+    // Existing indexes para dedup
+    const existingIndexes = new Set(
+      activeOccurrences.filter((o) => o.installmentIndex !== null).map((o) => o.installmentIndex!),
+    );
+
+    // Primeiro mês a gerar = mês seguinte ao último existente
+    const fromDateRaw = new Date(maxDueDate);
+    fromDateRaw.setMonth(fromDateRaw.getMonth() + 1);
+    const fromDate = formatDateValue(fromDateRaw);
+
+    const recurrenceDay = contract.recurrenceDay ?? fromDateRaw.getDate();
+
+    const generated = generateOccurrenceExtension({
+      recurrenceDay,
+      amount: contract.amount,
+      nextInstallmentIndex: maxInstallmentIndex + 1,
+      fromDate,
+      horizonEnd,
+    });
+
+    const nowIso = new Date().toISOString();
+
+    for (const occurrence of generated) {
+      if (occurrence.installmentIndex !== null && existingIndexes.has(occurrence.installmentIndex)) {
+        continue;
+      }
+
+      newOccurrences.push({
+        id: crypto.randomUUID(),
+        transactionId: contract.id,
+        installmentIndex: occurrence.installmentIndex,
+        dueDate: occurrence.dueDate,
+        amount: occurrence.amount,
+        status: occurrence.status === "paid" ? "Paid" : "Pending",
+        paidAt: occurrence.status === "paid" ? nowIso : null,
+        isCustomized: false,
+        createdAt: nowIso,
+      });
+    }
+  }
+
+  if (newOccurrences.length === 0) return profile;
+
+  return {
+    ...profile,
+    occurrences: [...profile.occurrences, ...newOccurrences],
+  };
+}
+
 export function useLocalFinance() {
   const [profile, setProfile] = useState<LocalFinanceProfile>(defaultProfile);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -281,7 +381,9 @@ export function useLocalFinance() {
 
     try {
       const parsedValue = JSON.parse(storedValue) as LocalFinanceProfile;
-      setProfile(normalizeStoredProfile(parsedValue));
+      const normalized = normalizeStoredProfile(parsedValue);
+      const extended = extendIndefiniteRecurrencesIfNeeded(normalized);
+      setProfile(extended);
     } catch {
       setProfile(defaultProfile);
     } finally {

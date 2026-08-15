@@ -103,6 +103,34 @@ public class OccurrenceGenerationService : IOccurrenceGenerationService
         };
     }
 
+    public List<Occurrence> GenerateExtension(
+        Transaction transaction,
+        int nextInstallmentIndex,
+        DateOnly fromDate,
+        DateOnly horizonEnd)
+    {
+        var dayOfMonth = transaction.RecurrenceDay ?? fromDate.Day;
+        var occurrences = new List<Occurrence>();
+        var installmentIndex = nextInstallmentIndex;
+
+        // fromDate já é o primeiro mês a gerar — iterar com offset 0, 1, 2...
+        var monthOffset = 0;
+
+        while (true)
+        {
+            var dueDate = BuildOccurrenceDate(fromDate, dayOfMonth, monthOffset);
+
+            if (dueDate > horizonEnd)
+                break;
+
+            occurrences.Add(BuildOccurrence(transaction, dueDate, installmentIndex));
+            installmentIndex++;
+            monthOffset++;
+        }
+
+        return occurrences;
+    }
+
     private static DateOnly BuildOccurrenceDate(DateOnly anchorDate, int dayOfMonth, int monthOffset)
     {
         var targetMonthDate = anchorDate.AddMonths(monthOffset);

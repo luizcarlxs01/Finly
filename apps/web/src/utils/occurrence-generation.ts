@@ -7,6 +7,18 @@ import {
   parseDateValue,
 } from "@/utils/recurring-transactions";
 
+export type GeneratedOccurrenceExtension = GeneratedOccurrence;
+
+export type GenerateOccurrenceExtensionInput = {
+  recurrenceDay: number;
+  amount: number;
+  nextInstallmentIndex: number;
+  /** Primeira DueDate a gerar (mês seguinte ao último existente) como "YYYY-MM-DD" */
+  fromDate: string;
+  /** Data limite — até quando gerar (hoje + 12 meses) como "YYYY-MM-DD" */
+  horizonEnd: string;
+};
+
 export type GeneratedOccurrence = {
   dueDate: string;
   amount: number;
@@ -118,4 +130,46 @@ export function generateOccurrences(input: GenerateOccurrencesInput): GeneratedO
   const transactionDate = parseDateValue(input.transactionDate) ?? today;
 
   return [buildOccurrence(transactionDate, null)];
+}
+
+/**
+ * Gera occurrences adicionais para uma recorrência indefinida cujo horizonte está se esgotando.
+ * Espelha OccurrenceGenerationService.GenerateExtension do backend.
+ * fromDate é o primeiro mês a gerar (mês seguinte ao último existente).
+ * InstallmentIndex continua sequencialmente a partir de nextInstallmentIndex.
+ */
+export function generateOccurrenceExtension(
+  input: GenerateOccurrenceExtensionInput,
+): GeneratedOccurrenceExtension[] {
+  const today = parseDateValue(getTodayDateValue())!;
+  const fromDate = parseDateValue(input.fromDate);
+  const horizonEnd = parseDateValue(input.horizonEnd);
+
+  if (!fromDate || !horizonEnd) {
+    return [];
+  }
+
+  const occurrences: GeneratedOccurrenceExtension[] = [];
+  let installmentIndex = input.nextInstallmentIndex;
+  let monthOffset = 0;
+
+  while (true) {
+    const dueDate = buildOccurrenceDate(fromDate, input.recurrenceDay, monthOffset);
+
+    if (dueDate > horizonEnd) {
+      break;
+    }
+
+    occurrences.push({
+      dueDate: formatDateValue(dueDate),
+      amount: input.amount,
+      installmentIndex,
+      status: dueDate <= today ? "paid" : "pending",
+    });
+
+    installmentIndex += 1;
+    monthOffset += 1;
+  }
+
+  return occurrences;
 }

@@ -36,7 +36,79 @@ public class TransactionService : ITransactionService
             .ThenByDescending(x => x.CreatedAt)
             .ToListAsync(cancellationToken);
 
+        await ExtendIndefiniteRecurrencesIfNeededAsync(transactions, cancellationToken);
+
         return transactions.Select(MapToResponse).ToList();
+    }
+
+    private async Task ExtendIndefiniteRecurrencesIfNeededAsync(
+        List<Transaction> transactions,
+        CancellationToken cancellationToken)
+    {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var thresholdDate = today.AddMonths(6);
+        var horizonEnd = today.AddMonths(12);
+
+        // Pré-check: qualquer transação indefinida no perfil?
+        var indefiniteTransactions = transactions
+            .Where(t =>
+                t.TransactionKind == TransactionKind.Recurring &&
+                (t.RecurrenceMode == null || t.RecurrenceMode == RecurrenceMode.Indefinite))
+            .ToList();
+
+        if (indefiniteTransactions.Count == 0)
+            return;
+
+        var needsSave = false;
+
+        foreach (var transaction in indefiniteTransactions)
+        {
+            var activeOccurrences = transaction.Occurrences
+                .Where(o => o.Status != OccurrenceStatus.Cancelled)
+                .ToList();
+
+            if (activeOccurrences.Count == 0)
+                continue;
+
+            var maxDueDate = activeOccurrences.Max(o => o.DueDate);
+
+            // Se o horizonte ainda é suficiente, pula
+            if (maxDueDate >= thresholdDate)
+                continue;
+
+            var maxInstallmentIndex = activeOccurrences
+                .Where(o => o.InstallmentIndex.HasValue)
+                .Max(o => o.InstallmentIndex!.Value);
+
+            // Primeiro mês a gerar = mês seguinte ao último existente
+            var fromDate = maxDueDate.AddMonths(1);
+
+            var newOccurrences = _occurrenceGenerationService.GenerateExtension(
+                transaction,
+                nextInstallmentIndex: maxInstallmentIndex + 1,
+                fromDate: fromDate,
+                horizonEnd: horizonEnd);
+
+            // Dedup por InstallmentIndex — mesma estratégia do RuleProcessingService
+            var existingIndexes = activeOccurrences
+                .Where(o => o.InstallmentIndex.HasValue)
+                .Select(o => o.InstallmentIndex!.Value)
+                .ToHashSet();
+
+            foreach (var occurrence in newOccurrences)
+            {
+                if (occurrence.InstallmentIndex.HasValue &&
+                    existingIndexes.Contains(occurrence.InstallmentIndex.Value))
+                    continue;
+
+                _context.Occurrences.Add(occurrence);
+                transaction.Occurrences.Add(occurrence);
+                needsSave = true;
+            }
+        }
+
+        if (needsSave)
+            await _context.SaveChangesAsync(cancellationToken);
     }
 
     public async Task<TransactionResponseDto?> GetByIdAsync(
