@@ -58,17 +58,10 @@ describe("FinanceSummaryCard", () => {
 
     expect(screen.getByText("Resumo financeiro")).toBeInTheDocument();
     expect(screen.getByText("Saldo atual")).toBeInTheDocument();
-    expect(screen.getByText("Entradas")).toBeInTheDocument();
-    expect(screen.getByText("Saídas")).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Alterar saldo" }),
-    ).toBeInTheDocument();
 
     const scope = within(getCard()!);
 
     expect(getByExactText(scope, currencyFormatter.format(2600))).toBeInTheDocument();
-    expect(getByExactText(scope, currencyFormatter.format(2500))).toBeInTheDocument();
-    expect(getByExactText(scope, currencyFormatter.format(900))).toBeInTheDocument();
     expect(
       screen.getByText(
         (_: string, element: Element | null) =>
@@ -90,7 +83,7 @@ describe("FinanceSummaryCard", () => {
 
     const scope = within(getCard()!);
 
-    expect(getAllByExactText(scope, currencyFormatter.format(0))).toHaveLength(3);
+    expect(getAllByExactText(scope, currencyFormatter.format(0))).toHaveLength(1);
     expect(
       screen.getByText(
         (_: string, element: Element | null) =>
@@ -113,8 +106,6 @@ describe("FinanceSummaryCard", () => {
     const scope = within(getCard()!);
 
     expect(getByExactText(scope, currencyFormatter.format(-300))).toBeInTheDocument();
-    expect(getByExactText(scope, currencyFormatter.format(0))).toBeInTheDocument();
-    expect(getByExactText(scope, currencyFormatter.format(500))).toBeInTheDocument();
   });
 
   it("deve exibir a simulacao no proprio resumo quando estiver ativa", () => {

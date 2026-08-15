@@ -26,14 +26,14 @@ function renderFinancialForecastCard(
 
 function getByExactText(scope: ReturnType<typeof within>, value: string) {
   return scope.getByText(
-    (_, element) =>
+    (_: string, element: Element | null) =>
       element?.textContent === value && (element.children.length ?? 0) === 0,
   );
 }
 
 function getAllByExactText(scope: ReturnType<typeof within>, value: string) {
   return scope.getAllByText(
-    (_, element) =>
+    (_: string, element: Element | null) =>
       element?.textContent === value && (element.children.length ?? 0) === 0,
   );
 }
@@ -54,7 +54,7 @@ describe("FinancialForecastCard", () => {
     const card = screen.getByText("Saldo previsto").closest('[data-slot="card"]');
     expect(card).not.toBeNull();
 
-    const scope = within(card!);
+    const scope = within(card! as HTMLElement);
 
     expect(
       getByExactText(scope, currencyFormatter.format(1400)),
@@ -82,7 +82,7 @@ describe("FinancialForecastCard", () => {
     const card = screen.getByText("Saldo previsto").closest('[data-slot="card"]');
     expect(card).not.toBeNull();
 
-    const scope = within(card!);
+    const scope = within(card! as HTMLElement);
 
     expect(getAllByExactText(scope, currencyFormatter.format(0))).toHaveLength(3);
   });
@@ -112,7 +112,7 @@ describe("FinancialForecastCard", () => {
     const card = screen.getByText("Saldo previsto").closest('[data-slot="card"]');
     expect(card).not.toBeNull();
 
-    const scope = within(card!);
+    const scope = within(card! as HTMLElement);
 
     expect(getAllByExactText(scope, currencyFormatter.format(2500))).toHaveLength(2);
     expect(getByExactText(scope, currencyFormatter.format(0))).toBeInTheDocument();

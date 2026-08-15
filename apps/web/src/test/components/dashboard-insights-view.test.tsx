@@ -89,11 +89,7 @@ describe("DashboardInsightsView", () => {
     expect(screen.getByText("DashboardInsights")).toBeInTheDocument();
     expect(screen.getByText("FinancialForecastCard")).toBeInTheDocument();
     expect(screen.getByText("Mais contexto, no seu tempo")).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "O Finly ainda pode ampliar essa leitura com o tempo, sem perder a clareza da tela.",
-      ),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Mais análises em breve.")).toBeInTheDocument();
   });
 
   it("deve exibir corretamente os insights recebidos por props com dados completos", () => {

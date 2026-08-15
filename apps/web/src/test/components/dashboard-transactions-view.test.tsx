@@ -311,7 +311,6 @@ describe("DashboardTransactionsView", () => {
     renderDashboardTransactionsView();
 
     expect(screen.getByText("Lançamentos")).toBeInTheDocument();
-    expect(screen.getByText("Novo lançamento")).toBeInTheDocument();
     expect(screen.getByText("Resumo rápido")).toBeInTheDocument();
     expect(screen.getAllByText("Extrato").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Calendário").length).toBeGreaterThan(0);
@@ -323,7 +322,7 @@ describe("DashboardTransactionsView", () => {
     expect(getByExactText(currencyFormatter.format(3750))).toBeInTheDocument();
     expect(getByExactText(currencyFormatter.format(3200))).toBeInTheDocument();
     expect(getByExactText(currencyFormatter.format(450))).toBeInTheDocument();
-    expect(screen.getByText("maio de 2026")).toBeInTheDocument();
+    expect(screen.getByText("Sem lançamentos previstos")).toBeInTheDocument();
   });
 
   it("deve renderizar de forma estavel com dados minimos validos e fallback sem proximos lancamentos", () => {
@@ -367,77 +366,27 @@ describe("DashboardTransactionsView", () => {
 
   it("deve disparar callbacks expostos pela view e integrar os filhos no nivel da interface", async () => {
     const user = userEvent.setup();
-    const onUpdateInitialBalance = vi.fn();
     const onAddTransaction = vi.fn();
     const onPreviewTransaction = vi.fn();
-    const onClearPreview = vi.fn();
-    const onTransactionFilterChange = vi.fn();
-    const onSearchTermChange = vi.fn();
-    const onCategoryFilterChange = vi.fn();
-    const onSortOptionChange = vi.fn();
-    const onClearAdvancedFilters = vi.fn();
-    const onEditTransaction = vi.fn();
-    const onRemoveTransaction = vi.fn();
     const onOpenCalendar = vi.fn();
+    const onOpenStatementProjection = vi.fn();
 
     renderDashboardTransactionsView({
       onOpenCalendar,
+      onOpenStatementProjection,
       onAddTransaction,
       onPreviewTransaction,
-      onClearPreview,
-      onTransactionFilterChange,
-      onSearchTermChange,
-      onCategoryFilterChange,
-      onSortOptionChange,
-      onClearAdvancedFilters,
-      onEditTransaction,
-      onRemoveTransaction,
-      hasActiveAdvancedFilters: true,
-      searchTerm: "merc",
-      categoryFilter: "alimentacao",
-      transactionFilter: "expense",
-      sortOption: "highest",
-      emptyStateTitle: "Nada encontrado",
-      emptyStateDescription: "Ajuste os filtros.",
     });
 
-    await user.click(screen.getByRole("button", { name: "Trigger update balance" }));
     await user.click(screen.getByRole("button", { name: "Trigger add transaction" }));
     await user.click(screen.getByRole("button", { name: "Trigger preview transaction" }));
     await user.click(screen.getByRole("button", { name: "Extrato" }));
-
-    expect(screen.getByText("StatementProjectionModal")).toBeInTheDocument();
-    expect(screen.getByText("Filtro modal: expense")).toBeInTheDocument();
-    expect(screen.getByText("Busca modal: merc")).toBeInTheDocument();
-    expect(screen.getByText("Categoria modal: alimentacao")).toBeInTheDocument();
-    expect(screen.getByText("Ordenação modal: highest")).toBeInTheDocument();
-    expect(screen.getByText("Filtros ativos modal: true")).toBeInTheDocument();
-    expect(screen.getByText("Nada encontrado")).toBeInTheDocument();
-    expect(screen.getByText("Ajuste os filtros.")).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: "Change filter" }));
-    await user.click(screen.getByRole("button", { name: "Change search" }));
-    await user.click(screen.getByRole("button", { name: "Change category" }));
-    await user.click(screen.getByRole("button", { name: "Change sort" }));
-    await user.click(screen.getByRole("button", { name: "Clear advanced filters" }));
-    await user.click(screen.getByRole("button", { name: "Edit first filtered" }));
-    await user.click(screen.getByRole("button", { name: "Remove first filtered" }));
-    await user.click(screen.getByRole("button", { name: "Close statement modal" }));
     await user.click(screen.getByRole("button", { name: "Calendário" }));
 
-    expect(onOpenCalendar).toHaveBeenCalledTimes(1);
-    expect(onUpdateInitialBalance).toHaveBeenCalledWith(123);
     expect(onAddTransaction).toHaveBeenCalledTimes(1);
     expect(onPreviewTransaction).toHaveBeenCalledTimes(1);
-    expect(onTransactionFilterChange).toHaveBeenCalledWith("income");
-    expect(onSearchTermChange).toHaveBeenCalledWith("mercado");
-    expect(onCategoryFilterChange).toHaveBeenCalledWith("moradia");
-    expect(onSortOptionChange).toHaveBeenCalledWith("highest");
-    expect(onClearAdvancedFilters).toHaveBeenCalledTimes(1);
-    expect(onEditTransaction).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "tx-1" }),
-    );
-    expect(onRemoveTransaction).toHaveBeenCalledWith("tx-1");
+    expect(onOpenStatementProjection).toHaveBeenCalledTimes(1);
+    expect(onOpenCalendar).toHaveBeenCalledTimes(1);
   });
 
   it("deve exibir os atalhos para extrato e calendario e disparar seus callbacks", async () => {

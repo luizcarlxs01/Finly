@@ -34,11 +34,11 @@ function getGoalCard(title: string) {
 }
 
 function getByExactText(scope: ReturnType<typeof within>, value: string) {
-  return scope.getByText((_, element) => element?.textContent === value);
+  return scope.getByText((_: string, element: Element | null) => element?.textContent === value);
 }
 
 function getAllByExactText(scope: ReturnType<typeof within>, value: string) {
-  return scope.getAllByText((_, element) => element?.textContent === value);
+  return scope.getAllByText((_: string, element: Element | null) => element?.textContent === value);
 }
 
 function renderGoalList(
@@ -92,9 +92,7 @@ describe("GoalList", () => {
     expect(screen.getByText("Viagem")).toBeInTheDocument();
     expect(screen.getByText("Geral")).toBeInTheDocument();
     expect(screen.getByText("Lazer")).toBeInTheDocument();
-    expect(
-      screen.getByText(dateFormatter.format(new Date("2026-12-31"))),
-    ).toBeInTheDocument();
+    expect(screen.getByText("31/12/2026")).toBeInTheDocument();
     expect(screen.getAllByText("Progresso")).toHaveLength(2);
     expect(screen.getAllByRole("button", { name: "Atualizar progresso" })).toHaveLength(2);
     expect(screen.getAllByRole("button", { name: "Remover" })).toHaveLength(2);
@@ -125,8 +123,8 @@ describe("GoalList", () => {
     expect(inProgressCard).not.toBeNull();
     expect(completeCard).not.toBeNull();
 
-    const inProgressScope = within(inProgressCard!);
-    const completeScope = within(completeCard!);
+    const inProgressScope = within(inProgressCard as HTMLElement);
+    const completeScope = within(completeCard as HTMLElement);
 
     expect(getByExactText(inProgressScope, "25%")).toBeInTheDocument();
     expect(
@@ -186,7 +184,7 @@ describe("GoalList", () => {
 
     expect(screen.getByText("Meta simples")).toBeInTheDocument();
     expect(screen.getByText("Geral")).toBeInTheDocument();
-    const minimalScope = within(getGoalCard("Meta simples")!);
+    const minimalScope = within(getGoalCard("Meta simples") as HTMLElement);
 
     expect(getByExactText(minimalScope, "0%")).toBeInTheDocument();
     expect(getAllByExactText(minimalScope, currencyFormatter.format(1))).toHaveLength(2);

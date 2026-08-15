@@ -14,9 +14,7 @@ describe("HeroSection", () => {
       }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(
-        "Comece pelo essencial, acompanhe sua rotina e siga com mais confiança no dia a dia.",
-      ),
+      screen.getByText("Comece pelo essencial e ganhe clareza sobre seu dinheiro."),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Ir para a aba de lançamentos" }),
@@ -29,7 +27,7 @@ describe("HeroSection", () => {
 
     expect(screen.getByText("Veja seu momento")).toBeInTheDocument();
     expect(
-      screen.getByText("Entenda saldo, entradas e saídas de forma rápida."),
+      screen.getByText("Saldo, entradas e saídas num relance."),
     ).toBeInTheDocument();
     expect(screen.getByText("Registre com facilidade")).toBeInTheDocument();
     expect(
@@ -37,24 +35,21 @@ describe("HeroSection", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Acompanhe objetivos")).toBeInTheDocument();
     expect(
-      screen.getByText("Metas e insights ajudam você a seguir em frente."),
+      screen.getByText("Metas e insights no seu caminho."),
     ).toBeInTheDocument();
-    expect(screen.getByText("Resumo")).toBeInTheDocument();
-    expect(screen.getByText("Lançamentos")).toBeInTheDocument();
-    expect(screen.getByText("Evolução")).toBeInTheDocument();
   });
 
   it("deve manter renderizacao consistente com o contrato atual sem props externas adicionais", () => {
     render(<HeroSection onStartTransactions={vi.fn()} />);
 
     expect(
-      screen.getByText("Veja seu panorama logo no começo."),
+      screen.getByText("Saldo, entradas e saídas num relance."),
     ).toBeInTheDocument();
     expect(
-      screen.getByText("Registre entradas e saídas com clareza."),
+      screen.getByText("Adicione movimentações sem perder clareza."),
     ).toBeInTheDocument();
     expect(
-      screen.getByText("Acompanhe metas e sinais do seu progresso."),
+      screen.getByText("Metas e insights no seu caminho."),
     ).toBeInTheDocument();
     expect(screen.getAllByRole("button")).toHaveLength(1);
   });

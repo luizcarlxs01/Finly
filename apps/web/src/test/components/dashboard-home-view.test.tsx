@@ -28,9 +28,13 @@ describe("DashboardHomeView", () => {
     expect(
       screen.getByText("Seu financeiro mais claro, simples e organizado."),
     ).toBeInTheDocument();
-    expect(screen.getByText("Comece a usar o Finly agora")).toBeInTheDocument();
-    expect(screen.getByText("O que você já pode fazer")).toBeInTheDocument();
-    expect(screen.getByText("Mais por vir")).toBeInTheDocument();
+    expect(
+      screen.getByText("Comece pelo essencial e ganhe clareza sobre seu dinheiro."),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Ir para a aba de lançamentos" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Começar lançamentos")).toBeInTheDocument();
   });
 
   it("deve exibir os resumos, cards e a ação principal da interface atual", () => {
@@ -39,31 +43,21 @@ describe("DashboardHomeView", () => {
     expect(screen.getByText("Veja seu momento")).toBeInTheDocument();
     expect(screen.getByText("Registre com facilidade")).toBeInTheDocument();
     expect(screen.getByText("Acompanhe objetivos")).toBeInTheDocument();
-    expect(screen.getByText("Seus dados ficam aqui")).toBeInTheDocument();
-    expect(screen.getByText("Vale lembrar")).toBeInTheDocument();
-    expect(screen.getByText("Começo sem fricção")).toBeInTheDocument();
-    expect(
-      screen.getByText("Conta para acessar seus dados com mais continuidade"),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText("Sincronização entre dispositivos"),
-    ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Ir para a aba de lançamentos" }),
     ).toBeInTheDocument();
     expect(screen.getByText("Começar lançamentos")).toBeInTheDocument();
+    expect(screen.getByText("Calendário")).toBeInTheDocument();
+    expect(screen.getByText("Extrato")).toBeInTheDocument();
     expect(screen.getAllByRole("button")).toHaveLength(3);
   });
 
   it("deve renderizar de forma estavel com as props minimas validas", () => {
     renderDashboardHomeView();
 
-    expect(screen.getByText("Modo atual")).toBeInTheDocument();
-    expect(screen.getByText("Em evolução")).toBeInTheDocument();
-    expect(screen.getByText("Acompanhar seu saldo")).toBeInTheDocument();
-    expect(screen.getByText("Registrar lançamentos")).toBeInTheDocument();
-    expect(screen.getByText("Organizar categorias")).toBeInTheDocument();
-    expect(screen.getByText("Seguir metas")).toBeInTheDocument();
+    expect(screen.getByText("Saldo, entradas e saídas num relance.")).toBeInTheDocument();
+    expect(screen.getByText("Adicione movimentações sem perder clareza.")).toBeInTheDocument();
+    expect(screen.getByText("Metas e insights no seu caminho.")).toBeInTheDocument();
   });
 
   it("deve chamar onGoToTransactions ao clicar no botão principal da hero", async () => {

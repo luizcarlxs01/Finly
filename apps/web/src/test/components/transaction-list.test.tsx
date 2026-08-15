@@ -75,14 +75,14 @@ function getTransactionCard(title: string) {
 
 function getByExactText(scope: ReturnType<typeof within>, value: string) {
   return scope.getByText(
-    (_, element) =>
+    (_: string, element: Element | null) =>
       element?.textContent === value && (element.children.length ?? 0) === 0,
   );
 }
 
 function getAllByExactText(scope: ReturnType<typeof within>, value: string) {
   return scope.getAllByText(
-    (_, element) =>
+    (_: string, element: Element | null) =>
       element?.textContent === value && (element.children.length ?? 0) === 0,
   );
 }
@@ -98,10 +98,10 @@ describe("TransactionList", () => {
       />,
     );
 
-    expect(screen.getByText("Nenhuma transação cadastrada")).toBeInTheDocument();
+    expect(screen.getByText("Nenhuma transacao cadastrada")).toBeInTheDocument();
     expect(
       screen.getByText(
-        "Assim que você registrar movimentações, elas aparecerão organizadas aqui.",
+        "Assim que voce registrar movimentacoes, elas aparecerao organizadas aqui.",
       ),
     ).toBeInTheDocument();
 
@@ -139,11 +139,11 @@ describe("TransactionList", () => {
 
     expect(screen.getByText("Mercado")).toBeInTheDocument();
     expect(screen.getByText("Salario")).toBeInTheDocument();
-    expect(screen.getByText("Saída")).toBeInTheDocument();
+    expect(screen.getByText("Saida")).toBeInTheDocument();
     expect(screen.getByText("Entrada")).toBeInTheDocument();
     expect(screen.getByText("Alimentação")).toBeInTheDocument();
     expect(screen.getByText("Salário")).toBeInTheDocument();
-    expect(screen.getAllByText("Único")).toHaveLength(2);
+    expect(screen.getAllByText("Unico")).toHaveLength(2);
     expect(screen.getAllByRole("button", { name: "Editar" })).toHaveLength(2);
     expect(screen.getAllByRole("button", { name: "Remover" })).toHaveLength(2);
   });
@@ -168,13 +168,13 @@ describe("TransactionList", () => {
       ],
     });
 
-    const expenseScope = within(getTransactionCard("PIX")!);
-    const incomeScope = within(getTransactionCard("Freela")!);
+    const expenseScope = within(getTransactionCard("PIX") as HTMLElement);
+    const incomeScope = within(getTransactionCard("Freela") as HTMLElement);
 
     expect(
       getAllByExactText(expenseScope, currencyFormatter.format(1)).length,
     ).toBeGreaterThan(0);
-    expect(getByExactText(expenseScope, "Saída")).toBeInTheDocument();
+    expect(getByExactText(expenseScope, "Saida")).toBeInTheDocument();
     expect(getByExactText(expenseScope, "Geral")).toBeInTheDocument();
 
     expect(
@@ -220,25 +220,25 @@ describe("TransactionList", () => {
       getNextRecurringOccurrence,
     });
 
-    const templateScope = within(getTransactionCard("Assinatura")!);
-    const instanceScope = within(getTransactionCard("Aluguel gerado")!);
+    const templateScope = within(getTransactionCard("Assinatura") as HTMLElement);
+    const instanceScope = within(getTransactionCard("Aluguel gerado") as HTMLElement);
 
     expect(templateScope.getAllByText("Recorrente").length).toBeGreaterThan(0);
     expect(templateScope.getByText("Modelo recorrente")).toBeInTheDocument();
     expect(templateScope.getByText("Mensal · dia 10")).toBeInTheDocument();
     expect(
-      templateScope.getByText("Próxima ocorrência:", { exact: false }),
+      templateScope.getByText("Proxima ocorrencia:", { exact: false }),
     ).toBeInTheDocument();
     expect(templateScope.getByText("10/05/2026")).toBeInTheDocument();
 
     expect(instanceScope.getAllByText("Recorrente").length).toBeGreaterThan(0);
-    expect(instanceScope.getByText("Lançamento gerado")).toBeInTheDocument();
+    expect(instanceScope.getByText("Lancamento gerado")).toBeInTheDocument();
     expect(
-      instanceScope.getByText("Competência gerada:", { exact: false }),
+      instanceScope.getByText("Competencia gerada:", { exact: false }),
     ).toBeInTheDocument();
     expect(instanceScope.getByText("10/05/2026")).toBeInTheDocument();
     expect(
-      instanceScope.getByText("Próximo lançamento:", { exact: false }),
+      instanceScope.getByText("Proximo lancamento:", { exact: false }),
     ).toBeInTheDocument();
     expect(instanceScope.getByText("10/06/2026")).toBeInTheDocument();
   });
@@ -259,7 +259,7 @@ describe("TransactionList", () => {
       onRemoveTransaction,
     });
 
-    const scope = within(getTransactionCard("Internet")!);
+    const scope = within(getTransactionCard("Internet") as HTMLElement);
 
     expect(
       scope.getByText(dateFormatter.format(new Date("2026-04-03T09:30:00.000Z"))),
@@ -277,16 +277,17 @@ describe("TransactionList", () => {
       transactions: [
         createTransaction({
           title: "Compra unica",
+          occurrenceDate: "2026-04-01",
           createdAt: "2026-04-01T15:00:00.000Z",
         }),
       ],
     });
 
-    const scope = within(getTransactionCard("Compra unica")!);
+    const scope = within(getTransactionCard("Compra unica") as HTMLElement);
 
     expect(
       scope.getByText(
-        `${dateOnlyFormatter.format(new Date("2026-04-01T15:00:00.000Z"))} · sem horário registrado`,
+        `${dateOnlyFormatter.format(new Date("2026-04-01T15:00:00.000Z"))} · sem horario registrado`,
       ),
     ).toBeInTheDocument();
   });

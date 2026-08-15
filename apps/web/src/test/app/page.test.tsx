@@ -6,6 +6,10 @@ const mockUseLocalFinance = vi.fn();
 const mockUseLocalGoals = vi.fn();
 const mockGetDashboardInsights = vi.fn();
 
+vi.mock("@/contexts/finance-source-context", () => ({
+  useFinanceSource: () => ({ source: "local", isLoaded: true }),
+}));
+
 vi.mock("@/hooks/use-local-finance", () => ({
   useLocalFinance: () => mockUseLocalFinance(),
 }));
@@ -264,6 +268,10 @@ function setupLoadedMocks(
     addTransaction: vi.fn(),
     updateTransaction: vi.fn(),
     removeTransaction: vi.fn(),
+    cancelOccurrence: vi.fn(),
+    updateOccurrence: vi.fn(),
+    markOccurrencePaid: vi.fn(),
+    markOccurrencePending: vi.fn(),
     createPreviewProfile: vi.fn(() => null),
     isLoaded: true,
     ...overrides?.finance,
@@ -413,7 +421,7 @@ describe("HomePage", () => {
     expect(screen.getByText("ConfirmationModal")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Confirmar remoção" }));
-    expect(finance.removeTransaction).toHaveBeenCalledWith("tx-1");
+    expect(finance.cancelOccurrence).toHaveBeenCalledWith("tx-1");
   });
 
   it("deve abrir o modal de progresso de meta a partir da view de metas", async () => {
