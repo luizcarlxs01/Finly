@@ -48,7 +48,8 @@ Branches principais: `main`, `luiz`, `leo`
 ### web (Next.js)
 - Next.js + React + TypeScript
 - TailwindCSS + shadcn/ui
-- Deploy: Vercel → https://finly-opal.vercel.app
+- Deploy: Vercel, sob domínio próprio → https://app.finly.systems
+  (a URL antiga `finly-opal.vercel.app` não é mais usada)
 
 ### api (.NET 8)
 - ASP.NET Core Web API
@@ -258,7 +259,11 @@ Não há dívida técnica de testes remanescente.
 - ✅ `ApiControllerBase` criado — os 6 controllers herdam, método duplicado removido
 - ✅ `[Required]`, `[MaxLength]`, `[EmailAddress]` em todos os DTOs de request
 - ✅ SecretKey removida dos appsettings — lida via variável de ambiente `JWT__SecretKey`
-- ✅ CORS — `AllowedOrigins` configurado com `https://finly-opal.vercel.app` em produção
+- ✅ CORS — `AllowedOrigins` em Production é `https://app.finly.systems`
+  - Era `https://finly-opal.vercel.app` até 16/08/2026. O front migrou para domínio
+    próprio (segue hospedado na Vercel) e a URL antiga deixou de existir, então o
+    preflight `OPTIONS` voltava **204 sem `Access-Control-Allow-Origin`** e o browser
+    bloqueava toda chamada. Diagnosticado no DevTools e corrigido.
 - ✅ Rate limiting em login/register — 5 req / 15 min **por IP**, resposta 429 com mensagem clara
   - ⚠️ **Correção em 15/08/2026:** esta linha esteve **errada** desde a Fase 2. O código
     usava `options.AddFixedWindowLimiter("auth", ...)`, overload que cria **um balde
@@ -880,10 +885,11 @@ commit, menos o teste da Agenda que foi reescrito. Nenhuma regressão.
 
 ### Pendências conhecidas (não bloqueiam o deploy)
 
-- [ ] **CORS precisará de ajuste quando o frontend sair da Vercel** para domínio
-      próprio (ex.: `app.finly.systems`). Hoje `Cors:AllowedOrigins` em Production tem
-      só `https://finly-opal.vercel.app`. Enquanto o front estiver na Vercel, está
-      correto e não deve ser mexido.
+- [x] ~~**CORS precisará de ajuste quando o frontend sair da Vercel**~~ — **RESOLVIDO
+      em 16/08/2026**. O front passou a atender em `https://app.finly.systems` (domínio
+      próprio, ainda hospedado na Vercel) e `Cors:AllowedOrigins` em Production foi
+      atualizado para esse valor. A URL antiga `finly-opal.vercel.app` foi removida da
+      lista por não existir mais.
 
 - [ ] **Volume `docker_sqldata` órfão na máquina local** (não na VPS). Decisão tomada:
       dados de teste descartáveis, remover à mão quando quiser
@@ -900,4 +906,5 @@ commit, menos o teste da Agenda que foi reescrito. Nenhuma regressão.
 - [ ] `curl -I http://api.finly.systems` deve devolver **301/308** para HTTPS
 - [ ] Confirmar que **nada** responde em `http://<IP-da-VPS>:8080` e
       `<IP-da-VPS>:1433` — as portas não são mais publicadas
-- [ ] Testar login pelo front da Vercel (valida CORS + JWT + ForwardedHeaders juntos)
+- [ ] Testar login por `https://app.finly.systems` (valida CORS + JWT +
+      ForwardedHeaders juntos)
