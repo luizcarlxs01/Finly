@@ -275,7 +275,7 @@ Não há dívida técnica de testes remanescente.
 - ✅ Rehash silencioso implementado — `SuccessRehashNeeded` atualiza o hash no banco sem interromper o login
 - ✅ Claims JWT enxutas — 4 claims em vez de 6 (`sub`, `email`, `unique_name`, `ClaimTypes.NameIdentifier`)
 - ✅ `AllowedHosts` **restringido em 15/08/2026** (antecipado da Fase 5, já que o domínio
-  foi definido): `appsettings.json` (Production) usa `"api.finly.com.br"`;
+  foi definido): `appsettings.json` (Production) usa `"api.finly.systems"`;
   `appsettings.Development.json` sobrescreve com `"*"`.
   - O override em Development é **obrigatório**, não cosmético: `Development.json` não
     declarava `AllowedHosts`, então herdaria o domínio do arquivo base e o
@@ -512,7 +512,7 @@ Contratar servidor:
 Resultado: Finly rodando em servidor próprio.
 
 ### Fase 5 — HTTPS
-- Domínio próprio (`app.finly.com.br`, `api.finly.com.br`)
+- Domínio próprio (`app.finly.systems`, `api.finly.systems`)
 - Let's Encrypt + Nginx
 - SSL configurado
 
@@ -850,14 +850,14 @@ commit, menos o teste da Agenda que foi reescrito. Nenhuma regressão.
 
 ### Pré-requisitos antes do primeiro `docker compose up`
 
-- [ ] **Registro DNS A** de `api.finly.com.br` → IP público da VPS, **propagado antes
+- [ ] **Registro DNS A** de `api.finly.systems` → IP público da VPS, **propagado antes
       de subir os containers**. O Let's Encrypt usa desafio **HTTP-01**: bate em
-      `http://api.finly.com.br/.well-known/acme-challenge/...` e precisa chegar no
+      `http://api.finly.systems/.well-known/acme-challenge/...` e precisa chegar no
       Traefik. Se o DNS não resolver no momento em que o container sobe, a emissão
       falha e o Traefik entra em **backoff com retentativas espaçadas** — não adianta
       subir e torcer. Ainda há risco de bater no rate limit do Let's Encrypt
       (5 falhas por hora, por conta e hostname).
-      Conferir com `dig +short api.finly.com.br` antes de prosseguir.
+      Conferir com `dig +short api.finly.systems` antes de prosseguir.
 
 - [ ] **`docker/.env` de produção criado na VPS** — o arquivo é gitignored e **não vem
       no clone**. Sem ele, o Compose sobe com variáveis vazias.
@@ -868,7 +868,7 @@ commit, menos o teste da Agenda que foi reescrito. Nenhuma regressão.
       Trocar a `JWT__SecretKey` invalida todos os tokens emitidos, o que é o
       comportamento desejado ao separar os ambientes.
 
-- [ ] **`API_DOMAIN=api.finly.com.br`** no `.env` da VPS — é o valor interpolado na
+- [ ] **`API_DOMAIN=api.finly.systems`** no `.env` da VPS — é o valor interpolado na
       label `Host()` do Traefik. Se faltar, a regra de roteamento nasce vazia e o
       Traefik não expõe a API.
 
@@ -881,7 +881,7 @@ commit, menos o teste da Agenda que foi reescrito. Nenhuma regressão.
 ### Pendências conhecidas (não bloqueiam o deploy)
 
 - [ ] **CORS precisará de ajuste quando o frontend sair da Vercel** para domínio
-      próprio (ex.: `app.finly.com.br`). Hoje `Cors:AllowedOrigins` em Production tem
+      próprio (ex.: `app.finly.systems`). Hoje `Cors:AllowedOrigins` em Production tem
       só `https://finly-opal.vercel.app`. Enquanto o front estiver na Vercel, está
       correto e não deve ser mexido.
 
@@ -895,9 +895,9 @@ commit, menos o teste da Agenda que foi reescrito. Nenhuma regressão.
 - [ ] `docker compose logs api` — confirmar as migrations aplicadas no startup
 - [ ] `docker logs traefik-traefik-1` — confirmar que o router `finly-api` foi
       detectado e o certificado emitido
-- [ ] `curl -I https://api.finly.com.br/swagger` deve dar **404** (Swagger é
+- [ ] `curl -I https://api.finly.systems/swagger` deve dar **404** (Swagger é
       desligado em Production — 404 aqui é sinal de que o ambiente está certo)
-- [ ] `curl -I http://api.finly.com.br` deve devolver **301/308** para HTTPS
+- [ ] `curl -I http://api.finly.systems` deve devolver **301/308** para HTTPS
 - [ ] Confirmar que **nada** responde em `http://<IP-da-VPS>:8080` e
       `<IP-da-VPS>:1433` — as portas não são mais publicadas
 - [ ] Testar login pelo front da Vercel (valida CORS + JWT + ForwardedHeaders juntos)
