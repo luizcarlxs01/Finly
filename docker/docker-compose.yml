@@ -1,3 +1,5 @@
+name: finly
+
 services:
   banco:
     image: mcr.microsoft.com/mssql/server:2022-latest
@@ -5,8 +7,12 @@ services:
       SA_PASSWORD: ${SA_PASSWORD}
       ACCEPT_EULA: "Y"
       MSSQL_PID: Express
-    ports:
-      - "1433:1433"
+    # Sem publicação de porta: o banco é acessível apenas pela rede interna
+    # do Compose (host "banco" a partir do serviço api).
+    # Para acesso administrativo, usar "docker compose exec banco sqlcmd ..."
+    # ou publicar temporariamente em 127.0.0.1:1433 e abrir um túnel SSH.
+    expose:
+      - "1433"
     volumes:
       - sqldata:/var/opt/mssql
     healthcheck:
@@ -29,10 +35,19 @@ services:
     build:
       context: ../apps/api
       dockerfile: ../../docker/api/Dockerfile
-    ports:
-      - "8080:8080"
+    # Sem publicação de porta: quem expõe a API para a internet é o Traefik,
+    # que alcança o container pela rede do Compose na porta 8080.
+    expose:
+      - "8080"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.finly-api.rule=Host(`${API_DOMAIN}`)"
+      - "traefik.http.routers.finly-api.entrypoints=websecure"
+      - "traefik.http.routers.finly-api.tls=true"
+      - "traefik.http.routers.finly-api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.finly-api.loadbalancer.server.port=8080"
     environment:
-      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
       JWT__SecretKey: ${JWT__SecretKey}
       JWT__Issuer: Finly.Api
       JWT__Audience: Finly.Web

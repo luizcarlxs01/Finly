@@ -259,11 +259,28 @@ Não há dívida técnica de testes remanescente.
 - ✅ `[Required]`, `[MaxLength]`, `[EmailAddress]` em todos os DTOs de request
 - ✅ SecretKey removida dos appsettings — lida via variável de ambiente `JWT__SecretKey`
 - ✅ CORS — `AllowedOrigins` configurado com `https://finly-opal.vercel.app` em produção
-- ✅ Rate limiting em login/register — 5 req / 15 min por IP, resposta 429 com mensagem clara
+- ✅ Rate limiting em login/register — 5 req / 15 min **por IP**, resposta 429 com mensagem clara
+  - ⚠️ **Correção em 15/08/2026:** esta linha esteve **errada** desde a Fase 2. O código
+    usava `options.AddFixedWindowLimiter("auth", ...)`, overload que cria **um balde
+    único global** para a policy inteira — sem partição por IP nem por nada. Na prática
+    eram 5 tentativas de login a cada 15 min **no sistema todo, somando todos os
+    usuários**: o sexto usuário legítimo levaria 429. Autobloqueio, não proteção.
+  - Corrigido na preparação do Traefik: agora é `options.AddPolicy("auth", ...)` com
+    `RateLimitPartition.GetFixedWindowLimiter` chaveado em
+    `httpContext.Connection.RemoteIpAddress`. Cada IP tem seu próprio balde.
+  - Depende de `UseForwardedHeaders` rodar antes do `UseRateLimiter` — atrás do Traefik,
+    sem isso o `RemoteIpAddress` seria o IP do proxy e todos os clientes cairiam na
+    mesma partição, reproduzindo o balde global. Ver seção 23.
 - ✅ Senha mínima aumentada de 6 para 8 caracteres
 - ✅ Rehash silencioso implementado — `SuccessRehashNeeded` atualiza o hash no banco sem interromper o login
 - ✅ Claims JWT enxutas — 4 claims em vez de 6 (`sub`, `email`, `unique_name`, `ClaimTypes.NameIdentifier`)
-- ⚠️ `AllowedHosts` permanece `"*"` — será restringido para `api.finly.com.br` na Fase 5, quando o domínio da VPS estiver definido
+- ✅ `AllowedHosts` **restringido em 15/08/2026** (antecipado da Fase 5, já que o domínio
+  foi definido): `appsettings.json` (Production) usa `"api.finly.com.br"`;
+  `appsettings.Development.json` sobrescreve com `"*"`.
+  - O override em Development é **obrigatório**, não cosmético: `Development.json` não
+    declarava `AllowedHosts`, então herdaria o domínio do arquivo base e o
+    `HostFilteringMiddleware` passaria a devolver **400 em todo request para
+    `localhost`**, quebrando o dev local.
 
 **Fase 3 — Containerização (CONCLUÍDA e validada em 29/06/2026)**
 
@@ -354,11 +371,75 @@ Implementação do formulário de registro com validação de domínio e indicad
 - Barra de senha reage em tempo real: "Senha fraca" → "Senha forte"
 - Zero erros de console, fluxo end-to-end validado no browser com API rodando via Docker
 
-**Fase 4 — VPS (PRÓXIMA)**
-- Contratar servidor: 4 GB RAM, 2 vCPU, Ubuntu + Docker + Docker Compose
-- Faixa: R$ 40–80/mês
-- Subir o mesmo `docker-compose.yml` na VPS com as credenciais de produção
-- Pré-requisito: Fases 1-3 e F concluídas ✅
+**Fase 4/5 — VPS + Traefik (arquivos PREPARADOS, deploy PENDENTE)**
+
+VPS já contratada: Ubuntu 24.04 LTS, com Docker e **Traefik pré-instalados pelo
+provedor** (Hostinger). Fases 4 e 5 foram fundidas e antecipadas porque o Traefik
+já resolve proxy reverso e SSL automático.
+
+Configuração do Traefik na VPS (confirmada por inspeção do container):
+- Container `traefik-traefik-1`, imagem `traefik:latest`, **`NetworkMode: host`**
+- `--providers.docker=true` e `--providers.docker.exposedbydefault=false`
+  → detecta containers pelo socket do Docker; **não precisa de rede externa
+  customizada**, mas exige `traefik.enable=true` explícito em cada serviço
+- Entrypoints: `web` (:80) e `websecure` (:443)
+- Redirect 80→443 **já é global** (`--entrypoints.web.http.redirections.entrypoint.to=websecure`)
+  → não declarar router HTTP nem middleware de redirect por container, seria redundante
+- Let's Encrypt via desafio **HTTP-01**, storage em `/letsencrypt/acme.json`
+
+Alterações aplicadas ao projeto (15/08/2026):
+
+- ✅ `docker/docker-compose.yml`
+  - `name: finly` no topo → containers `finly-api-1` / `finly-banco-1`, rede
+    `finly_default`, volume `finly_sqldata`
+    - ⚠️ O volume antigo `docker_sqldata` ficou **órfão** (continha 12 usuários /
+      15 transações / 55 occurrences de teste). Decisão registrada: dados
+      descartáveis, banco local recriado zerado. O volume antigo segue no disco
+      até alguém removê-lo à mão.
+  - `api`: 6 labels do Traefik — `traefik.enable`, router `finly-api` em
+    `websecure` com `Host(${API_DOMAIN})`, `tls.certresolver=letsencrypt`,
+    service apontando para a porta 8080
+  - `api`: `ports: 8080:8080` → `expose: 8080`. **A porta não é mais publicada.**
+    Quem expõe a API para a internet é o Traefik, que alcança o container pela
+    rede bridge do Compose.
+  - `banco`: `ports: 1433:1433` → `expose: 1433`. **SQL Server sem acesso público.**
+    Só o serviço `api` fala com ele, pela rede interna. Para acesso administrativo:
+    `docker compose exec banco sqlcmd ...` ou publicar temporariamente em
+    `127.0.0.1:1433` + túnel SSH.
+  - `ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}` — default
+    Production (VPS não precisa configurar nada); dev local sobrescreve no `.env`
+
+- ✅ `apps/api/Finly.Api/Program.cs` — `UseForwardedHeaders`
+  - `Configure<ForwardedHeadersOptions>` com `XForwardedFor | XForwardedProto`
+  - `app.UseForwardedHeaders()` é o **primeiro middleware do pipeline**, antes de
+    `UseHttpsRedirection`, `UseRouting` e `UseRateLimiter`
+  - **Por que é obrigatório:** o Traefik termina o TLS e encaminha HTTP puro para a
+    8080. Sem isso, (a) o `UseHttpsRedirection` — que já rodava em Production — veria
+    `scheme=http` e devolveria 307 para HTTPS em *todo* request, criando **loop de
+    redirect**; e (b) o `RemoteIpAddress` seria o IP do proxy, colapsando o rate
+    limiting por IP numa partição só.
+  - `KnownNetworks` restrito a `172.16.0.0/12` (faixa privada das bridges do Docker),
+    **não** permissivo. Os headers `X-Forwarded-*` são texto que qualquer cliente pode
+    forjar; a lista decide de quem aceitamos a reescrita. Com `Clear()` em
+    `KnownNetworks`/`KnownProxies`, qualquer origem que alcançasse a 8080 poderia
+    forjar `X-Forwarded-For` (balde de rate limit novo por tentativa → força bruta
+    liberada) ou `X-Forwarded-Proto: https` (derrubando o redirect de HTTPS). Hoje o
+    container não tem porta publicada, então o permissivo seria *na prática* seguro —
+    mas essa seria uma propriedade do compose, não do código, e some no dia que
+    alguém republicar a porta para debugar.
+    - Tradeoff conhecido: `/12` é largo, confia em qualquer container em qualquer
+      bridge do host. Fechar no IP exato do gateway exigiria subnet estática no
+      compose (o Docker atribui dinamicamente).
+  - `ForwardLimit = 1` explícito (é o default): consome só a última entrada do
+    `X-Forwarded-For`, a que o próprio Traefik acrescentou. Entradas injetadas pelo
+    cliente à esquerda são descartadas.
+
+- ✅ `docker/.env.example` — `API_DOMAIN` e `ASPNETCORE_ENVIRONMENT` documentados
+
+Validado: `dotnet build` limpo (0 erros / 0 avisos); `docker compose config`
+resolvendo `Development` com o `.env` local e `Production` sem a variável.
+
+**Deploy em si ainda não foi feito** — ver seção 23.
 
 ---
 
@@ -758,3 +839,65 @@ indefinida presente em exatamente 12 meses e vazia a partir do 13º, e mobile
 `npx tsc --noEmit` limpo (só os 3 arquivos de dívida técnica da seção 13).
 `npx vitest run`: 18 falhas — o baseline de 19 medido com `git stash` no mesmo
 commit, menos o teste da Agenda que foi reescrito. Nenhuma regressão.
+
+---
+
+## 23. Checklist de Deploy VPS
+
+> Estado atual: **arquivos preparados, deploy não executado**. Os itens abaixo são
+> pré-requisitos e pendências reais — não são sugestões. Ver seção 14 para o
+> detalhe técnico de cada alteração.
+
+### Pré-requisitos antes do primeiro `docker compose up`
+
+- [ ] **Registro DNS A** de `api.finly.com.br` → IP público da VPS, **propagado antes
+      de subir os containers**. O Let's Encrypt usa desafio **HTTP-01**: bate em
+      `http://api.finly.com.br/.well-known/acme-challenge/...` e precisa chegar no
+      Traefik. Se o DNS não resolver no momento em que o container sobe, a emissão
+      falha e o Traefik entra em **backoff com retentativas espaçadas** — não adianta
+      subir e torcer. Ainda há risco de bater no rate limit do Let's Encrypt
+      (5 falhas por hora, por conta e hostname).
+      Conferir com `dig +short api.finly.com.br` antes de prosseguir.
+
+- [ ] **`docker/.env` de produção criado na VPS** — o arquivo é gitignored e **não vem
+      no clone**. Sem ele, o Compose sobe com variáveis vazias.
+
+- [ ] **`SA_PASSWORD` e `JWT__SecretKey` NOVOS**, gerados na própria VPS.
+      **Jamais reaproveitar os valores locais** — segredo de dev que vaza (backup,
+      screenshot, histórico de shell) não pode virar segredo de produção.
+      Trocar a `JWT__SecretKey` invalida todos os tokens emitidos, o que é o
+      comportamento desejado ao separar os ambientes.
+
+- [ ] **`API_DOMAIN=api.finly.com.br`** no `.env` da VPS — é o valor interpolado na
+      label `Host()` do Traefik. Se faltar, a regra de roteamento nasce vazia e o
+      Traefik não expõe a API.
+
+- [ ] **`ASPNETCORE_ENVIRONMENT` AUSENTE** no `.env` da VPS. O compose usa
+      `${ASPNETCORE_ENVIRONMENT:-Production}`, então a ausência já resolve para
+      `Production` — que é o que ativa CORS restrito à Vercel, Swagger desligado e
+      `UseHttpsRedirection`. Definir a variável como `Development` na VPS exporia o
+      Swagger publicamente e liberaria o CORS errado.
+
+### Pendências conhecidas (não bloqueiam o deploy)
+
+- [ ] **CORS precisará de ajuste quando o frontend sair da Vercel** para domínio
+      próprio (ex.: `app.finly.com.br`). Hoje `Cors:AllowedOrigins` em Production tem
+      só `https://finly-opal.vercel.app`. Enquanto o front estiver na Vercel, está
+      correto e não deve ser mexido.
+
+- [ ] **Volume `docker_sqldata` órfão na máquina local** (não na VPS). Decisão tomada:
+      dados de teste descartáveis, remover à mão quando quiser
+      (`docker volume rm docker_sqldata`). Não afeta produção.
+
+### Verificações após subir
+
+- [ ] `docker compose ps` — `finly-banco-1` deve estar `healthy` antes de a API subir
+- [ ] `docker compose logs api` — confirmar as migrations aplicadas no startup
+- [ ] `docker logs traefik-traefik-1` — confirmar que o router `finly-api` foi
+      detectado e o certificado emitido
+- [ ] `curl -I https://api.finly.com.br/swagger` deve dar **404** (Swagger é
+      desligado em Production — 404 aqui é sinal de que o ambiente está certo)
+- [ ] `curl -I http://api.finly.com.br` deve devolver **301/308** para HTTPS
+- [ ] Confirmar que **nada** responde em `http://<IP-da-VPS>:8080` e
+      `<IP-da-VPS>:1433` — as portas não são mais publicadas
+- [ ] Testar login pelo front da Vercel (valida CORS + JWT + ForwardedHeaders juntos)
