@@ -43,16 +43,39 @@ if (builder.Environment.IsDevelopment() && allowedOrigins.Length == 0)
 
 builder.Services.AddRateLimiter(options =>
 {
-    // Particionado por IP do cliente: cada IP tem seu próprio balde de 5
-    // tentativas / 15 min. Depende do UseForwardedHeaders acima para enxergar
-    // o IP real — sem ele, todos os usuários cairiam na partição do Traefik.
-    options.AddPolicy("auth", httpContext =>
+    // Baldes separados por IP do cliente. Depende do UseForwardedHeaders acima
+    // para enxergar o IP real — sem ele, todos os usuários cairiam na partição
+    // do Traefik.
+    //
+    // Login e registro tinham UM balde compartilhado de 5/15min. Na prática isso
+    // trancava o uso legítimo: web e celular do mesmo usuário saem pelo mesmo IP
+    // público, e a cota é consumida por QUALQUER request — inclusive os logins
+    // bem-sucedidos, que não são ataque nenhum. Testar o app em dois dispositivos
+    // estourava o limite antes de qualquer tentativa de força bruta.
+    //
+    // Os números continuam longe de viabilizar força bruta (10/15min = ~960
+    // tentativas/dia, contra os milhões que um ataque real precisa), mas agora
+    // cabem o uso normal e um IP compartilhado por NAT.
+    options.AddPolicy("auth-login", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(15),
+                QueueLimit = 0,
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+            }));
+
+    // Registro é raro por usuário legítimo — a ameaça aqui é criação de contas
+    // em massa, não adivinhação de senha. Janela mais longa, cota menor.
+    options.AddPolicy("auth-register", httpContext =>
         RateLimitPartition.GetFixedWindowLimiter(
             partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             factory: _ => new FixedWindowRateLimiterOptions
             {
                 PermitLimit = 5,
-                Window = TimeSpan.FromMinutes(15),
+                Window = TimeSpan.FromMinutes(60),
                 QueueLimit = 0,
                 QueueProcessingOrder = QueueProcessingOrder.OldestFirst
             }));
@@ -61,8 +84,15 @@ builder.Services.AddRateLimiter(options =>
     {
         context.HttpContext.Response.StatusCode = (int)HttpStatusCode.TooManyRequests;
         context.HttpContext.Response.ContentType = "application/json";
+
+        // A janela varia por policy, então o texto vem do lease em vez de ser
+        // fixado em "15 minutos" (que ficaria errado para o registro).
+        var minutes = context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter)
+            ? (int)Math.Ceiling(retryAfter.TotalMinutes)
+            : 15;
+
         await context.HttpContext.Response.WriteAsync(
-            "{\"message\":\"Muitas tentativas. Tente novamente em 15 minutos.\"}",
+            $"{{\"message\":\"Muitas tentativas. Tente novamente em {minutes} minutos.\"}}",
             cancellationToken);
     };
 });
