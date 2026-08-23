@@ -90,7 +90,7 @@ export function DashboardTransactionsView({
 
   return (
     <>
-      <div className="space-y-8 2xl:space-y-10">
+      <div className="space-y-8 2xl:space-y-10 p-8">
         <section className="rounded-[2rem] border border-border/70 bg-card/95 p-6 shadow-sm sm:p-7">
           <div className="space-y-2">
             <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
