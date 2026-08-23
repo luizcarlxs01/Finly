@@ -1,6 +1,5 @@
 import { ArrowRight } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 type HeroSectionProps = {
@@ -14,12 +13,6 @@ export function HeroSection({ onStartTransactions }: HeroSectionProps) {
 
       <div className="relative">
         <div className="min-w-0 max-w-4xl space-y-6">
-          <Badge
-            variant="outline"
-            className="w-fit border-border/80 bg-background/70 text-foreground"
-          >
-            Finly
-          </Badge>
 
           <div className="space-y-4">
             <h1 className="max-w-4xl text-3xl font-semibold tracking-tight text-foreground sm:text-4xl lg:text-5xl 2xl:text-6xl">
