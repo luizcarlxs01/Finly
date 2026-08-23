@@ -51,7 +51,7 @@ const defaultFormState: FinancialRuleFormState = {
   dayOfMonth: "",
   endDate: "",
   isActive: true,
-  recurrenceMode: "",
+  recurrenceMode: "Indefinite",
   ruleType: "Salary",
   startDate: "",
   title: "",
