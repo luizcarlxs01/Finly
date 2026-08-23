@@ -1,3 +1,51 @@
+import { ArrowDownRight, ArrowUpRight } from "lucide-react";
+import { LandingHeader } from "@/components/landing-header";
+
 export default function Home() {
-  return <main>Finly</main>;
+  return (
+    <main className="page-shell">
+      <section className="hero-shell" id="inicio" aria-labelledby="hero-title">
+        <span className="hero-orbit hero-orbit-one" aria-hidden="true" />
+        <span className="hero-orbit hero-orbit-two" aria-hidden="true" />
+        <LandingHeader />
+
+        <div className="hero-layout content-width">
+          <div className="hero-copy">
+            <p className="eyebrow">
+              <span aria-hidden="true" />
+              Clareza para decidir melhor
+            </p>
+            <h1
+              id="hero-title"
+              aria-label="Seu dinheiro. Finalmente claro."
+            >
+              Seu dinheiro.
+              <span>Finalmente claro.</span>
+            </h1>
+            <p className="hero-support">
+              Organize, planeje e entenda suas finanças em um único lugar.
+            </p>
+            <div className="hero-actions">
+              <a
+                className="button button-primary"
+                href="https://app.finly.systems"
+              >
+                Começar agora
+                <ArrowUpRight aria-hidden="true" />
+              </a>
+              <a className="button button-secondary" href="#produto">
+                Conhecer o Finly
+                <ArrowDownRight aria-hidden="true" />
+              </a>
+            </div>
+          </div>
+
+          <div className="hero-visual-placeholder" aria-hidden="true">
+            <span>Visão financeira</span>
+            <strong>Clareza em cada escolha.</strong>
+          </div>
+        </div>
+      </section>
+    </main>
+  );
 }
