@@ -39,6 +39,8 @@ type TransactionFormProps = {
 const inputClassName =
   "w-full rounded-2xl border border-border/70 bg-background px-4 py-3 text-sm text-foreground outline-none transition placeholder:text-muted-foreground/80 focus:border-primary focus:ring-2 focus:ring-primary/15";
 
+const dateInputClassName = `${inputClassName} cursor-pointer appearance-none pl-11 text-base sm:text-sm [&::-webkit-calendar-picker-indicator]:hidden`;
+
 export function TransactionForm({
   onAddTransaction,
   onPreviewTransaction,
@@ -351,7 +353,7 @@ export function TransactionForm({
                     type="date"
                     value={transactionDate}
                     onChange={(event) => setTransactionDate(event.target.value)}
-                    className={`${inputClassName} pl-11 text-base sm:text-sm [&::-webkit-calendar-picker-indicator]:hidden`}
+                    className={dateInputClassName}
                   />
                 </div>
               </div>
@@ -399,7 +401,7 @@ export function TransactionForm({
                       onChange={(event) =>
                         setInstallmentStartDate(event.target.value)
                       }
-                      className={`${inputClassName} pl-11 text-base sm:text-sm [&::-webkit-calendar-picker-indicator]:hidden`}
+                      className={dateInputClassName}
                     />
                   </div>
                 </div>
@@ -447,7 +449,7 @@ export function TransactionForm({
                       onChange={(event) =>
                         setRecurrenceStartDate(event.target.value)
                       }
-                      className={`${inputClassName} pl-11 text-base sm:text-sm [&::-webkit-calendar-picker-indicator]:hidden`}
+                      className={dateInputClassName}
                     />
                   </div>
                 </div>
@@ -496,7 +498,7 @@ export function TransactionForm({
                       onChange={(event) =>
                         setRecurrenceEndDate(event.target.value)
                       }
-                      className={`${inputClassName} pl-11 text-base sm:text-sm [&::-webkit-calendar-picker-indicator]:hidden`}
+                      className={dateInputClassName}
                     />
                   </div>
                 </div>
