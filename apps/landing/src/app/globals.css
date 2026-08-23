@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 :root {
+  color-scheme: light;
   --finly-blue: #1a75ff;
   --finly-navy: #031533;
   --finly-sky: #7eb0f2;
@@ -23,6 +24,12 @@ body {
   color: var(--finly-navy);
   background: var(--finly-canvas);
   font-family: var(--font-manrope), sans-serif;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  color: #ffffff;
+  background: var(--finly-blue);
 }
 
 a {
@@ -617,6 +624,7 @@ a {
 
 .product-section {
   position: relative;
+  scroll-margin-top: 1rem;
   padding-block: clamp(7rem, 13vw, 12rem);
   background: #ffffff;
 }
@@ -676,6 +684,7 @@ a {
   gap: 1.25rem;
   padding-block: 2.1rem;
   border-bottom: 1px solid var(--finly-border);
+  transition: padding-inline 220ms ease, background-color 220ms ease;
 }
 
 .benefit-number {
@@ -716,6 +725,17 @@ a {
   width: 1.05rem;
   height: 1.05rem;
   color: #91a3ba;
+  transition: color 220ms ease, transform 220ms ease;
+}
+
+.benefit-item:hover {
+  padding-inline: 1rem;
+  background: rgba(244, 247, 251, 0.7);
+}
+
+.benefit-item:hover .benefit-arrow {
+  color: var(--finly-blue);
+  transform: translate(2px, -2px);
 }
 
 .sync-section {
@@ -1027,6 +1047,22 @@ a {
   justify-self: end;
 }
 
+:where(a, button):focus-visible {
+  outline: 3px solid rgba(26, 117, 255, 0.38);
+  outline-offset: 4px;
+}
+
+.product-section,
+.sync-section,
+.closing-section {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 900px;
+}
+
+.dashboard {
+  animation: dashboard-float 7s 850ms ease-in-out infinite;
+}
+
 .hero-orbit {
   position: absolute;
   border: 1px solid rgba(26, 117, 255, 0.1);
@@ -1052,6 +1088,11 @@ a {
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes dashboard-float {
+  0%, 100% { transform: rotateY(-4deg) rotateX(1.2deg) translateY(0); }
+  50% { transform: rotateY(-3deg) rotateX(0.8deg) translateY(-7px); }
+}
+
 @media (max-width: 920px) {
   .hero-layout {
     grid-template-columns: 1fr;
@@ -1062,10 +1103,6 @@ a {
     max-width: 760px;
   }
 
-  .hero-visual-placeholder {
-    min-height: 20rem;
-  }
-
   .dashboard-stage {
     width: min(100%, 42rem);
     margin-inline: auto;
@@ -1073,6 +1110,7 @@ a {
 
   .dashboard {
     transform: none;
+    animation: none;
   }
 
   .product-section > .content-width {
@@ -1089,6 +1127,20 @@ a {
 
   .sync-copy {
     max-width: 46rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 

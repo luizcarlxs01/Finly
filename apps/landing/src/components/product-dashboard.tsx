@@ -43,6 +43,7 @@ export function ProductDashboard() {
       <span className="dashboard-glow" aria-hidden="true" />
       <div
         className="dashboard"
+        role="group"
         aria-label="Exemplo visual do painel financeiro Finly"
       >
         <aside className="dashboard-sidebar" aria-hidden="true">
@@ -155,7 +156,14 @@ export function ProductDashboard() {
                 <span>R$ 13.600</span>
                 <span>R$ 20.000</span>
               </div>
-              <div className="goal-progress" aria-label="Meta 68% concluída">
+              <div
+                className="goal-progress"
+                role="progressbar"
+                aria-label="Meta Reserva de tranquilidade"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={68}
+              >
                 <span />
               </div>
               <small>68% concluída</small>
@@ -166,4 +174,3 @@ export function ProductDashboard() {
     </div>
   );
 }
-

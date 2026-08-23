@@ -10,7 +10,10 @@ export function SyncFeature() {
             <span aria-hidden="true" />
             No seu ritmo
           </p>
-          <h2 id="sync-title">
+          <h2
+            id="sync-title"
+            aria-label="Comece sem conta. Sincronize quando fizer sentido."
+          >
             Comece sem conta.
             <span>Sincronize quando fizer sentido.</span>
           </h2>
@@ -68,4 +71,3 @@ export function SyncFeature() {
     </section>
   );
 }
-

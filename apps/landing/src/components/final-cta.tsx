@@ -9,7 +9,10 @@ export function FinalCta() {
           <span className="closing-light closing-light-one" aria-hidden="true" />
           <span className="closing-light closing-light-two" aria-hidden="true" />
           <p>Seu próximo passo pode ser simples.</p>
-          <h2 id="closing-title">
+          <h2
+            id="closing-title"
+            aria-label="Menos dúvida. Mais clareza para viver."
+          >
             Menos dúvida.
             <span>Mais clareza para viver.</span>
           </h2>
@@ -31,4 +34,3 @@ export function FinalCta() {
     </section>
   );
 }
-

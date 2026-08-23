@@ -34,7 +34,10 @@ export function ProductShowcase() {
             <span aria-hidden="true" />
             Uma visão, menos ruído
           </p>
-          <h2 id="product-title">
+          <h2
+            id="product-title"
+            aria-label="Tudo o que importa. Sem complicar o que é simples."
+          >
             Tudo o que importa.
             <span>Sem complicar o que é simples.</span>
           </h2>
@@ -67,4 +70,3 @@ export function ProductShowcase() {
     </section>
   );
 }
-
