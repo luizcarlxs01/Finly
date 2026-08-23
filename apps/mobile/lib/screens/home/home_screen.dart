@@ -1,27 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
-import '../../constants/categories.dart';
-import '../../models/transaction.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/finance_provider.dart';
+import '../../providers/ui_state_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/formatters.dart';
+import '../../widgets/empty_state.dart';
+import '../../widgets/transaction_tile.dart';
 
-class HomeScreen extends ConsumerStatefulWidget {
+class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   @override
-  ConsumerState<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends ConsumerState<HomeScreen> {
-  bool _hideValues = false;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authProvider);
     final finance = ref.watch(financeProvider);
+    final hideValues = ref.watch(hideValuesProvider);
 
     return Scaffold(
       body: SafeArea(
@@ -33,9 +29,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               _Header(
                 name: auth.session?.name ?? 'Visitante',
                 initials: auth.session?.initials ?? 'V',
-                hideValues: _hideValues,
-                onToggleHide: () =>
-                    setState(() => _hideValues = !_hideValues),
+                hideValues: hideValues,
+                onToggleHide: () => ref
+                    .read(hideValuesProvider.notifier)
+                    .update((value) => !value),
+                onOpenProfile: () => context.push('/profile'),
+                onOpenNotifications: () => context.push('/notifications'),
               ),
               const SizedBox(height: 18),
               _BalanceCard(
@@ -43,12 +42,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 income: finance.totalIncome,
                 expense: finance.totalExpense,
                 isApiMode: auth.source == FinanceSource.api,
-                hideValues: _hideValues,
+                hideValues: hideValues,
+              ),
+              const SizedBox(height: 18),
+              _Shortcuts(
+                onCalendar: () => context.push('/calendar'),
+                onStatement: () => context.go('/statement'),
+                onBudget: () => context.push('/budget'),
+                onGoals: () => context.go('/goals'),
               ),
               const SizedBox(height: 22),
-              const Text(
-                'Lançamentos recentes',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Lançamentos recentes',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                  ),
+                  GestureDetector(
+                    onTap: () => context.go('/statement'),
+                    child: const Text(
+                      'Ver todos',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 12),
               if (finance.isLoading)
@@ -57,13 +79,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   child: Center(child: CircularProgressIndicator()),
                 )
               else if (finance.transactions.isEmpty)
-                const _EmptyState()
+                const EmptyState(
+                  icon: Icons.receipt_long_outlined,
+                  message:
+                      'Nenhum lançamento ainda.\nRegistre o primeiro para começar.',
+                )
               else
                 ...finance.transactions
                     .take(6)
-                    .map((line) => _TransactionTile(
+                    .map((line) => TransactionTile(
                           line: line,
-                          hideValues: _hideValues,
+                          hideValues: hideValues,
                         )),
             ],
           ),
@@ -79,48 +105,58 @@ class _Header extends StatelessWidget {
     required this.initials,
     required this.hideValues,
     required this.onToggleHide,
+    required this.onOpenProfile,
+    required this.onOpenNotifications,
   });
 
   final String name;
   final String initials;
   final bool hideValues;
   final VoidCallback onToggleHide;
+  final VoidCallback onOpenProfile;
+  final VoidCallback onOpenNotifications;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        CircleAvatar(
-          radius: 22,
-          backgroundColor: AppColors.primarySoft,
-          child: Text(
-            initials,
-            style: const TextStyle(
-              color: AppColors.primary,
-              fontWeight: FontWeight.w800,
-              fontSize: 13,
+        GestureDetector(
+          onTap: onOpenProfile,
+          child: CircleAvatar(
+            radius: 22,
+            backgroundColor: AppColors.primarySoft,
+            child: Text(
+              initials,
+              style: const TextStyle(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w800,
+                fontSize: 13,
+              ),
             ),
           ),
         ),
         const SizedBox(width: 11),
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Olá,',
-                style: TextStyle(fontSize: 11.5, color: AppColors.muted),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                name,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
+          child: GestureDetector(
+            onTap: onOpenProfile,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Olá,',
+                  style: TextStyle(fontSize: 11.5, color: AppColors.muted),
                 ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
+                const SizedBox(height: 3),
+                Text(
+                  name,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
           ),
         ),
         IconButton(
@@ -137,6 +173,35 @@ class _Header extends StatelessWidget {
               side: const BorderSide(color: AppColors.border),
             ),
           ),
+        ),
+        const SizedBox(width: 6),
+        Stack(
+          clipBehavior: Clip.none,
+          children: [
+            IconButton(
+              onPressed: onOpenNotifications,
+              icon: const Icon(Icons.notifications_outlined, size: 18),
+              style: IconButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(999),
+                  side: const BorderSide(color: AppColors.border),
+                ),
+              ),
+            ),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: AppColors.danger,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2),
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -302,101 +367,61 @@ class _MiniStat extends StatelessWidget {
   }
 }
 
-class _TransactionTile extends StatelessWidget {
-  const _TransactionTile({required this.line, required this.hideValues});
+class _Shortcuts extends StatelessWidget {
+  const _Shortcuts({
+    required this.onCalendar,
+    required this.onStatement,
+    required this.onBudget,
+    required this.onGoals,
+  });
 
-  final TransactionLine line;
-  final bool hideValues;
-
-  @override
-  Widget build(BuildContext context) {
-    final category = categoryById(line.category);
-    final isIncome = line.type == TransactionType.income;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 5),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: category.soft,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Icon(category.icon, size: 20, color: category.color),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  line.title,
-                  style: const TextStyle(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w700,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  '${category.label} · ${line.occurrenceDate}',
-                  style: const TextStyle(
-                    fontSize: 11.5,
-                    color: AppColors.muted,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Text(
-            (isIncome ? '+ ' : '- ') +
-                formatCurrency(line.amount, hidden: hideValues),
-            style: TextStyle(
-              fontSize: 13.5,
-              fontWeight: FontWeight.w800,
-              color: isIncome ? AppColors.success : AppColors.ink,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState();
+  final VoidCallback onCalendar;
+  final VoidCallback onStatement;
+  final VoidCallback onBudget;
+  final VoidCallback onGoals;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
-      decoration: BoxDecoration(
-        color: AppColors.backgroundSubtle,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: AppColors.borderLight,
-          style: BorderStyle.solid,
-        ),
-      ),
-      child: const Column(
-        children: [
-          Icon(Icons.receipt_long_outlined,
-              size: 32, color: AppColors.mutedLight),
-          SizedBox(height: 12),
-          Text(
-            'Nenhum lançamento ainda.\nRegistre o primeiro para começar.',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 12.5, color: AppColors.muted),
-          ),
-        ],
-      ),
+    final items = [
+      (Icons.calendar_month_outlined, 'Calendário', onCalendar),
+      (Icons.receipt_long_outlined, 'Extrato', onStatement),
+      (Icons.pie_chart_outline, 'Orçamento', onBudget),
+      (Icons.flag_outlined, 'Metas', onGoals),
+    ];
+
+    return Row(
+      children: items
+          .map(
+            (item) => Expanded(
+              child: GestureDetector(
+                onTap: item.$3,
+                child: Column(
+                  children: [
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: Icon(item.$1, size: 20, color: AppColors.primary),
+                    ),
+                    const SizedBox(height: 7),
+                    Text(
+                      item.$2,
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.inkSoft,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          )
+          .toList(),
     );
   }
 }
