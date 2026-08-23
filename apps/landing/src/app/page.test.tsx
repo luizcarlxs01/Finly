@@ -17,10 +17,9 @@ describe("Finly landing page", () => {
         "Organize, planeje e entenda suas finanças em um único lugar.",
       ),
     ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Começar agora" })).toHaveAttribute(
-      "href",
-      "https://app.finly.systems",
-    );
+    expect(
+      screen.getAllByRole("link", { name: "Começar agora" })[0],
+    ).toHaveAttribute("href", "https://app.finly.systems");
     expect(
       screen.getByRole("link", { name: "Conhecer o Finly" }),
     ).toHaveAttribute("href", "#produto");
@@ -51,5 +50,29 @@ describe("Finly landing page", () => {
     expect(screen.getByText("Saídas")).toBeInTheDocument();
     expect(screen.getByText("Saldo projetado")).toBeInTheDocument();
     expect(screen.getByText("Reserva de tranquilidade")).toBeInTheDocument();
+  });
+
+  it("explains that an account is optional until the user chooses to sync", () => {
+    render(<Home />);
+
+    expect(
+      screen.getByRole("heading", { level: 2, name: /comece sem conta/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("No seu dispositivo")).toBeInTheDocument();
+    expect(screen.getByText("Sincronizado quando quiser")).toBeInTheDocument();
+  });
+
+  it("ends with a second direct link to the Finly app", () => {
+    render(<Home />);
+
+    const primaryLinks = screen.getAllByRole("link", {
+      name: "Começar agora",
+    });
+    expect(primaryLinks).toHaveLength(2);
+    expect(primaryLinks[1]).toHaveAttribute(
+      "href",
+      "https://app.finly.systems",
+    );
+    expect(screen.getByRole("contentinfo")).toBeInTheDocument();
   });
 });

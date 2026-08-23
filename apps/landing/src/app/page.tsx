@@ -1,7 +1,9 @@
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
+import { FinalCta } from "@/components/final-cta";
 import { LandingHeader } from "@/components/landing-header";
 import { ProductDashboard } from "@/components/product-dashboard";
 import { ProductShowcase } from "@/components/product-showcase";
+import { SyncFeature } from "@/components/sync-feature";
 
 export default function Home() {
   return (
@@ -46,6 +48,8 @@ export default function Home() {
         </div>
       </section>
       <ProductShowcase />
+      <SyncFeature />
+      <FinalCta />
     </main>
   );
 }
