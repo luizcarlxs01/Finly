@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+:root {
+  --finly-blue: #1a75ff;
+  --finly-navy: #031533;
+  --finly-sky: #7eb0f2;
+  --finly-canvas: #f4f7fb;
+  --finly-border: #d0dff2;
+  --finly-muted: #4f698d;
+  --finly-white: #ffffff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  color: var(--finly-navy);
+  background: var(--finly-canvas);
+  font-family: var(--font-manrope), sans-serif;
+}
+
