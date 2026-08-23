@@ -335,7 +335,7 @@ export function TransactionForm({
           </section>
 
           {transactionKind === "single" ? (
-            <section className="space-y-3 rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
+            <section className="space-y-3 overflow-hidden rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
               <div className="space-y-2">
                 <label
                   htmlFor="transaction-date"
@@ -351,7 +351,7 @@ export function TransactionForm({
                     type="date"
                     value={transactionDate}
                     onChange={(event) => setTransactionDate(event.target.value)}
-                    className={`${inputClassName} pl-11 [&::-webkit-calendar-picker-indicator]:hidden`}
+                    className={`${inputClassName} pl-11 text-base sm:text-sm [&::-webkit-calendar-picker-indicator]:hidden`}
                   />
                 </div>
               </div>
@@ -359,7 +359,7 @@ export function TransactionForm({
           ) : null}
 
           {transactionKind === "installment-template" ? (
-            <section className="space-y-4 rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
+            <section className="space-y-4 overflow-hidden rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <label
@@ -399,7 +399,7 @@ export function TransactionForm({
                       onChange={(event) =>
                         setInstallmentStartDate(event.target.value)
                       }
-                      className={`${inputClassName} pl-11 [&::-webkit-calendar-picker-indicator]:hidden`}
+                      className={`${inputClassName} pl-11 text-base sm:text-sm [&::-webkit-calendar-picker-indicator]:hidden`}
                     />
                   </div>
                 </div>
@@ -408,7 +408,7 @@ export function TransactionForm({
           ) : null}
 
           {transactionKind === "recurring-template" ? (
-            <section className="space-y-4 rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
+            <section className="space-y-4 overflow-hidden rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <label
@@ -447,7 +447,7 @@ export function TransactionForm({
                       onChange={(event) =>
                         setRecurrenceStartDate(event.target.value)
                       }
-                      className={`${inputClassName} pl-11 [&::-webkit-calendar-picker-indicator]:hidden`}
+                      className={`${inputClassName} pl-11 text-base sm:text-sm [&::-webkit-calendar-picker-indicator]:hidden`}
                     />
                   </div>
                 </div>
@@ -496,7 +496,7 @@ export function TransactionForm({
                       onChange={(event) =>
                         setRecurrenceEndDate(event.target.value)
                       }
-                      className={`${inputClassName} pl-11 [&::-webkit-calendar-picker-indicator]:hidden`}
+                      className={`${inputClassName} pl-11 text-base sm:text-sm [&::-webkit-calendar-picker-indicator]:hidden`}
                     />
                   </div>
                 </div>
