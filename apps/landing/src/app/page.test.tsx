@@ -35,4 +35,21 @@ describe("Finly landing page", () => {
     expect(screen.getByRole("main")).toBeInTheDocument();
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
   });
+
+  it("shows representative financial indicators in the product showcase", () => {
+    const { container } = render(<Home />);
+
+    expect(container.querySelector("#produto")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", {
+        level: 2,
+        name: /tudo o que importa/i,
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Saldo atual")).toBeInTheDocument();
+    expect(screen.getByText("Entradas")).toBeInTheDocument();
+    expect(screen.getByText("Saídas")).toBeInTheDocument();
+    expect(screen.getByText("Saldo projetado")).toBeInTheDocument();
+    expect(screen.getByText("Reserva de tranquilidade")).toBeInTheDocument();
+  });
 });

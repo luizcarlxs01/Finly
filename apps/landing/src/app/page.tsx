@@ -1,5 +1,7 @@
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { LandingHeader } from "@/components/landing-header";
+import { ProductDashboard } from "@/components/product-dashboard";
+import { ProductShowcase } from "@/components/product-showcase";
 
 export default function Home() {
   return (
@@ -40,12 +42,10 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="hero-visual-placeholder" aria-hidden="true">
-            <span>Visão financeira</span>
-            <strong>Clareza em cada escolha.</strong>
-          </div>
+          <ProductDashboard />
         </div>
       </section>
+      <ProductShowcase />
     </main>
   );
 }
