@@ -344,14 +344,14 @@ export function TransactionForm({
                   Data do lançamento
                 </label>
 
-                <div className="relative">
+                <div className="relative min-w-0">
                   <CalendarDays className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                   <input
                     id="transaction-date"
                     type="date"
                     value={transactionDate}
                     onChange={(event) => setTransactionDate(event.target.value)}
-                    className={`${inputClassName} pl-11`}
+                    className={`${inputClassName} pl-11 [&::-webkit-calendar-picker-indicator]:hidden`}
                   />
                 </div>
               </div>
@@ -390,7 +390,7 @@ export function TransactionForm({
                     Data da primeira parcela
                   </label>
 
-                  <div className="relative">
+                  <div className="relative min-w-0">
                     <CalendarDays className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                     <input
                       id="transaction-installment-start-date"
@@ -399,7 +399,7 @@ export function TransactionForm({
                       onChange={(event) =>
                         setInstallmentStartDate(event.target.value)
                       }
-                      className={`${inputClassName} pl-11`}
+                      className={`${inputClassName} pl-11 [&::-webkit-calendar-picker-indicator]:hidden`}
                     />
                   </div>
                 </div>
@@ -438,7 +438,7 @@ export function TransactionForm({
                     Data de início
                   </label>
 
-                  <div className="relative">
+                  <div className="relative min-w-0">
                     <CalendarDays className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                     <input
                       id="transaction-recurrence-start-date"
@@ -447,7 +447,7 @@ export function TransactionForm({
                       onChange={(event) =>
                         setRecurrenceStartDate(event.target.value)
                       }
-                      className={`${inputClassName} pl-11`}
+                      className={`${inputClassName} pl-11 [&::-webkit-calendar-picker-indicator]:hidden`}
                     />
                   </div>
                 </div>
@@ -486,7 +486,7 @@ export function TransactionForm({
                     Data final
                   </label>
 
-                  <div className="relative">
+                  <div className="relative min-w-0">
                     <CalendarDays className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                     <input
                       id="transaction-recurrence-end-date"
@@ -496,7 +496,7 @@ export function TransactionForm({
                       onChange={(event) =>
                         setRecurrenceEndDate(event.target.value)
                       }
-                      className={`${inputClassName} pl-11`}
+                      className={`${inputClassName} pl-11 [&::-webkit-calendar-picker-indicator]:hidden`}
                     />
                   </div>
                 </div>
@@ -528,10 +528,10 @@ export function TransactionForm({
           ) : null}
 
           <section className="space-y-3 rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
-            <div className="flex flex-col gap-3 sm:flex-row">
+            <div className="grid flex-col gap-3 sm:flex-row">
               <Button
                 type="submit"
-                className="h-11 flex-1 rounded-2xl"
+                className="h-12 flex-1 rounded-2xl"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? "Salvando..." : "Salvar lançamento"}
@@ -540,7 +540,7 @@ export function TransactionForm({
               <Button
                 type="button"
                 variant="outline"
-                className="h-11 flex-1 rounded-2xl"
+                className="h-12 flex-1 rounded-2xl"
                 onClick={handlePreview}
               >
                 <Sparkles className="size-4" />
