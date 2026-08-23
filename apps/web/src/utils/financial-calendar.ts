@@ -36,6 +36,8 @@ export type CalendarMonthSummary = {
   totalIncome: number;
   totalExpense: number;
   monthBalance: number;
+  /** Saldo acumulado projetado ao fim do mês: currentBalance + pendências até último dia do mês. */
+  cumulativeBalance: number;
   occurrenceCount: number;
 };
 
@@ -74,11 +76,14 @@ export function getCalendarMonthData({
   transactions,
   year,
   monthIndex,
+  currentBalance = 0,
   referenceDate = new Date(),
 }: {
   transactions: Transaction[];
   year: number;
   monthIndex: number;
+  /** Saldo atual (Occurrences pagas). Usado como base do saldo acumulado projetado. */
+  currentBalance?: number;
   referenceDate?: Date;
 }): CalendarMonthData {
   const occurrencesByDay = new Map<number, Transaction[]>();
@@ -86,11 +91,33 @@ export function getCalendarMonthData({
   let totalExpense = 0;
   let occurrenceCount = 0;
 
+  const lastDayDateValue = formatDateValue(
+    createDateValue(year, monthIndex, getDaysInMonth(year, monthIndex)),
+  );
+
+  // Soma das ocorrências PENDENTES com data até o último dia do mês visível —
+  // adicionado ao currentBalance (que já inclui as pagas) resulta no saldo acumulado projetado.
+  let pendingNetToEndOfMonth = 0;
+
   for (const transaction of transactions) {
     const occurrenceDate = parseDateValue(transaction.occurrenceDate);
 
+    if (!occurrenceDate) {
+      continue;
+    }
+
+    const dateValue = formatDateValue(occurrenceDate);
+
+    // Acumula pendências até o fim do mês exibido (qualquer mês, não só o atual).
+    if (dateValue <= lastDayDateValue && !isPaidOccurrence(transaction)) {
+      if (transaction.type === "income") {
+        pendingNetToEndOfMonth += transaction.amount;
+      } else {
+        pendingNetToEndOfMonth -= transaction.amount;
+      }
+    }
+
     if (
-      !occurrenceDate ||
       occurrenceDate.getFullYear() !== year ||
       occurrenceDate.getMonth() !== monthIndex
     ) {
@@ -148,6 +175,7 @@ export function getCalendarMonthData({
       totalIncome,
       totalExpense,
       monthBalance: totalIncome - totalExpense,
+      cumulativeBalance: currentBalance + pendingNetToEndOfMonth,
       occurrenceCount,
     },
   };

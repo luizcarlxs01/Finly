@@ -970,6 +970,7 @@ export default function HomePage() {
         open={isCalendarModalOpen}
         onClose={() => setIsCalendarModalOpen(false)}
         transactions={projectionTransactions}
+        currentBalance={currentBalance}
         onEditTransaction={(transaction) => {
           setIsCalendarModalOpen(false);
           handleOpenEditModal(transaction);

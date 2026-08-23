@@ -14,6 +14,7 @@ type FinancialCalendarModalProps = {
   onClose: () => void;
   transactions: Transaction[];
   onEditTransaction: (transaction: Transaction) => void;
+  currentBalance: number;
 };
 
 const currencyFormatter = new Intl.NumberFormat("pt-BR", {
@@ -32,6 +33,7 @@ export function FinancialCalendarModal({
   onClose,
   transactions,
   onEditTransaction,
+  currentBalance,
 }: FinancialCalendarModalProps) {
   const [visibleMonth, setVisibleMonth] = useState(getCurrentMonth);
   const [selectedDateValue, setSelectedDateValue] = useState<string | null>(null);
@@ -67,8 +69,9 @@ export function FinancialCalendarModal({
         transactions,
         year: visibleMonth.year,
         monthIndex: visibleMonth.monthIndex,
+        currentBalance,
       }),
-    [transactions, visibleMonth.monthIndex, visibleMonth.year],
+    [transactions, visibleMonth.monthIndex, visibleMonth.year, currentBalance],
   );
 
   const selectedDay = useMemo(
@@ -178,14 +181,14 @@ export function FinancialCalendarModal({
 
               <div className="rounded-2xl border border-border/70 bg-card/80 px-4 py-3">
                 <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                  Saldo do mês
+                  Saldo projetado
                 </p>
                 <p
                   className={`mt-1 text-base font-semibold ${
-                    month.summary.monthBalance < 0 ? "text-destructive" : "text-foreground"
+                    month.summary.cumulativeBalance < 0 ? "text-destructive" : "text-foreground"
                   }`}
                 >
-                  {currencyFormatter.format(month.summary.monthBalance)}
+                  {currencyFormatter.format(month.summary.cumulativeBalance)}
                 </p>
               </div>
             </div>
