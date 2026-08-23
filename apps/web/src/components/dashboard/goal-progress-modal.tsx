@@ -129,6 +129,7 @@ export function GoalProgressModal({
             <input
               id="goal-current-progress"
               type="number"
+              inputMode="decimal"
               step="0.01"
               value={currentAmount}
               onChange={(event) => setCurrentAmount(event.target.value)}

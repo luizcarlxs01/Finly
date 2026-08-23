@@ -533,6 +533,7 @@ export function TransactionEditModal({
                 <input
                   id="edit-transaction-amount"
                   type="number"
+                  inputMode="decimal"
                   step="0.01"
                   value={amount}
                   onChange={(event) => setAmount(event.target.value)}
@@ -628,6 +629,7 @@ export function TransactionEditModal({
                       <input
                         id="edit-transaction-installment-count"
                         type="number"
+                        inputMode="numeric"
                         min="2"
                         value={installmentCount}
                         onChange={(event) =>
@@ -682,6 +684,7 @@ export function TransactionEditModal({
                       <input
                         id="edit-transaction-recurrence-day"
                         type="number"
+                        inputMode="numeric"
                         min="1"
                         max="31"
                         value={recurrenceDay}
@@ -768,6 +771,7 @@ export function TransactionEditModal({
                       <input
                         id="edit-transaction-recurrence-months"
                         type="number"
+                        inputMode="numeric"
                         min="1"
                         value={recurrenceMonths}
                         onChange={(event) =>
@@ -821,6 +825,7 @@ export function TransactionEditModal({
                       <input
                         id="edit-occurrence-amount"
                         type="number"
+                        inputMode="decimal"
                         step="0.01"
                         value={occurrenceAmount}
                         onChange={(event) => setOccurrenceAmount(event.target.value)}

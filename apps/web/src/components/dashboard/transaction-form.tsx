@@ -251,6 +251,7 @@ export function TransactionForm({
                 <input
                   id="transaction-amount"
                   type="number"
+                  inputMode="decimal"
                   step="0.01"
                   value={amount}
                   onChange={(event) => setAmount(event.target.value)}
@@ -374,6 +375,7 @@ export function TransactionForm({
                   <input
                     id="transaction-installment-count"
                     type="number"
+                    inputMode="numeric"
                     min="2"
                     value={installmentCount}
                     onChange={(event) =>
@@ -423,6 +425,7 @@ export function TransactionForm({
                   <input
                     id="transaction-recurrence-day"
                     type="number"
+                    inputMode="numeric"
                     min="1"
                     max="31"
                     value={recurrenceDay}
@@ -516,6 +519,7 @@ export function TransactionForm({
                   <input
                     id="transaction-recurrence-months"
                     type="number"
+                    inputMode="numeric"
                     min="1"
                     value={recurrenceMonths}
                     onChange={(event) =>

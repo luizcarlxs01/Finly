@@ -143,6 +143,7 @@ export function GoalForm({
                   <input
                     id="goal-target-amount"
                     type="number"
+                    inputMode="decimal"
                     step="0.01"
                     value={targetAmount}
                     onChange={(event) => setTargetAmount(event.target.value)}
@@ -165,6 +166,7 @@ export function GoalForm({
                   <input
                     id="goal-current-amount"
                     type="number"
+                    inputMode="decimal"
                     step="0.01"
                     value={currentAmount}
                     onChange={(event) => setCurrentAmount(event.target.value)}
