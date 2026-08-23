@@ -67,7 +67,7 @@ export function GoalProgressModal({
       return;
     }
 
-    const parsedCurrentAmount = Number(currentAmount);
+    const parsedCurrentAmount = Number(currentAmount.replace(",", "."));
 
     if (Number.isNaN(parsedCurrentAmount) || parsedCurrentAmount < 0) {
       return;
@@ -128,9 +128,8 @@ export function GoalProgressModal({
 
             <input
               id="goal-current-progress"
-              type="number"
+              type="text"
               inputMode="decimal"
-              step="0.01"
               value={currentAmount}
               onChange={(event) => setCurrentAmount(event.target.value)}
               className={fieldClassName}

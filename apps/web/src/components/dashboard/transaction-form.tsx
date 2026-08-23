@@ -84,7 +84,7 @@ export function TransactionForm({
   }
 
   function buildTransactionInput() {
-    const parsedAmount = Number(amount);
+    const parsedAmount = Number(amount.replace(",", "."));
     const normalizedTitle = title.trim();
     const normalizedCategory = category.trim();
 
@@ -250,9 +250,8 @@ export function TransactionForm({
 
                 <input
                   id="transaction-amount"
-                  type="number"
+                  type="text"
                   inputMode="decimal"
-                  step="0.01"
                   value={amount}
                   onChange={(event) => setAmount(event.target.value)}
                   className={inputClassName}

@@ -213,7 +213,7 @@ export function TransactionEditModal({
       return;
     }
 
-    const parsedAmount = Number(amount);
+    const parsedAmount = Number(amount.replace(",", "."));
     const normalizedTitle = title.trim();
     const normalizedCategory = category.trim();
 
@@ -357,7 +357,7 @@ export function TransactionEditModal({
       return;
     }
 
-    const parsedOccurrenceAmount = Number(occurrenceAmount);
+    const parsedOccurrenceAmount = Number(occurrenceAmount.replace(",", "."));
     const normalizedOccurrenceDueDate = occurrenceDueDate.trim();
 
     if (
@@ -532,9 +532,8 @@ export function TransactionEditModal({
 
                 <input
                   id="edit-transaction-amount"
-                  type="number"
+                  type="text"
                   inputMode="decimal"
-                  step="0.01"
                   value={amount}
                   onChange={(event) => setAmount(event.target.value)}
                   className={fieldClassName}
@@ -824,9 +823,8 @@ export function TransactionEditModal({
 
                       <input
                         id="edit-occurrence-amount"
-                        type="number"
+                        type="text"
                         inputMode="decimal"
-                        step="0.01"
                         value={occurrenceAmount}
                         onChange={(event) => setOccurrenceAmount(event.target.value)}
                         className={fieldClassName}

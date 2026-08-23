@@ -41,8 +41,8 @@ export function GoalForm({
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const parsedTargetAmount = Number(targetAmount);
-    const parsedCurrentAmount = currentAmount ? Number(currentAmount) : 0;
+    const parsedTargetAmount = Number(targetAmount.replace(",", "."));
+    const parsedCurrentAmount = currentAmount ? Number(currentAmount.replace(",", ".")) : 0;
     const normalizedTitle = title.trim();
 
     if (
@@ -142,9 +142,8 @@ export function GoalForm({
                   <WalletCards className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                   <input
                     id="goal-target-amount"
-                    type="number"
+                    type="text"
                     inputMode="decimal"
-                    step="0.01"
                     value={targetAmount}
                     onChange={(event) => setTargetAmount(event.target.value)}
                     className={`${fieldClassName} pl-11`}
@@ -165,9 +164,8 @@ export function GoalForm({
                   <WalletCards className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                   <input
                     id="goal-current-amount"
-                    type="number"
+                    type="text"
                     inputMode="decimal"
-                    step="0.01"
                     value={currentAmount}
                     onChange={(event) => setCurrentAmount(event.target.value)}
                     className={`${fieldClassName} pl-11`}
