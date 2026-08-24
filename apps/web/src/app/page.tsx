@@ -743,7 +743,6 @@ export default function HomePage() {
             onChangeView={setActiveView}
             isAccountCardOpen={isAccountCardOpen}
             onToggleAccountCard={() => setIsAccountCardOpen((prev) => !prev)}
-            variant={isLandingHome ? "landing" : "default"}
           />
 
           {isAccountCardOpen ? (

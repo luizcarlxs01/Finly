@@ -13,7 +13,6 @@ type AppFloatingHeaderProps = {
   onChangeView: (view: DashboardView) => void;
   isAccountCardOpen: boolean;
   onToggleAccountCard: () => void;
-  variant?: "default" | "landing";
 };
 
 const navigationItems: Array<{
@@ -48,26 +47,10 @@ export function AppFloatingHeader({
   onChangeView,
   isAccountCardOpen,
   onToggleAccountCard,
-  variant = "default",
 }: AppFloatingHeaderProps) {
-  const isLanding = variant === "landing";
-
   return (
-    <div
-      className={
-        isLanding
-          ? "sticky top-3 z-40 mx-auto w-[calc(100%-2rem)] max-w-7xl sm:top-4 sm:w-[calc(100%-3rem)] lg:w-[calc(100%-4rem)]"
-          : "sticky top-3 z-40 sm:top-4"
-      }
-      data-variant={variant}
-    >
-      <div
-        className={
-          isLanding
-            ? "rounded-[1.25rem] border border-white/80 bg-white/72 px-2 py-1.5 shadow-[0_20px_55px_-30px_rgba(3,21,51,0.34)] backdrop-blur-xl supports-[backdrop-filter]:bg-white/64 sm:rounded-[1.75rem] sm:p-2 dark:border-white/10 dark:bg-[#0b275e]/72 dark:supports-[backdrop-filter]:bg-[#0b275e]/64"
-            : "rounded-[1.25rem] border border-border/70 bg-background/85 px-2 py-1.5 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-background/75 sm:rounded-[1.75rem] sm:p-2"
-        }
-      >
+    <div className="sticky top-3 z-40 sm:top-4">
+      <div className="relative left-1/2 w-[calc(100vw-2rem)] max-w-7xl -translate-x-1/2 rounded-[1.25rem] border border-white/80 bg-white/72 px-2 py-1.5 shadow-[0_20px_55px_-30px_rgba(3,21,51,0.34)] backdrop-blur-xl supports-[backdrop-filter]:bg-white/64 sm:w-[calc(100vw-3rem)] sm:rounded-[1.75rem] sm:p-2 lg:w-[calc(100vw-4rem)] dark:border-white/10 dark:bg-[#0b275e]/72 dark:supports-[backdrop-filter]:bg-[#0b275e]/64">
         <div className="flex items-center justify-between gap-2 sm:gap-3">
           <div className="flex items-center gap-2 px-1 py-0.5 sm:gap-3 sm:px-2 sm:py-1">
             <div className="flex size-9 items-center justify-center overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm sm:size-10 sm:rounded-2xl">
