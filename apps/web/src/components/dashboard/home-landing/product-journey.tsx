@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import {
@@ -26,6 +26,27 @@ const insightBars = [42, 58, 49, 72, 66, 86] as const;
 
 export function ProductJourney() {
   const journeyRef = useRef<HTMLDivElement>(null);
+  const timelineRef = useRef<gsap.core.Timeline | null>(null);
+  const activeStepRef = useRef(0);
+  const [activeStep, setActiveStep] = useState(0);
+
+  function selectStep(index: number) {
+    activeStepRef.current = index;
+    setActiveStep(index);
+
+    const scrollTrigger = timelineRef.current?.scrollTrigger;
+
+    if (!scrollTrigger) {
+      return;
+    }
+
+    const progress = index / (journeyStates.length - 1);
+    const scrollPosition =
+      scrollTrigger.start +
+      (scrollTrigger.end - scrollTrigger.start) * progress;
+
+    window.scrollTo({ top: scrollPosition, behavior: "smooth" });
+  }
 
   useEffect(() => {
     const root = journeyRef.current;
@@ -72,8 +93,21 @@ export function ProductJourney() {
               scrub: 0.6,
               anticipatePin: 1,
               invalidateOnRefresh: true,
+              onUpdate: (self) => {
+                const nextStep = Math.min(
+                  journeyStates.length - 1,
+                  Math.round(self.progress * (journeyStates.length - 1)),
+                );
+
+                if (nextStep !== activeStepRef.current) {
+                  activeStepRef.current = nextStep;
+                  setActiveStep(nextStep);
+                }
+              },
             },
           });
+
+          timelineRef.current = timeline;
 
           panels.slice(1).forEach((panel, index) => {
             const previousPanel = panels[index];
@@ -99,6 +133,10 @@ export function ProductJourney() {
               )
               .to(nextStep, { opacity: 1, duration: 0.22 }, position + 0.08);
           });
+
+          return () => {
+            timelineRef.current = null;
+          };
         },
       );
     }, root);
@@ -115,20 +153,26 @@ export function ProductJourney() {
         <div
           className={homeClass("journey-step-list")}
           aria-label="Etapas da experiência Finly"
+          role="group"
         >
           {journeyStates.map((state, index) => {
             const Icon = state.icon;
 
             return (
-              <span
+              <button
+                aria-controls={`journey-panel-${index}`}
+                aria-pressed={activeStep === index}
                 className={homeClass("journey-step")}
+                data-active={activeStep === index}
                 data-journey-step
                 key={state.label}
+                onClick={() => selectStep(index)}
+                type="button"
               >
                 <Icon aria-hidden="true" />
                 <span>{state.label}</span>
                 <i aria-hidden="true">0{index + 1}</i>
-              </span>
+              </button>
             );
           })}
         </div>
@@ -146,9 +190,11 @@ export function ProductJourney() {
           </div>
 
           <article
+            aria-hidden={activeStep !== 0}
             className={homeClass("journey-panel", "journey-overview")}
+            data-active={activeStep === 0}
             data-journey-panel="0"
-            aria-hidden="true"
+            id="journey-panel-0"
           >
             <div className={homeClass("journey-panel-heading")}>
               <span>Resumo de agosto</span>
@@ -171,9 +217,11 @@ export function ProductJourney() {
           </article>
 
           <article
+            aria-hidden={activeStep !== 1}
             className={homeClass("journey-panel", "journey-calendar")}
+            data-active={activeStep === 1}
             data-journey-panel="1"
-            aria-hidden="true"
+            id="journey-panel-1"
           >
             <div className={homeClass("journey-panel-heading")}>
               <span>Agosto de 2026</span>
@@ -203,9 +251,11 @@ export function ProductJourney() {
           </article>
 
           <article
+            aria-hidden={activeStep !== 2}
             className={homeClass("journey-panel", "journey-goals")}
+            data-active={activeStep === 2}
             data-journey-panel="2"
-            aria-hidden="true"
+            id="journey-panel-2"
           >
             <div className={homeClass("journey-panel-heading")}>
               <span>Metas em andamento</span>
@@ -226,9 +276,11 @@ export function ProductJourney() {
           </article>
 
           <article
+            aria-hidden={activeStep !== 3}
             className={homeClass("journey-panel", "journey-insights")}
+            data-active={activeStep === 3}
             data-journey-panel="3"
-            aria-hidden="true"
+            id="journey-panel-3"
           >
             <div className={homeClass("journey-panel-heading")}>
               <span>Leituras do seu mês</span>

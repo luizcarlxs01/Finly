@@ -868,14 +868,45 @@
   gap: 0.45rem;
   padding: 0.7rem 0.75rem;
   overflow: hidden;
+  appearance: none;
   border: 1px solid color-mix(in srgb, var(--finly-border) 82%, transparent);
   border-radius: 0.85rem;
   color: var(--finly-navy);
   background: color-mix(in srgb, var(--finly-white) 88%, transparent);
+  cursor: pointer;
+  font-family: inherit;
   font-size: 0.66rem;
   font-weight: 720;
   line-height: 1.2;
+  opacity: 0.48;
+  text-align: left;
   box-shadow: 0 0.5rem 1.4rem rgba(31, 92, 170, 0.05);
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    opacity 180ms ease,
+    transform 180ms ease;
+}
+
+.journey-step[data-active="true"] {
+  border-color: color-mix(in srgb, var(--finly-blue) 42%, var(--finly-border));
+  opacity: 1;
+  box-shadow: 0 0.65rem 1.6rem rgba(31, 92, 170, 0.1);
+  transform: translateY(-1px);
+}
+
+.journey-step:hover {
+  border-color: color-mix(in srgb, var(--finly-blue) 32%, var(--finly-border));
+  opacity: 0.82;
+}
+
+.journey-step[data-active="true"]:hover {
+  opacity: 1;
+}
+
+.journey-step:focus-visible {
+  outline: 2px solid var(--finly-blue);
+  outline-offset: 3px;
 }
 
 .journey-step::after {
@@ -886,6 +917,15 @@
   height: 2px;
   content: "";
   background: linear-gradient(90deg, var(--finly-blue), #6ba9ff);
+  opacity: 0;
+  transform: scaleX(0.25);
+  transform-origin: left;
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.journey-step[data-active="true"]::after {
+  opacity: 1;
+  transform: scaleX(1);
 }
 
 .journey-step svg {
@@ -984,7 +1024,7 @@
   transform: translateY(24px);
 }
 
-.journey-panel[data-journey-panel="0"] {
+.journey-panel[data-active="true"] {
   opacity: 1;
   visibility: visible;
   transform: none;
@@ -1845,11 +1885,11 @@
     transform: none !important;
   }
 
-  .journey-panel:not([data-journey-panel="0"]) {
+  .journey-panel:not([data-active="true"]) {
     display: none;
   }
 
-  .journey-step:not(:first-child) {
+  .journey-step[data-active="false"] {
     opacity: 0.48 !important;
   }
 
@@ -1868,6 +1908,10 @@
   }
 
   .journey-step {
+    opacity: 0.48 !important;
+  }
+
+  .journey-step[data-active="true"] {
     opacity: 1 !important;
   }
 
@@ -1881,7 +1925,7 @@
     border-radius: 1.5rem;
   }
 
-  .journey-panel:not([data-journey-panel="0"]) {
+  .journey-panel:not([data-active="true"]) {
     display: none;
   }
 
