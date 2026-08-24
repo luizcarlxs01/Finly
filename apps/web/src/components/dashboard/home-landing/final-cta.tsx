@@ -2,6 +2,7 @@ import { ArrowUpRight } from "lucide-react";
 
 import { FinlyMark } from "./finly-mark";
 import { homeClass } from "./home-styles";
+import { ScrollReveal } from "./scroll-reveal";
 
 type FinalCtaProps = {
   onStartTransactions: () => void;
@@ -10,7 +11,7 @@ type FinalCtaProps = {
 export function FinalCta({ onStartTransactions }: FinalCtaProps) {
   return (
     <section className={homeClass("closing-section")} aria-labelledby="closing-title">
-      <div className={homeClass("content-width")}>
+      <ScrollReveal className={homeClass("content-width")}>
         <div className={homeClass("closing-card")}>
           <span
             className={homeClass("closing-light", "closing-light-one")}
@@ -44,7 +45,7 @@ export function FinalCta({ onStartTransactions }: FinalCtaProps) {
           <p>Clareza financeira, todos os dias.</p>
           <span>© 2026 Finly</span>
         </footer>
-      </div>
+      </ScrollReveal>
     </section>
   );
 }

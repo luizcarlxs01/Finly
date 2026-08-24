@@ -1,8 +1,12 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { HomeLanding } from "@/components/dashboard/home-landing/home-landing";
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe("HomeLanding", () => {
   it("apresenta a experiência completa na Home", () => {
@@ -45,5 +49,38 @@ describe("HomeLanding", () => {
     await user.click(transactionButtons[1]);
 
     expect(onStartTransactions).toHaveBeenCalledTimes(2);
+  });
+
+  it("revela cada seção uma única vez ao entrar na viewport", () => {
+    const callbacks: IntersectionObserverCallback[] = [];
+    const observe = vi.fn();
+    const unobserve = vi.fn();
+    const disconnect = vi.fn();
+
+    class IntersectionObserverMock {
+      constructor(callback: IntersectionObserverCallback) {
+        callbacks.push(callback);
+      }
+
+      observe = observe;
+      unobserve = unobserve;
+      disconnect = disconnect;
+    }
+
+    vi.stubGlobal("IntersectionObserver", IntersectionObserverMock);
+
+    const { container } = render(
+      <HomeLanding onStartTransactions={vi.fn()} />,
+    );
+    const reveals = container.querySelectorAll("[data-scroll-reveal]");
+
+    expect(reveals).toHaveLength(3);
+    callbacks[0](
+      [{ isIntersecting: true } as IntersectionObserverEntry],
+      {} as IntersectionObserver,
+    );
+
+    expect(reveals[0]).toHaveAttribute("data-visible", "true");
+    expect(unobserve).toHaveBeenCalledWith(reveals[0]);
   });
 });

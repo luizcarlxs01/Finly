@@ -1,12 +1,13 @@
 import { ArrowRight, Cloud, Laptop, ShieldCheck } from "lucide-react";
 
 import { homeClass } from "./home-styles";
+import { ScrollReveal } from "./scroll-reveal";
 
 export function SyncFeature() {
   return (
     <section className={homeClass("sync-section")} aria-labelledby="sync-title">
       <span className={homeClass("sync-grid")} aria-hidden="true" />
-      <div className={homeClass("content-width", "sync-layout")}>
+      <ScrollReveal className={homeClass("content-width", "sync-layout")}>
         <div className={homeClass("sync-copy")}>
           <p className={homeClass("eyebrow", "eyebrow-light")}>
             <span aria-hidden="true" />
@@ -69,7 +70,7 @@ export function SyncFeature() {
             <p>Leve sua visão financeira para outros dispositivos no seu tempo.</p>
           </article>
         </div>
-      </div>
+      </ScrollReveal>
     </section>
   );
 }
