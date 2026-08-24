@@ -1,4 +1,7 @@
+"use client";
+
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
+import type { MouseEvent } from "react";
 
 import { homeClass } from "./home-styles";
 import { ProductDashboard } from "./product-dashboard";
@@ -8,6 +11,24 @@ type LandingHeroProps = {
 };
 
 export function LandingHero({ onStartTransactions }: LandingHeroProps) {
+  function handleProductScroll(event: MouseEvent<HTMLAnchorElement>) {
+    const productSection = document.getElementById("produto");
+
+    if (!productSection) {
+      return;
+    }
+
+    event.preventDefault();
+    const prefersReducedMotion = window.matchMedia?.(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+
+    productSection.scrollIntoView({
+      behavior: prefersReducedMotion ? "auto" : "smooth",
+      block: "start",
+    });
+  }
+
   return (
     <section
       className={homeClass("hero-shell")}
@@ -50,7 +71,7 @@ export function LandingHero({ onStartTransactions }: LandingHeroProps) {
               "hero-enter-support",
             )}
           >
-            Organize, planeje e entenda suas finanças em um único lugar.
+            Acompanhe o que importa e registre seus lançamentos em poucos passos.
           </p>
           <div
             className={homeClass(
@@ -71,6 +92,7 @@ export function LandingHero({ onStartTransactions }: LandingHeroProps) {
             <a
               className={homeClass("button", "button-secondary")}
               href="#produto"
+              onClick={handleProductScroll}
             >
               Conhecer o Finly
               <ArrowDownRight aria-hidden="true" />

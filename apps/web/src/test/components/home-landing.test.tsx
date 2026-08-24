@@ -21,6 +21,11 @@ describe("HomeLanding", () => {
     expect(screen.getByText("Saldo atual")).toBeInTheDocument();
     expect(screen.getByText("Reserva de tranquilidade")).toBeInTheDocument();
     expect(
+      screen.getByText(
+        "Acompanhe o que importa e registre seus lançamentos em poucos passos.",
+      ),
+    ).toBeInTheDocument();
+    expect(
       screen.getByRole("heading", { level: 2, name: /tudo o que importa/i }),
     ).toBeInTheDocument();
     expect(
@@ -49,6 +54,25 @@ describe("HomeLanding", () => {
     await user.click(transactionButtons[1]);
 
     expect(onStartTransactions).toHaveBeenCalledTimes(2);
+  });
+
+  it("faz scroll suave para o showcase pelo CTA secundário", async () => {
+    const user = userEvent.setup();
+    const scrollIntoView = vi.fn();
+    render(<HomeLanding onStartTransactions={vi.fn()} />);
+
+    const productSection = document.getElementById("produto");
+    Object.defineProperty(productSection, "scrollIntoView", {
+      configurable: true,
+      value: scrollIntoView,
+    });
+
+    await user.click(screen.getByRole("link", { name: "Conhecer o Finly" }));
+
+    expect(scrollIntoView).toHaveBeenCalledWith({
+      behavior: "smooth",
+      block: "start",
+    });
   });
 
   it("revela cada seção uma única vez ao entrar na viewport", () => {

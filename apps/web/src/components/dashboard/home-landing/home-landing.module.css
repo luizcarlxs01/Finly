@@ -1,18 +1,19 @@
 .page-shell {
-  --finly-blue: #1a75ff;
-  --finly-navy: #031533;
-  --finly-sky: #7eb0f2;
-  --finly-canvas: #f4f7fb;
-  --finly-border: #d0dff2;
-  --finly-muted: #4f698d;
-  --finly-white: #ffffff;
+  --finly-blue: var(--primary);
+  --finly-navy: var(--foreground);
+  --finly-sky: var(--secondary);
+  --finly-canvas: var(--background);
+  --finly-border: var(--border);
+  --finly-muted: var(--muted-foreground);
+  --finly-white: var(--card);
+  --finly-on-primary: var(--primary-foreground);
+  --finly-on-contrast: var(--background);
   color: var(--finly-navy);
   background: var(--finly-canvas);
   border-radius: 2rem;
   font-family: inherit;
   min-height: 100vh;
   overflow-x: clip;
-  scroll-behavior: smooth;
   text-rendering: optimizeLegibility;
 }
 
@@ -43,7 +44,7 @@
   background:
     radial-gradient(circle at 80% 25%, rgba(126, 176, 242, 0.34), transparent 28rem),
     radial-gradient(circle at 8% 82%, rgba(26, 117, 255, 0.1), transparent 24rem),
-    linear-gradient(180deg, #ffffff 0%, #f4f7fb 100%);
+    linear-gradient(180deg, var(--finly-white) 0%, var(--finly-canvas) 100%);
 }
 
 .hero-shell::before,
@@ -236,14 +237,14 @@
 }
 
 .button-primary {
-  color: #ffffff;
+  color: var(--finly-on-primary);
   background: var(--finly-blue);
   box-shadow: 0 14px 36px rgba(26, 117, 255, 0.28);
 }
 
 .button-secondary {
-  border-color: rgba(3, 21, 51, 0.12);
-  background: rgba(255, 255, 255, 0.72);
+  border-color: color-mix(in srgb, var(--finly-navy) 12%, transparent);
+  background: color-mix(in srgb, var(--finly-white) 72%, transparent);
 }
 
 .button:hover,
@@ -252,6 +253,13 @@
 }
 
 .dashboard-stage {
+  --finly-blue: #1a75ff;
+  --finly-navy: #031533;
+  --finly-sky: #7eb0f2;
+  --finly-canvas: #f4f7fb;
+  --finly-border: #d0dff2;
+  --finly-muted: #4f698d;
+  --finly-white: #ffffff;
   position: relative;
   width: min(100%, 38rem);
   perspective: 1600px;
@@ -789,7 +797,7 @@
   position: relative;
   scroll-margin-top: 1rem;
   padding-block: clamp(7rem, 13vw, 12rem);
-  background: #ffffff;
+  background: var(--finly-white);
 }
 
 .product-section::before {
@@ -893,7 +901,7 @@
 
 .benefit-item:hover {
   padding-inline: 1rem;
-  background: rgba(244, 247, 251, 0.7);
+  background: color-mix(in srgb, var(--finly-canvas) 70%, transparent);
 }
 
 .benefit-item:hover .benefit-arrow {
@@ -1115,16 +1123,16 @@
   justify-content: center;
   overflow: hidden;
   padding: 4rem 2rem;
-  border: 1px solid rgba(208, 223, 242, 0.85);
+  border: 1px solid color-mix(in srgb, var(--finly-border) 85%, transparent);
   border-radius: 2.5rem;
   text-align: center;
-  background: rgba(255, 255, 255, 0.84);
+  background: color-mix(in srgb, var(--finly-white) 84%, transparent);
   box-shadow: 0 30px 90px rgba(3, 21, 51, 0.09);
 }
 
 .closing-card > p,
 .closing-card > h2,
-.closing-card > a {
+.closing-card > button {
   position: relative;
   z-index: 2;
 }
@@ -1153,7 +1161,7 @@
 
 .closing-button {
   margin-top: 2.5rem;
-  color: #ffffff;
+  color: var(--finly-on-contrast);
   background: var(--finly-navy);
   box-shadow: 0 16px 38px rgba(3, 21, 51, 0.2);
 }
