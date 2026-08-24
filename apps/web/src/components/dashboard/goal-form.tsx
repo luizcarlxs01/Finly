@@ -92,9 +92,6 @@ export function GoalForm({
               <h3 className="text-base font-semibold text-foreground">
                 Sua meta
               </h3>
-              <p className="text-sm text-muted-foreground">
-                Escolha um nome claro para o seu objetivo.
-              </p>
             </div>
 
             <div className="space-y-2">
@@ -124,9 +121,6 @@ export function GoalForm({
               <h3 className="text-base font-semibold text-foreground">
                 Valores
               </h3>
-              <p className="text-sm text-muted-foreground">
-                Informe quanto quer alcançar e quanto já juntou.
-              </p>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
@@ -181,9 +175,6 @@ export function GoalForm({
               <h3 className="text-base font-semibold text-foreground">
                 Categoria e prazo
               </h3>
-              <p className="text-sm text-muted-foreground">
-                Se quiser, escolha uma categoria e defina uma data.
-              </p>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
@@ -238,9 +229,6 @@ export function GoalForm({
               <h3 className="text-base font-semibold text-foreground">
                 Salvar meta
               </h3>
-              <p className="text-sm text-muted-foreground">
-                Depois você pode atualizar o progresso quando quiser.
-              </p>
             </div>
 
             <Button

@@ -59,7 +59,7 @@ export function ProductJourney() {
     const media = gsap.matchMedia();
     const context = gsap.context(() => {
       media.add(
-        "(min-width: 769px) and (prefers-reduced-motion: no-preference)",
+        "(min-width: 921px) and (min-height: 760px) and (prefers-reduced-motion: no-preference)",
         () => {
           const panels = gsap.utils.toArray<HTMLElement>(
             "[data-journey-panel]",

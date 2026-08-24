@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const gsapMocks = vi.hoisted(() => {
   const contextRevert = vi.fn();
+  const mediaAdd = vi.fn((_query: string, setup: () => void) => setup());
   const mediaRevert = vi.fn();
   const registerPlugin = vi.fn();
   const set = vi.fn();
@@ -16,6 +17,7 @@ const gsapMocks = vi.hoisted(() => {
 
   return {
     contextRevert,
+    mediaAdd,
     mediaRevert,
     registerPlugin,
     set,
@@ -31,7 +33,7 @@ vi.mock("gsap", () => ({
       return { revert: gsapMocks.contextRevert };
     },
     matchMedia: () => ({
-      add: (_query: string, setup: () => void) => setup(),
+      add: gsapMocks.mediaAdd,
       revert: gsapMocks.mediaRevert,
     }),
     registerPlugin: gsapMocks.registerPlugin,
@@ -104,5 +106,14 @@ describe("ProductJourney", () => {
 
     expect(gsapMocks.mediaRevert).toHaveBeenCalledTimes(1);
     expect(gsapMocks.contextRevert).toHaveBeenCalledTimes(1);
+  });
+
+  it("só fixa a jornada quando a viewport comporta a experiência completa", () => {
+    render(<ProductJourney />);
+
+    expect(gsapMocks.mediaAdd).toHaveBeenCalledWith(
+      "(min-width: 921px) and (min-height: 760px) and (prefers-reduced-motion: no-preference)",
+      expect.any(Function),
+    );
   });
 });

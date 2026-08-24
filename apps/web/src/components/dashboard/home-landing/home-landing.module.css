@@ -792,8 +792,10 @@
 .product-section {
   position: relative;
   scroll-margin-top: 1rem;
-  padding-block: clamp(7rem, 13vw, 12rem);
-  background: var(--finly-white);
+  padding-block: clamp(5.5rem, 8vw, 8.5rem);
+  background:
+    radial-gradient(circle at 82% 12%, rgba(34, 119, 255, 0.07), transparent 27rem),
+    var(--finly-white);
 }
 
 .product-section::before {
@@ -808,19 +810,19 @@
 
 .product-section > .content-width {
   display: grid;
-  grid-template-columns: minmax(0, 0.8fr) minmax(30rem, 1fr);
-  gap: clamp(4rem, 9vw, 9rem);
+  grid-template-columns: minmax(21rem, 0.82fr) minmax(32rem, 1.18fr);
+  align-items: start;
+  gap: clamp(3rem, 5vw, 5.5rem);
 }
 
 .product-heading {
   align-self: start;
-  position: sticky;
-  top: 5rem;
+  max-width: 36rem;
 }
 
 .product-heading h2 {
   margin: 0;
-  font-size: clamp(2.8rem, 5vw, 5.4rem);
+  font-size: clamp(3rem, 4.4vw, 5rem);
   font-weight: 680;
   line-height: 0.98;
   letter-spacing: -0.062em;
@@ -833,7 +835,7 @@
 
 .product-heading > p:last-child {
   max-width: 33rem;
-  margin: 2rem 0 0;
+  margin: 1.65rem 0 0;
   color: var(--finly-muted);
   font-size: 1.05rem;
   line-height: 1.75;
@@ -845,7 +847,7 @@
 
 .journey-root {
   position: relative;
-  margin-bottom: 5rem;
+  margin-bottom: 2.75rem;
 }
 
 .journey-stage {
@@ -856,7 +858,7 @@
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.5rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0.85rem;
 }
 
 .journey-step {
@@ -866,7 +868,7 @@
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: 0.45rem;
-  padding: 0.7rem 0.75rem;
+  padding: 0.78rem 0.8rem;
   overflow: hidden;
   appearance: none;
   border: 1px solid color-mix(in srgb, var(--finly-border) 82%, transparent);
@@ -875,7 +877,7 @@
   background: color-mix(in srgb, var(--finly-white) 88%, transparent);
   cursor: pointer;
   font-family: inherit;
-  font-size: 0.66rem;
+  font-size: 0.69rem;
   font-weight: 720;
   line-height: 1.2;
   opacity: 0.48;
@@ -946,7 +948,7 @@
 
 .journey-frame {
   position: relative;
-  min-height: 31.5rem;
+  min-height: clamp(31.5rem, 66vh, 35rem);
   overflow: hidden;
   border: 1px solid rgba(123, 157, 198, 0.3);
   border-radius: 2rem;
@@ -1339,6 +1341,7 @@
 
 .benefit-list {
   border-top: 1px solid var(--finly-border);
+  background: color-mix(in srgb, var(--finly-white) 82%, transparent);
 }
 
 .benefit-item {
@@ -1347,7 +1350,7 @@
   grid-template-columns: 2.5rem 3.2rem minmax(0, 1fr) auto;
   align-items: center;
   gap: 1.25rem;
-  padding-block: 2.1rem;
+  padding-block: 1.65rem;
   border-bottom: 1px solid var(--finly-border);
   transition: padding-inline 220ms ease, background-color 220ms ease;
 }
@@ -1810,6 +1813,13 @@
   50%, 100% { transform: translateX(100%); }
 }
 
+@media (min-width: 921px) and (min-height: 760px) and (prefers-reduced-motion: no-preference) {
+  .product-heading {
+    position: sticky;
+    top: 5rem;
+  }
+}
+
 @media (max-width: 920px) {
   .hero-layout {
     grid-template-columns: 1fr;
@@ -1845,10 +1855,6 @@
 
   .product-section > .content-width {
     grid-template-columns: 1fr;
-  }
-
-  .product-heading {
-    position: static;
   }
 
   .sync-layout {
