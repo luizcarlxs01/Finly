@@ -1,4 +1,5 @@
 import { CalendarRange, Eye, Lightbulb, MoveUpRight } from "lucide-react";
+import { ScrollReveal } from "@/components/scroll-reveal";
 
 const benefits = [
   {
@@ -28,7 +29,7 @@ export function ProductShowcase() {
       id="produto"
       aria-labelledby="product-title"
     >
-      <div className="content-width">
+      <ScrollReveal className="content-width">
         <div className="product-heading">
           <p className="eyebrow">
             <span aria-hidden="true" />
@@ -66,7 +67,7 @@ export function ProductShowcase() {
             );
           })}
         </div>
-      </div>
+      </ScrollReveal>
     </section>
   );
 }

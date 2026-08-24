@@ -36,11 +36,13 @@ const summary = [
 ] as const;
 
 const chartBars = [38, 52, 46, 61, 56, 76, 88] as const;
+const projectionBars = [34, 48, 43, 64, 72, 91] as const;
 
 export function ProductDashboard() {
   return (
     <div className="dashboard-stage">
       <span className="dashboard-glow" aria-hidden="true" />
+      <span className="dashboard-depth-plane" aria-hidden="true" />
       <div
         className="dashboard"
         role="group"
@@ -169,6 +171,35 @@ export function ProductDashboard() {
               <small>68% concluída</small>
             </section>
           </div>
+        </div>
+      </div>
+
+      <div className="floating-metric floating-income" aria-hidden="true">
+        <span>Entradas recentes</span>
+        <strong>+ R$ 4.250</strong>
+        <small>8,4% acima do mês passado</small>
+      </div>
+
+      <div className="floating-metric floating-goal" aria-hidden="true">
+        <div className="floating-goal-heading">
+          <span>Progresso</span>
+          <strong>Meta 72%</strong>
+        </div>
+        <div className="floating-progress" aria-hidden="true">
+          <span />
+        </div>
+      </div>
+
+      <div className="floating-metric floating-projection" aria-hidden="true">
+        <span>Saldo projetado para agosto</span>
+        <strong>R$ 15.840</strong>
+        <div className="floating-mini-chart" aria-hidden="true">
+          {projectionBars.map((height, index) => (
+            <span
+              key={`${height}-${index}`}
+              style={{ height: `${height}%` }}
+            />
+          ))}
         </div>
       </div>
     </div>

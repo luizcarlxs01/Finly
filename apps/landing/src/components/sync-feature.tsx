@@ -1,10 +1,11 @@
 import { ArrowRight, Cloud, Laptop, ShieldCheck } from "lucide-react";
+import { ScrollReveal } from "@/components/scroll-reveal";
 
 export function SyncFeature() {
   return (
     <section className="sync-section" aria-labelledby="sync-title">
       <span className="sync-grid" aria-hidden="true" />
-      <div className="content-width sync-layout">
+      <ScrollReveal className="content-width sync-layout">
         <div className="sync-copy">
           <p className="eyebrow eyebrow-light">
             <span aria-hidden="true" />
@@ -67,7 +68,7 @@ export function SyncFeature() {
             <p>Leve sua visão financeira para outros dispositivos no seu tempo.</p>
           </article>
         </div>
-      </div>
+      </ScrollReveal>
     </section>
   );
 }

@@ -1,10 +1,11 @@
 import { ArrowUpRight } from "lucide-react";
 import { FinlyMark } from "@/components/finly-mark";
+import { ScrollReveal } from "@/components/scroll-reveal";
 
 export function FinalCta() {
   return (
     <section className="closing-section" aria-labelledby="closing-title">
-      <div className="content-width">
+      <ScrollReveal className="content-width">
         <div className="closing-card">
           <span className="closing-light closing-light-one" aria-hidden="true" />
           <span className="closing-light closing-light-two" aria-hidden="true" />
@@ -30,7 +31,7 @@ export function FinalCta() {
           <p>Clareza financeira, todos os dias.</p>
           <span>© 2026 Finly</span>
         </footer>
-      </div>
+      </ScrollReveal>
     </section>
   );
 }

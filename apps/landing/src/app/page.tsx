@@ -15,21 +15,22 @@ export default function Home() {
 
         <div className="hero-layout content-width">
           <div className="hero-copy">
-            <p className="eyebrow">
+            <p className="eyebrow hero-enter hero-enter-eyebrow">
               <span aria-hidden="true" />
               Clareza para decidir melhor
             </p>
             <h1
+              className="hero-enter hero-enter-title"
               id="hero-title"
               aria-label="Seu dinheiro. Finalmente claro."
             >
               Seu dinheiro.
               <span>Finalmente claro.</span>
             </h1>
-            <p className="hero-support">
+            <p className="hero-support hero-enter hero-enter-support">
               Organize, planeje e entenda suas finanças em um único lugar.
             </p>
-            <div className="hero-actions">
+            <div className="hero-actions hero-enter hero-enter-actions">
               <a
                 className="button button-primary"
                 href="https://app.finly.systems"

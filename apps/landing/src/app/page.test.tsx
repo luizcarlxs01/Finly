@@ -1,8 +1,12 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { act, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import Home from "@/app/page";
 
 describe("Finly landing page", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it("presents the exact hero promise and CTA destinations", () => {
     render(<Home />);
 
@@ -52,6 +56,14 @@ describe("Finly landing page", () => {
     expect(screen.getByText("Reserva de tranquilidade")).toBeInTheDocument();
   });
 
+  it("surrounds the dashboard with concise financial signals", () => {
+    render(<Home />);
+
+    expect(screen.getByText("+ R$ 4.250")).toBeInTheDocument();
+    expect(screen.getByText("Meta 72%")).toBeInTheDocument();
+    expect(screen.getByText("R$ 15.840")).toBeInTheDocument();
+  });
+
   it("explains that an account is optional until the user chooses to sync", () => {
     render(<Home />);
 
@@ -74,5 +86,49 @@ describe("Finly landing page", () => {
       "https://app.finly.systems",
     );
     expect(screen.getByRole("contentinfo")).toBeInTheDocument();
+  });
+
+  it("reveals lower sections as they enter the viewport", () => {
+    const callbacks: IntersectionObserverCallback[] = [];
+    const observe = vi.fn();
+    const unobserve = vi.fn();
+
+    class TestIntersectionObserver implements IntersectionObserver {
+      readonly root = null;
+      readonly rootMargin = "0px 0px -8% 0px";
+      readonly thresholds = [0.16];
+
+      constructor(callback: IntersectionObserverCallback) {
+        callbacks.push(callback);
+      }
+
+      observe = observe;
+      unobserve = unobserve;
+      disconnect = vi.fn();
+      takeRecords = vi.fn(() => []);
+    }
+
+    vi.stubGlobal("IntersectionObserver", TestIntersectionObserver);
+
+    const { container } = render(<Home />);
+    const reveals = container.querySelectorAll(".scroll-reveal");
+
+    expect(reveals).toHaveLength(3);
+    expect(observe).toHaveBeenCalledTimes(3);
+
+    act(() => {
+      callbacks[0]?.(
+        [
+          {
+            isIntersecting: true,
+            target: reveals[0],
+          } as IntersectionObserverEntry,
+        ],
+        {} as IntersectionObserver,
+      );
+    });
+
+    expect(reveals[0]).toHaveAttribute("data-visible", "true");
+    expect(unobserve).toHaveBeenCalledWith(reveals[0]);
   });
 });
