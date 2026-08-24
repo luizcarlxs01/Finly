@@ -1,4 +1,4 @@
-import { DashboardEntryHeader } from "@/components/dashboard/dashboard-entry-header";
+import { HomeLanding } from "@/components/dashboard/home-landing/home-landing";
 
 export type DashboardHomeViewProps = {
   onGoToTransactions: () => void;
@@ -8,18 +8,6 @@ export type DashboardHomeViewProps = {
 
 export function DashboardHomeView({
   onGoToTransactions,
-  onOpenCalendar,
-  onOpenStatementProjection,
 }: DashboardHomeViewProps) {
-  function handleStartTransactions() {
-    onGoToTransactions();
-  }
-
-  return (
-    <DashboardEntryHeader
-      onStartTransactions={handleStartTransactions}
-      onOpenCalendar={onOpenCalendar}
-      onOpenStatementProjection={onOpenStatementProjection}
-    />
-  );
+  return <HomeLanding onStartTransactions={onGoToTransactions} />;
 }

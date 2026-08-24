@@ -21,61 +21,42 @@ function renderDashboardHomeView(
 }
 
 describe("DashboardHomeView", () => {
-  it("deve renderizar os blocos principais da view inicial", () => {
+  it("renderiza a experiência cinematográfica como conteúdo oficial da Home", () => {
     renderDashboardHomeView();
 
-    expect(screen.getByText("Finly")).toBeInTheDocument();
     expect(
-      screen.getByText("Seu financeiro mais claro, simples e organizado."),
+      screen.getByRole("heading", {
+        level: 1,
+        name: "Seu dinheiro. Mais claro todos os dias.",
+      }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText("Comece pelo essencial e ganhe clareza sobre seu dinheiro."),
+      screen.getByRole("heading", { level: 2, name: /tudo o que importa/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Ir para a aba de lançamentos" }),
+      screen.getByRole("heading", { level: 2, name: /comece sem conta/i }),
     ).toBeInTheDocument();
-    expect(screen.getByText("Começar lançamentos")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 2, name: /menos dúvida/i }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Calendário")).not.toBeInTheDocument();
+    expect(screen.queryByText("Extrato")).not.toBeInTheDocument();
   });
 
-  it("deve exibir os resumos, cards e a ação principal da interface atual", () => {
-    renderDashboardHomeView();
-
-    expect(screen.getByText("Veja seu momento")).toBeInTheDocument();
-    expect(screen.getByText("Registre com facilidade")).toBeInTheDocument();
-    expect(screen.getByText("Acompanhe objetivos")).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Ir para a aba de lançamentos" }),
-    ).toBeInTheDocument();
-    expect(screen.getByText("Começar lançamentos")).toBeInTheDocument();
-    expect(screen.getByText("Calendário")).toBeInTheDocument();
-    expect(screen.getByText("Extrato")).toBeInTheDocument();
-    expect(screen.getAllByRole("button")).toHaveLength(3);
-  });
-
-  it("deve renderizar de forma estavel com as props minimas validas", () => {
-    renderDashboardHomeView();
-
-    expect(screen.getByText("Saldo, entradas e saídas num relance.")).toBeInTheDocument();
-    expect(screen.getByText("Adicione movimentações sem perder clareza.")).toBeInTheDocument();
-    expect(screen.getByText("Metas e insights no seu caminho.")).toBeInTheDocument();
-  });
-
-  it("deve chamar onGoToTransactions ao clicar no botão principal da hero", async () => {
+  it("mantém os dois CTAs conectados a onGoToTransactions", async () => {
     const user = userEvent.setup();
     const onGoToTransactions = vi.fn();
 
     renderDashboardHomeView({ onGoToTransactions });
 
-    await user.click(
-      screen.getByRole("button", { name: "Ir para a aba de lançamentos" }),
-    );
+    const transactionButtons = screen.getAllByRole("button", {
+      name: "Ir para a aba de lançamentos",
+    });
+    expect(transactionButtons).toHaveLength(2);
 
-    expect(onGoToTransactions).toHaveBeenCalledTimes(1);
-    expect(
-      screen.queryByRole("button", { name: /ir para o resumo financeiro/i }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: /ir para novo lançamento/i }),
-    ).not.toBeInTheDocument();
+    await user.click(transactionButtons[0]);
+    await user.click(transactionButtons[1]);
+
+    expect(onGoToTransactions).toHaveBeenCalledTimes(2);
   });
 });
