@@ -167,3 +167,17 @@
     @apply font-sans;
   }
 }
+
+.finly-home-atmosphere {
+  background:
+    radial-gradient(circle at 80% 24%, rgb(126 176 242 / 0.34), transparent 30rem),
+    radial-gradient(circle at 8% 72%, rgb(26 117 255 / 0.1), transparent 26rem),
+    linear-gradient(180deg, #ffffff 0%, #f4f7fb 100%);
+}
+
+.dark .finly-home-atmosphere {
+  background:
+    radial-gradient(circle at 80% 24%, rgb(126 176 242 / 0.17), transparent 30rem),
+    radial-gradient(circle at 8% 72%, rgb(26 117 255 / 0.14), transparent 26rem),
+    linear-gradient(180deg, #061b3e 0%, #031533 100%);
+}

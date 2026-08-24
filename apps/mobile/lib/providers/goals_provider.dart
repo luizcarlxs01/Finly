@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/goal.dart';
 import 'auth_provider.dart';
 import 'finance_provider.dart';
+import 'profile_provider.dart';
 
 class GoalsData {
   final List<Goal> goals;
@@ -40,7 +41,16 @@ class GoalsNotifier extends StateNotifier<GoalsData> {
         state = GoalsData(goals: profile.goals);
       } else {
         final client = _ref.read(apiClientProvider);
-        final response = await client.dio.get<List<dynamic>>('/api/goals');
+        final profile = await _ref.read(primaryProfileProvider.future);
+
+        if (profile == null) {
+          throw Exception('Não foi possível identificar o perfil da conta.');
+        }
+
+        final response = await client.dio.get<List<dynamic>>(
+          '/api/goals',
+          queryParameters: {'financialProfileId': profile.id},
+        );
         final goals = (response.data ?? [])
             .map((raw) => Goal.fromJson(raw as Map<String, dynamic>))
             .toList();

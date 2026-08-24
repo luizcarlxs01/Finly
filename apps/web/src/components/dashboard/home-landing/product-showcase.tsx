@@ -1,6 +1,7 @@
 import { CalendarRange, Eye, Lightbulb, MoveUpRight } from "lucide-react";
 
 import { homeClass } from "./home-styles";
+import { ProductJourney } from "./product-journey";
 import { ScrollReveal } from "./scroll-reveal";
 
 const benefits = [
@@ -50,27 +51,31 @@ export function ProductShowcase() {
           </p>
         </div>
 
-        <div className={homeClass("benefit-list")}>
-          {benefits.map((benefit) => {
-            const Icon = benefit.icon;
+        <div className={homeClass("product-experience")}>
+          <ProductJourney />
 
-            return (
-              <article className={homeClass("benefit-item")} key={benefit.number}>
-                <span className={homeClass("benefit-number")}>{benefit.number}</span>
-                <span className={homeClass("benefit-icon")} aria-hidden="true">
-                  <Icon />
-                </span>
-                <div>
-                  <h3>{benefit.title}</h3>
-                  <p>{benefit.description}</p>
-                </div>
-                <MoveUpRight
-                  className={homeClass("benefit-arrow")}
-                  aria-hidden="true"
-                />
-              </article>
-            );
-          })}
+          <div className={homeClass("benefit-list")}>
+            {benefits.map((benefit) => {
+              const Icon = benefit.icon;
+
+              return (
+                <article className={homeClass("benefit-item")} key={benefit.number}>
+                  <span className={homeClass("benefit-number")}>{benefit.number}</span>
+                  <span className={homeClass("benefit-icon")} aria-hidden="true">
+                    <Icon />
+                  </span>
+                  <div>
+                    <h3>{benefit.title}</h3>
+                    <p>{benefit.description}</p>
+                  </div>
+                  <MoveUpRight
+                    className={homeClass("benefit-arrow")}
+                    aria-hidden="true"
+                  />
+                </article>
+              );
+            })}
+          </div>
         </div>
       </ScrollReveal>
     </section>

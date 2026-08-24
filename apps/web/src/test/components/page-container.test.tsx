@@ -42,4 +42,18 @@ describe("PageContainer", () => {
     expect(screen.getByText("Conteúdo principal")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Ação" })).toBeInTheDocument();
   });
+
+  it("deve usar a atmosfera full-width da landing quando solicitado", () => {
+    const { container } = render(
+      <PageContainer variant="landing">
+        <span>Home cinematográfica</span>
+      </PageContainer>,
+    );
+
+    const wrapper = container.firstElementChild;
+
+    expect(wrapper).toHaveAttribute("data-variant", "landing");
+    expect(wrapper?.className).toContain("finly-home-atmosphere");
+    expect(wrapper?.className).not.toContain("max-w-7xl");
+  });
 });

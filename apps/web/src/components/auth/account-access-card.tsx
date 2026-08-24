@@ -73,7 +73,10 @@ export function AccountAccessCard() {
           <AccountIdentity label="E-mail" value={session.email} />
         </CardContent>
 
-        <CardFooter className="border-t border-border/60 pt-4">
+        <CardFooter className="flex-col items-start gap-3 border-t border-border/60 pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs text-muted-foreground">
+            Modo com conta — dados sincronizados com sua conta
+          </p>
           <Button type="button" variant="outline" onClick={logout}>
             Sair
           </Button>
@@ -118,8 +121,7 @@ export function AccountAccessCard() {
         </CardContent>
 
         <CardFooter className="border-t border-border/60 pt-4 text-xs text-muted-foreground">
-          Seus dados continuam salvos neste navegador até você entrar em uma
-          conta.
+          Modo sem conta — dados salvos neste navegador
         </CardFooter>
       </Card>
 

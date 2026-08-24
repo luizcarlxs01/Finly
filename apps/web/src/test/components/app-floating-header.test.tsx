@@ -61,4 +61,22 @@ describe("AppFloatingHeader", () => {
     expect(goalsButton.className).toContain("bg-primary");
     expect(homeButton.className).toContain("hover:bg-muted");
   });
+
+  it("deve aplicar a superfície de vidro da landing sem alterar o conteúdo", () => {
+    const { container } = render(
+      <AppFloatingHeader
+        activeView="home"
+        onChangeView={vi.fn()}
+        isAccountCardOpen={false}
+        onToggleAccountCard={vi.fn()}
+        variant="landing"
+      />,
+    );
+
+    const header = container.firstElementChild;
+
+    expect(header).toHaveAttribute("data-variant", "landing");
+    expect(header?.firstElementChild?.className).toContain("bg-white/72");
+    expect(screen.getByRole("button", { name: /Lançamentos/i })).toBeInTheDocument();
+  });
 });

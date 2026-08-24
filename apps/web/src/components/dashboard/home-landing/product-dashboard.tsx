@@ -42,7 +42,10 @@ const projectionBars = [34, 48, 43, 64, 72, 91] as const;
 
 export function ProductDashboard() {
   return (
-    <div className={homeClass("dashboard-stage")}>
+    <div
+      className={homeClass("dashboard-stage")}
+      style={{ color: "var(--finly-navy)" }}
+    >
       <span className={homeClass("dashboard-glow")} aria-hidden="true" />
       <span className={homeClass("dashboard-depth-plane")} aria-hidden="true" />
       <div

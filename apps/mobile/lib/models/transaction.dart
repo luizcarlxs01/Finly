@@ -2,8 +2,14 @@ import 'occurrence.dart';
 
 enum TransactionType { income, expense }
 
+/// A API devolve "Income"/"Expense" (PascalCase); o modo local grava em
+/// minúsculo. Precisa normalizar como o web faz em flatten-transaction.ts —
+/// sem isso, toda entrada vinda da API era lida como saída (invertia o
+/// sinal no saldo).
 TransactionType transactionTypeFromString(String raw) {
-  return raw == 'income' ? TransactionType.income : TransactionType.expense;
+  return raw.trim().toLowerCase() == 'income'
+      ? TransactionType.income
+      : TransactionType.expense;
 }
 
 String transactionTypeToString(TransactionType type) {
@@ -171,4 +177,46 @@ class TransactionLine {
       'createdAt': createdAt,
     };
   }
+}
+
+/// Entrada do formulário de novo lançamento — mesmos campos de
+/// LocalFinanceTransactionInput (apps/web/src/hooks/use-local-finance.ts),
+/// consumida tanto pelo caminho local (gera occurrences na hora) quanto
+/// pelo caminho API (vira CreateTransactionRequestDto).
+class NewTransactionInput {
+  final String title;
+  final double amount;
+  final TransactionType type;
+  final String category;
+  final TransactionKind kind;
+
+  /// Único.
+  final DateTime? transactionDate;
+
+  /// Parcelado.
+  final int? installmentCount;
+  final DateTime? installmentStartDate;
+
+  /// Recorrente.
+  final int? recurrenceDay;
+  final DateTime? recurrenceStartDate;
+  final RecurrenceMode? recurrenceMode;
+  final DateTime? recurrenceEndDate;
+  final int? recurrenceMonths;
+
+  const NewTransactionInput({
+    required this.title,
+    required this.amount,
+    required this.type,
+    required this.category,
+    required this.kind,
+    this.transactionDate,
+    this.installmentCount,
+    this.installmentStartDate,
+    this.recurrenceDay,
+    this.recurrenceStartDate,
+    this.recurrenceMode,
+    this.recurrenceEndDate,
+    this.recurrenceMonths,
+  });
 }

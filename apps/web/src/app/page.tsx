@@ -732,15 +732,18 @@ export default function HomePage() {
     />
   );
 
+  const isLandingHome = activeView === "home";
+
   return (
     <>
-      <PageContainer>
-        <div className="space-y-8 2xl:space-y-10">
+      <PageContainer variant={isLandingHome ? "landing" : "default"}>
+        <div className={isLandingHome ? "space-y-6" : "space-y-8 2xl:space-y-10"}>
           <AppFloatingHeader
             activeView={activeView}
             onChangeView={setActiveView}
             isAccountCardOpen={isAccountCardOpen}
             onToggleAccountCard={() => setIsAccountCardOpen((prev) => !prev)}
+            variant={isLandingHome ? "landing" : "default"}
           />
 
           {isAccountCardOpen ? (
@@ -751,21 +754,33 @@ export default function HomePage() {
             </section>
           ) : null}
 
-          <section className="px-4">
-            <div className="mx-auto max-w-6xl space-y-3">
-              <div className="rounded-2xl border border-border/70 bg-card/70 px-4 py-3 text-sm text-muted-foreground">
-                {isApiMode
-                  ? "Modo com conta — dados sincronizados com sua conta"
-                  : "Modo sem conta — dados salvos neste navegador"}
-              </div>
-
-              {writeModeMessage ? (
-                <div className="rounded-2xl border border-border/70 bg-card/70 px-4 py-3 text-sm text-muted-foreground">
+          {writeModeMessage ? (
+            <section
+              className={
+                isLandingHome
+                  ? "mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8"
+                  : "px-4"
+              }
+            >
+              <div
+                className={
+                  isLandingHome
+                    ? "flex max-w-6xl flex-wrap gap-3"
+                    : "mx-auto max-w-6xl space-y-3"
+                }
+              >
+                <div
+                  className={
+                    isLandingHome
+                      ? "w-fit max-w-full rounded-full border border-white/80 bg-white/58 px-5 py-2.5 text-sm text-muted-foreground shadow-[0_14px_42px_-30px_rgba(3,21,51,0.32)] backdrop-blur-xl dark:border-white/10 dark:bg-[#0b275e]/58"
+                      : "rounded-2xl border border-border/70 bg-card/70 px-4 py-3 text-sm text-muted-foreground"
+                  }
+                >
                   {writeModeMessage}
                 </div>
-              ) : null}
-            </div>
-          </section>
+              </div>
+            </section>
+          ) : null}
           {/* TODO: remover gateways técnicos após concluir a migração total para os hooks unificados. */}
 
           <DashboardShell

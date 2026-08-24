@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -18,8 +18,6 @@ describe("HomeLanding", () => {
         name: "Seu dinheiro. Mais claro todos os dias.",
       }),
     ).toBeInTheDocument();
-    expect(screen.getByText("Saldo atual")).toBeInTheDocument();
-    expect(screen.getByText("Reserva de tranquilidade")).toBeInTheDocument();
     expect(
       screen.getByText(
         "Acompanhe o que importa e registre seus lançamentos em poucos passos.",
@@ -40,6 +38,18 @@ describe("HomeLanding", () => {
     expect(
       screen.getByRole("link", { name: "Conhecer o Finly" }),
     ).toHaveAttribute("href", "#produto");
+
+    const dashboard = screen.getByRole("group", {
+      name: "Exemplo visual do painel financeiro Finly",
+    });
+    expect(within(dashboard).getByText("Saldo atual")).toBeInTheDocument();
+    expect(
+      within(dashboard).getByText("Reserva de tranquilidade"),
+    ).toBeInTheDocument();
+    expect(dashboard.parentElement).toHaveAttribute(
+      "style",
+      "color: var(--finly-navy);",
+    );
   });
 
   it("mantém as duas chamadas para Lançamentos funcionais", async () => {

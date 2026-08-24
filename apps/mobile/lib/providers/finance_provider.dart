@@ -1,8 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 
 import '../models/transaction.dart';
 import '../services/local_storage_service.dart';
+import '../utils/formatters.dart';
+import '../utils/occurrence_generation.dart';
 import 'auth_provider.dart';
+import 'profile_provider.dart';
+
+const _uuid = Uuid();
 
 final localStorageProvider = Provider<LocalStorageService>((ref) {
   return LocalStorageService();
@@ -98,20 +104,140 @@ class FinanceNotifier extends StateNotifier<FinanceData> {
 
   Future<void> _loadApi() async {
     final client = _ref.read(apiClientProvider);
-    final response =
-        await client.dio.get<List<dynamic>>('/api/transactions');
+    final profile = await _ref.read(primaryProfileProvider.future);
+
+    if (profile == null) {
+      throw Exception('Não foi possível identificar o perfil da conta.');
+    }
+
+    final response = await client.dio.get<List<dynamic>>(
+      '/api/transactions',
+      queryParameters: {'financialProfileId': profile.id},
+    );
 
     final lines = <TransactionLine>[];
     for (final raw in response.data ?? []) {
       lines.addAll(TransactionLine.flattenFromApi(raw as Map<String, dynamic>));
     }
 
-    final dashboard =
-        await client.dio.get<Map<String, dynamic>>('/api/dashboard');
-    final initialBalance =
-        (dashboard.data?['initialBalance'] as num?)?.toDouble() ?? 0;
+    state = FinanceData(transactions: lines, initialBalance: profile.initialBalance);
+  }
 
-    state = FinanceData(transactions: lines, initialBalance: initialBalance);
+  /// Cria um novo lançamento — decide local vs API internamente, igual ao
+  /// resto do hook. UI nunca sabe qual caminho foi seguido.
+  Future<void> createTransaction(NewTransactionInput input) {
+    return _source == FinanceSource.local
+        ? _createLocal(input)
+        : _createApi(input);
+  }
+
+  Future<void> _createLocal(NewTransactionInput input) async {
+    final storage = _ref.read(localStorageProvider);
+    final profile = await storage.load();
+
+    final generated = generateOccurrences(GenerateOccurrencesInput(
+      kind: input.kind,
+      amount: input.amount,
+      transactionDate: input.transactionDate,
+      installmentCount: input.installmentCount,
+      installmentStartDate: input.installmentStartDate,
+      recurrenceDay: input.recurrenceDay,
+      recurrenceStartDate: input.recurrenceStartDate,
+      recurrenceMode: input.recurrenceMode,
+      recurrenceEndDate: input.recurrenceEndDate,
+      recurrenceMonths: input.recurrenceMonths,
+    ));
+
+    if (generated.isEmpty) {
+      throw Exception('Não foi possível gerar as ocorrências deste lançamento.');
+    }
+
+    final transactionId = _uuid.v4();
+    final createdAt = DateTime.now().toUtc().toIso8601String();
+    final isRecurring = input.kind == TransactionKind.recurring;
+
+    final newLines = generated
+        .map((occurrence) => TransactionLine(
+              id: '${transactionId}_${_uuid.v4()}',
+              transactionId: transactionId,
+              title: input.title,
+              amount: occurrence.amount,
+              type: input.type,
+              category: input.category,
+              transactionKind: input.kind,
+              occurrenceId: _uuid.v4(),
+              occurrenceDate: occurrence.dueDate,
+              occurrenceStatus: occurrence.status,
+              installmentIndex: occurrence.installmentIndex,
+              installmentCount: input.installmentCount,
+              isCustomized: false,
+              recurrenceMode:
+                  isRecurring ? (input.recurrenceMode ?? RecurrenceMode.indefinite) : null,
+              recurrenceDay: isRecurring ? input.recurrenceDay : null,
+              createdAt: createdAt,
+            ))
+        .toList();
+
+    final updatedTransactions = [...newLines, ...profile.transactions];
+    await storage.save(profile.copyWith(transactions: updatedTransactions));
+
+    state = state.copyWith(transactions: updatedTransactions);
+  }
+
+  Future<void> _createApi(NewTransactionInput input) async {
+    final client = _ref.read(apiClientProvider);
+    final profile = await _ref.read(primaryProfileProvider.future);
+
+    if (profile == null) {
+      throw Exception('Não foi possível identificar o perfil da conta.');
+    }
+
+    final isInstallment = input.kind == TransactionKind.installment;
+    final isRecurring = input.kind == TransactionKind.recurring;
+
+    final transactionDate = isInstallment
+        ? input.installmentStartDate!
+        : isRecurring
+            ? input.recurrenceStartDate!
+            : input.transactionDate!;
+
+    await client.dio.post<Map<String, dynamic>>('/api/transactions', data: {
+      'financialProfileId': profile.id,
+      'title': input.title,
+      'amount': input.amount,
+      'type': input.type == TransactionType.income ? 'Income' : 'Expense',
+      'category': input.category,
+      'transactionKind': _backendKind(input.kind),
+      'transactionDate': formatDateValue(transactionDate),
+      'sourceId': null,
+      'installmentIndex': null,
+      'installmentCount': isInstallment ? input.installmentCount : null,
+      'isRecurring': isRecurring,
+      'recurrenceStartDate':
+          isRecurring ? formatDateValue(input.recurrenceStartDate!) : null,
+      'recurrenceEndDate':
+          isRecurring && input.recurrenceMode == RecurrenceMode.untilDate
+              ? formatDateValue(input.recurrenceEndDate!)
+              : null,
+      'recurrenceDay': isRecurring ? input.recurrenceDay : null,
+      'recurrenceMonths':
+          isRecurring && input.recurrenceMode == RecurrenceMode.forMonths
+              ? input.recurrenceMonths
+              : null,
+    });
+
+    await load();
+  }
+
+  String _backendKind(TransactionKind kind) {
+    switch (kind) {
+      case TransactionKind.installment:
+        return 'Installment';
+      case TransactionKind.recurring:
+        return 'Recurring';
+      case TransactionKind.single:
+        return 'Single';
+    }
   }
 }
 
