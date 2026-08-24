@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import { HeroSection } from "@/components/dashboard/hero-section";
@@ -7,14 +8,15 @@ describe("HeroSection", () => {
   it("deve renderizar o bloco principal com os textos e a ação esperada", () => {
     render(<HeroSection onStartTransactions={vi.fn()} />);
 
-    expect(screen.getByText("Finly")).toBeInTheDocument();
     expect(
       screen.getByRole("heading", {
-        name: "Seu financeiro mais claro, simples e organizado.",
+        name: "Seu dinheiro. Mais claro todos os dias.",
       }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText("Comece pelo essencial e ganhe clareza sobre seu dinheiro."),
+      screen.getByText(
+        "Acompanhe o que importa e registre seus lançamentos em poucos passos.",
+      ),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Ir para a aba de lançamentos" }),
@@ -22,35 +24,25 @@ describe("HeroSection", () => {
     expect(screen.getByText("Começar lançamentos")).toBeInTheDocument();
   });
 
-  it("deve renderizar de forma estavel com os blocos informativos e cards de apoio atuais", () => {
-    render(<HeroSection onStartTransactions={vi.fn()} />);
+  it("deve preservar a ação que leva aos lançamentos", async () => {
+    const user = userEvent.setup();
+    const onStartTransactions = vi.fn();
 
-    expect(screen.getByText("Veja seu momento")).toBeInTheDocument();
-    expect(
-      screen.getByText("Saldo, entradas e saídas num relance."),
-    ).toBeInTheDocument();
-    expect(screen.getByText("Registre com facilidade")).toBeInTheDocument();
-    expect(
-      screen.getByText("Adicione movimentações sem perder clareza."),
-    ).toBeInTheDocument();
-    expect(screen.getByText("Acompanhe objetivos")).toBeInTheDocument();
-    expect(
-      screen.getByText("Metas e insights no seu caminho."),
-    ).toBeInTheDocument();
+    render(<HeroSection onStartTransactions={onStartTransactions} />);
+
+    await user.click(
+      screen.getByRole("button", { name: "Ir para a aba de lançamentos" }),
+    );
+
+    expect(onStartTransactions).toHaveBeenCalledOnce();
   });
 
-  it("deve manter renderizacao consistente com o contrato atual sem props externas adicionais", () => {
+  it("deve manter a Home enxuta sem reintroduzir cards decorativos", () => {
     render(<HeroSection onStartTransactions={vi.fn()} />);
 
-    expect(
-      screen.getByText("Saldo, entradas e saídas num relance."),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText("Adicione movimentações sem perder clareza."),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText("Metas e insights no seu caminho."),
-    ).toBeInTheDocument();
+    expect(screen.queryByText("Veja seu momento")).not.toBeInTheDocument();
+    expect(screen.queryByText("Registre com facilidade")).not.toBeInTheDocument();
+    expect(screen.queryByText("Acompanhe objetivos")).not.toBeInTheDocument();
     expect(screen.getAllByRole("button")).toHaveLength(1);
   });
 });
