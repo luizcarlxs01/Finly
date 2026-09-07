@@ -1098,6 +1098,24 @@ tema (claro/escuro/sistema, persistido).
 - Ao logar, `financeSourceProvider` vira `api` automaticamente e o app mostra os
   dados da API; os dados locais ficam guardados e voltam ao sair da conta.
 
+### Ícone e splash
+
+- **Ícone do app** (`flutter_launcher_icons`, Android + adaptive): logo do Finly
+  sobre o azul da marca `#0B275E`. Fonte: `assets/finly_logo.png` (cópia de
+  `apps/web/public/apple-touch-icon.png`); `tool/gen_icon.dart` compõe os PNGs
+  1024 (`assets/generated/`). Regerar: `dart run tool/gen_icon.dart &&
+  dart run flutter_launcher_icons`.
+- **Splash nativa** (`flutter_native_splash`): logo sobre `#031533`. Regerar:
+  `dart run flutter_native_splash:create` — **atenção:** ele reescreve
+  `NormalTheme.windowBackground` para `?android:colorBackground`; reaplicar o
+  patch para `@color/finly_window_bg` (`#031533`) nos 4 `styles.xml`, senão há
+  flash branco entre a splash nativa e a Dart.
+- **Splash animada Dart** (`lib/features/splash/ui/splash_screen.dart`): rota
+  inicial `/splash`. Logo (fade + scale + respiração) dentro de um arco girando
+  (loading), wordmark "Finly". Espera `AuthController` terminar o bootstrap da
+  sessão (teto de 4s) e então `context.go('/home')`.
+- iOS fora de escopo (`ios: false` nos dois — projeto iOS incompleto no repo).
+
 ### Ambiente
 
 `lib/core/api/api_config.dart`: release → `https://api.finly.systems`; debug →
