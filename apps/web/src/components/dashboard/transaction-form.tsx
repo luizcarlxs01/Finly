@@ -222,7 +222,7 @@ export function TransactionForm({
         <form onSubmit={handleSubmit} className="space-y-5">
           <section className="space-y-4 rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
+              <div className="grid gap-1.5">
                 <label
                   htmlFor="transaction-title"
                   className="text-sm font-medium text-foreground"
@@ -240,7 +240,7 @@ export function TransactionForm({
                 />
               </div>
 
-              <div className="space-y-2">
+              <div className="grid gap-1.5">
                 <label
                   htmlFor="transaction-amount"
                   className="text-sm font-medium text-foreground"
@@ -261,7 +261,7 @@ export function TransactionForm({
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
+              <div className="grid gap-1.5">
                 <label
                   htmlFor="transaction-type"
                   className="text-sm font-medium text-foreground"
@@ -282,7 +282,7 @@ export function TransactionForm({
                 </select>
               </div>
 
-              <div className="space-y-2">
+              <div className="grid gap-1.5">
                 <label
                   htmlFor="transaction-category"
                   className="text-sm font-medium text-foreground"
@@ -307,7 +307,7 @@ export function TransactionForm({
             </div>
           </section>
 
-          <section className="space-y-3 rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
+          <section className="grid gap-1.5 rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
             <label className="text-sm font-medium text-foreground">
               Tipo de lançamento
             </label>
@@ -324,7 +324,7 @@ export function TransactionForm({
                   onClick={() =>
                     setTransactionKind(option.value as TransactionEditorKind)
                   }
-                  className={`rounded-[1.25rem] border px-4 py-3 text-sm font-medium transition ${
+                  className={`rounded-[1.25rem] border px-4 py-3 text-sm font-medium transition lg:rounded-xl lg:py-2 ${
                     transactionKind === option.value
                       ? "border-primary bg-primary/10 text-primary"
                       : "border-border/60 bg-card/75 text-foreground hover:border-border"
@@ -338,7 +338,7 @@ export function TransactionForm({
 
           {transactionKind === "single" ? (
             <section className="space-y-3 overflow-hidden rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
-              <div className="space-y-2">
+              <div className="grid gap-1.5">
                 <label
                   htmlFor="transaction-date"
                   className="text-sm font-medium text-foreground"
@@ -363,7 +363,7 @@ export function TransactionForm({
           {transactionKind === "installment-template" ? (
             <section className="space-y-4 overflow-hidden rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
               <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
+                <div className="grid gap-1.5">
                   <label
                     htmlFor="transaction-installment-count"
                     className="text-sm font-medium text-foreground"
@@ -385,7 +385,7 @@ export function TransactionForm({
                   />
                 </div>
 
-                <div className="space-y-2">
+                <div className="grid gap-1.5">
                   <label
                     htmlFor="transaction-installment-start-date"
                     className="text-sm font-medium text-foreground"
@@ -413,7 +413,7 @@ export function TransactionForm({
           {transactionKind === "recurring-template" ? (
             <section className="space-y-4 overflow-hidden rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
               <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
+                <div className="grid gap-1.5">
                   <label
                     htmlFor="transaction-recurrence-day"
                     className="text-sm font-medium text-foreground"
@@ -434,7 +434,7 @@ export function TransactionForm({
                   />
                 </div>
 
-                <div className="space-y-2">
+                <div className="grid gap-1.5">
                   <label
                     htmlFor="transaction-recurrence-start-date"
                     className="text-sm font-medium text-foreground"
@@ -457,7 +457,7 @@ export function TransactionForm({
                 </div>
               </div>
 
-              <div className="space-y-2">
+              <div className="grid gap-1.5">
                 <label
                   htmlFor="transaction-recurrence-mode"
                   className="text-sm font-medium text-foreground"
@@ -482,7 +482,7 @@ export function TransactionForm({
               </div>
 
               {recurrenceMode === "until-date" ? (
-                <div className="space-y-2">
+                <div className="grid gap-1.5">
                   <label
                     htmlFor="transaction-recurrence-end-date"
                     className="text-sm font-medium text-foreground"
@@ -507,7 +507,7 @@ export function TransactionForm({
               ) : null}
 
               {recurrenceMode === "for-months" ? (
-                <div className="space-y-2">
+                <div className="grid gap-1.5">
                   <label
                     htmlFor="transaction-recurrence-months"
                     className="text-sm font-medium text-foreground"
@@ -533,10 +533,10 @@ export function TransactionForm({
           ) : null}
 
           <section className="space-y-3 rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
-            <div className="grid flex-col gap-3 sm:flex-row">
+            <div className="grid gap-3 lg:grid-cols-2">
               <Button
                 type="submit"
-                className="h-12 flex-1 rounded-2xl"
+                className="h-12 flex-1 rounded-2xl lg:h-10 lg:rounded-xl"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? "Salvando..." : "Salvar lançamento"}
@@ -545,7 +545,7 @@ export function TransactionForm({
               <Button
                 type="button"
                 variant="outline"
-                className="h-12 flex-1 rounded-2xl"
+                className="h-12 flex-1 rounded-2xl lg:h-10 lg:rounded-xl"
                 onClick={handlePreview}
               >
                 <Sparkles className="size-4" />

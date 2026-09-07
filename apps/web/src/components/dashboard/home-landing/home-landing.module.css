@@ -1777,7 +1777,12 @@
   50%, 100% { transform: translateX(100%); }
 }
 
-@media (min-width: 921px) and (min-height: 760px) and (prefers-reduced-motion: no-preference) {
+@media (min-width: 921px) {
+  .product-section {
+    /* Fixed GSAP pins cannot sit inside content-visibility containment. */
+    content-visibility: visible;
+  }
+
   .product-heading {
     position: sticky;
     top: 5rem;
@@ -1830,7 +1835,7 @@
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
+@media (prefers-reduced-motion: reduce) and (max-width: 920px) {
   .page-shell {
     scroll-behavior: auto;
   }

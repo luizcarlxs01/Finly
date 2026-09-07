@@ -26,6 +26,15 @@ describe("HomeLanding", () => {
     expect(
       screen.getByRole("heading", { level: 2, name: /tudo o que importa/i }),
     ).toBeInTheDocument();
+    const productJourney = screen.getByLabelText(
+      "Demonstração visual das áreas do Finly",
+    );
+    expect(productJourney.closest("[data-scroll-reveal]")).toBeNull();
+    expect(
+      screen
+        .getByRole("heading", { level: 2, name: /tudo o que importa/i })
+        .closest("[data-scroll-reveal]"),
+    ).not.toBeNull();
     expect(
       screen.getByRole("heading", { level: 2, name: /comece sem conta/i }),
     ).toBeInTheDocument();

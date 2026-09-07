@@ -32,8 +32,8 @@ export function ProductShowcase() {
       id="produto"
       aria-labelledby="product-title"
     >
-      <ScrollReveal className={homeClass("content-width")}>
-        <div className={homeClass("product-heading")}>
+      <div className={homeClass("content-width")}>
+        <ScrollReveal className={homeClass("product-heading")}>
           <p className={homeClass("eyebrow")}>
             <span aria-hidden="true" />
             Uma visão, menos ruído
@@ -49,7 +49,7 @@ export function ProductShowcase() {
             O Finly transforma números espalhados em uma visão que faz sentido.
             Você entende onde está e enxerga com confiança para onde vai.
           </p>
-        </div>
+        </ScrollReveal>
 
         <div className={homeClass("product-experience")}>
           <ProductJourney />
@@ -77,7 +77,7 @@ export function ProductShowcase() {
             })}
           </div>
         </div>
-      </ScrollReveal>
+      </div>
     </section>
   );
 }

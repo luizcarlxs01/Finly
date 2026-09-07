@@ -42,7 +42,7 @@ describe("TransactionForm", () => {
     renderTransactionForm();
 
     expect(screen.getByLabelText("T\u00edtulo")).toHaveValue("");
-    expect(screen.getByLabelText("Valor")).toHaveValue(null);
+    expect(screen.getByLabelText("Valor")).toHaveValue("");
     expect(screen.getByLabelText("Natureza")).toHaveValue("expense");
     expect(screen.getByLabelText("Categoria")).toHaveValue("geral");
     expect(screen.getByLabelText("Data do lan\u00e7amento")).toHaveValue(
@@ -60,6 +60,47 @@ describe("TransactionForm", () => {
     expect(
       screen.getByRole("button", { name: /Simular impacto/i }),
     ).toBeInTheDocument();
+  });
+
+  it("deve compactar os botoes apenas no layout desktop", () => {
+    renderTransactionForm();
+
+    expect(screen.getByRole("button", { name: "Único" })).toHaveClass(
+      "lg:py-2",
+    );
+
+    const saveButton = screen.getByRole("button", {
+      name: "Salvar lançamento",
+    });
+    const previewButton = screen.getByRole("button", {
+      name: /Simular impacto/i,
+    });
+
+    expect(saveButton).toHaveClass("lg:h-10");
+    expect(previewButton).toHaveClass("lg:h-10");
+    expect(saveButton.parentElement).toHaveClass("lg:grid-cols-2");
+  });
+
+  it("deve manter espaco consistente entre titulos e controles", () => {
+    renderTransactionForm();
+
+    for (const label of [
+      "Título",
+      "Valor",
+      "Natureza",
+      "Categoria",
+      "Data do lançamento",
+    ]) {
+      expect(screen.getByText(label).parentElement).toHaveClass(
+        "grid",
+        "gap-1.5",
+      );
+    }
+
+    expect(screen.getByText("Tipo de lançamento").parentElement).toHaveClass(
+      "grid",
+      "gap-1.5",
+    );
   });
 
   it("deve enviar um lancamento unico com os dados minimos validos", async () => {
@@ -125,7 +166,7 @@ describe("TransactionForm", () => {
     expect(onClearPreview).toHaveBeenCalledTimes(1);
 
     expect(screen.getByLabelText("T\u00edtulo")).toHaveValue("");
-    expect(screen.getByLabelText("Valor")).toHaveValue(null);
+    expect(screen.getByLabelText("Valor")).toHaveValue("");
     expect(screen.getByLabelText("Natureza")).toHaveValue("expense");
     expect(screen.getByLabelText("Categoria")).toHaveValue("geral");
     expect(screen.getByLabelText("Data do lan\u00e7amento")).toHaveValue(

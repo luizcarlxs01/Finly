@@ -13,6 +13,7 @@ const gsapMocks = vi.hoisted(() => {
     scrollTrigger: { start: 100, end: 940 },
     to,
   };
+  const timelineCreate = vi.fn(() => timeline);
   to.mockReturnValue(timeline);
 
   return {
@@ -22,6 +23,7 @@ const gsapMocks = vi.hoisted(() => {
     registerPlugin,
     set,
     timeline,
+    timelineCreate,
     to,
   };
 });
@@ -38,7 +40,7 @@ vi.mock("gsap", () => ({
     }),
     registerPlugin: gsapMocks.registerPlugin,
     set: gsapMocks.set,
-    timeline: () => gsapMocks.timeline,
+    timeline: gsapMocks.timelineCreate,
     utils: {
       toArray: <T,>(selector: string, scope: ParentNode) =>
         Array.from(scope.querySelectorAll(selector)) as T[],
@@ -108,12 +110,22 @@ describe("ProductJourney", () => {
     expect(gsapMocks.contextRevert).toHaveBeenCalledTimes(1);
   });
 
-  it("só fixa a jornada quando a viewport comporta a experiência completa", () => {
+  it("ativa a jornada em qualquer viewport desktop", () => {
     render(<ProductJourney />);
 
     expect(gsapMocks.mediaAdd).toHaveBeenCalledWith(
-      "(min-width: 921px) and (min-height: 760px) and (prefers-reduced-motion: no-preference)",
+      "(min-width: 921px)",
       expect.any(Function),
+    );
+  });
+
+  it("usa o pin fixo para manter a rolagem fluida no desktop", () => {
+    render(<ProductJourney />);
+
+    expect(gsapMocks.timelineCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        scrollTrigger: expect.objectContaining({ pinType: "fixed" }),
+      }),
     );
   });
 });

@@ -59,7 +59,7 @@ export function ProductJourney() {
     const media = gsap.matchMedia();
     const context = gsap.context(() => {
       media.add(
-        "(min-width: 921px) and (min-height: 760px) and (prefers-reduced-motion: no-preference)",
+        "(min-width: 921px)",
         () => {
           const panels = gsap.utils.toArray<HTMLElement>(
             "[data-journey-panel]",
@@ -90,6 +90,7 @@ export function ProductJourney() {
               start: "top 12%",
               end: "+=840",
               pin: stage,
+              pinType: "fixed",
               scrub: 0.6,
               anticipatePin: 1,
               invalidateOnRefresh: true,
