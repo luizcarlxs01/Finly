@@ -7,6 +7,7 @@ import '../features/calendar/ui/calendar_screen.dart';
 import '../features/goals/ui/goals_screen.dart';
 import '../features/home/ui/home_screen.dart';
 import '../features/insights/ui/insights_screen.dart';
+import '../features/splash/ui/splash_screen.dart';
 import '../features/transactions/ui/statement_screen.dart';
 import '../features/transactions/ui/transactions_screen.dart';
 import 'shell.dart';
@@ -18,13 +19,18 @@ final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
-    initialLocation: '/home',
+    initialLocation: '/splash',
     redirect: (context, state) {
       // Rota legada — o acesso à conta agora vive dentro de /account.
       if (state.matchedLocation == '/auth') return '/account';
       return null;
     },
     routes: [
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/splash',
+        builder: (_, __) => const SplashScreen(),
+      ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
         path: '/account',

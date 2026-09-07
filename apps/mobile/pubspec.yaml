@@ -37,5 +37,41 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^4.0.0
 
+  # Geração do ícone do app e da splash nativa a partir da logo do Finly
+  flutter_launcher_icons: ^0.14.1
+  flutter_native_splash: ^2.4.1
+  image: ^4.2.0
+
 flutter:
   uses-material-design: true
+
+  assets:
+    - assets/finly_logo.png
+
+# ---------------------------------------------------------------------------
+# Ícone do app (Android + iOS) gerado da logo do Finly.
+# Fonte: tool/gen_icon.dart compõe assets/generated/finly_icon.png (1024, fundo
+# azul Finly). Rodar:  dart run tool/gen_icon.dart && dart run flutter_launcher_icons
+# ---------------------------------------------------------------------------
+flutter_launcher_icons:
+  android: "ic_launcher"
+  ios: false # projeto iOS incompleto neste repo (sem project.pbxproj)
+  image_path: "assets/generated/finly_icon.png"
+  adaptive_icon_background: "#0B275E"
+  adaptive_icon_foreground: "assets/generated/finly_icon_foreground.png"
+
+# ---------------------------------------------------------------------------
+# Splash nativa (a que aparece antes do 1º frame do Flutter). Logo do Finly
+# centrada sobre o azul escuro da marca. Rodar:
+#   dart run flutter_native_splash:create
+# ---------------------------------------------------------------------------
+flutter_native_splash:
+  color: "#031533"
+  color_dark: "#031533"
+  image: "assets/generated/finly_splash.png"
+  android_12:
+    color: "#031533"
+    color_dark: "#031533"
+    image: "assets/generated/finly_splash.png"
+  android: true
+  ios: false # projeto iOS incompleto neste repo
