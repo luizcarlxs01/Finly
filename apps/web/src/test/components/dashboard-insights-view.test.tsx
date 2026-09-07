@@ -82,7 +82,9 @@ describe("DashboardInsightsView", () => {
   it("deve renderizar os blocos principais da view", () => {
     renderDashboardInsightsView();
 
-    expect(screen.getByText("Insights")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Insights" }),
+    ).toBeInTheDocument();
     expect(
       screen.getByText("Veja leituras rápidas sobre sua vida financeira."),
     ).toBeInTheDocument();

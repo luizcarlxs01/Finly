@@ -1,8 +1,12 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { GoalForm } from "@/components/dashboard/goal-form";
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 function renderGoalForm(
   overrides: Partial<React.ComponentProps<typeof GoalForm>> = {},
@@ -27,14 +31,15 @@ describe("GoalForm", () => {
 
     expect(screen.getByText("Nova meta")).toBeInTheDocument();
     expect(screen.getByLabelText("Título")).toHaveValue("");
-    expect(screen.getByLabelText("Valor alvo")).toHaveValue(null);
-    expect(screen.getByLabelText("Valor atual")).toHaveValue(null);
+    expect(screen.getByLabelText("Valor alvo")).toHaveValue("");
+    expect(screen.getByLabelText("Valor atual")).toHaveValue("");
     expect(screen.getByLabelText("Categoria")).toHaveValue("general");
     expect(screen.getByLabelText("Prazo")).toHaveValue("");
     expect(screen.getByLabelText("Prazo")).toHaveAttribute("min", "2026-04-10");
     expect(screen.getByRole("button", { name: "Salvar meta" })).toBeInTheDocument();
-
-    vi.useRealTimers();
+    expect(
+      screen.queryByRole("heading", { name: "Salvar meta" }),
+    ).not.toBeInTheDocument();
   });
 
   it("deve preencher e enviar uma meta minima valida com currentAmount padrao igual a zero", async () => {
@@ -91,8 +96,8 @@ describe("GoalForm", () => {
     await user.click(screen.getByRole("button", { name: "Salvar meta" }));
 
     expect(screen.getByLabelText("Título")).toHaveValue("");
-    expect(screen.getByLabelText("Valor alvo")).toHaveValue(null);
-    expect(screen.getByLabelText("Valor atual")).toHaveValue(null);
+    expect(screen.getByLabelText("Valor alvo")).toHaveValue("");
+    expect(screen.getByLabelText("Valor atual")).toHaveValue("");
     expect(screen.getByLabelText("Categoria")).toHaveValue("general");
     expect(screen.getByLabelText("Prazo")).toHaveValue("");
   });

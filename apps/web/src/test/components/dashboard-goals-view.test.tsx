@@ -141,7 +141,9 @@ describe("DashboardGoalsView", () => {
       remainingGoalAmount: 7500,
     });
 
-    expect(screen.getByText("Metas")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Metas" }),
+    ).toBeInTheDocument();
     expect(
       screen.getByText("Organize seus objetivos e acompanhe o quanto falta para chegar lá."),
     ).toBeInTheDocument();

@@ -94,7 +94,7 @@ export function GoalForm({
               </h3>
             </div>
 
-            <div className="space-y-2">
+            <div className="grid gap-1.5">
               <label
                 htmlFor="goal-title"
                 className="text-sm font-medium text-foreground"
@@ -124,7 +124,7 @@ export function GoalForm({
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
+              <div className="grid gap-1.5">
                 <label
                   htmlFor="goal-target-amount"
                   className="text-sm font-medium text-foreground"
@@ -146,7 +146,7 @@ export function GoalForm({
                 </div>
               </div>
 
-              <div className="space-y-2">
+              <div className="grid gap-1.5">
                 <label
                   htmlFor="goal-current-amount"
                   className="text-sm font-medium text-foreground"
@@ -178,7 +178,7 @@ export function GoalForm({
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
+              <div className="grid gap-1.5">
                 <label
                   htmlFor="goal-category"
                   className="text-sm font-medium text-foreground"
@@ -201,7 +201,7 @@ export function GoalForm({
                 </select>
               </div>
 
-              <div className="space-y-2">
+              <div className="grid gap-1.5">
                 <label
                   htmlFor="goal-deadline"
                   className="text-sm font-medium text-foreground"
@@ -224,13 +224,7 @@ export function GoalForm({
             </div>
           </section>
 
-          <section className="space-y-3 rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
-            <div className="space-y-1">
-              <h3 className="text-base font-semibold text-foreground">
-                Salvar meta
-              </h3>
-            </div>
-
+          <section className="rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
             <Button
               type="submit"
               className="h-11 w-full rounded-2xl"

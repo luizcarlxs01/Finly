@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+
+import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
 import { DashboardInsights } from "@/components/dashboard/dashboard-insights";
 import { FinancialForecastCard } from "@/components/dashboard/financial-forecast-card";
 import type { DashboardInsight } from "@/utils/dashboard-insights";
@@ -20,14 +22,10 @@ export function DashboardInsightsView({
 }: DashboardInsightsViewProps) {
   return (
     <div className="space-y-6 2xl:space-y-8">
-      <section className="space-y-2">
-        <h2 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-          Insights
-        </h2>
-        <p className="max-w-3xl text-sm leading-6 text-muted-foreground sm:text-base">
-          Veja leituras rápidas sobre sua vida financeira.
-        </p>
-      </section>
+      <DashboardPageHeader
+        title="Insights"
+        description="Veja leituras rápidas sobre sua vida financeira."
+      />
 
       <section className="grid gap-6 2xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
         <div className="min-w-0">

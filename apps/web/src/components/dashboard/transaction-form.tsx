@@ -216,6 +216,9 @@ export function TransactionForm({
         <CardTitle className="text-xl font-semibold tracking-tight">
           Novo lançamento
         </CardTitle>
+        <p className="text-sm text-muted-foreground">
+          Registre uma movimentação para manter seu saldo em dia.
+        </p>
       </CardHeader>
 
       <CardContent>

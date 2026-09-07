@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { CalendarDays, ChevronDown, FileText } from "lucide-react";
 
+import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
 import { FinanceSummaryCard } from "@/components/dashboard/finance-summary-card";
 import { TransactionAdvancedFilters } from "@/components/dashboard/transaction-advanced-filters";
 import { TransactionFilterTabs } from "@/components/dashboard/transaction-filter-tabs";
@@ -89,135 +90,129 @@ export function DashboardTransactionsView({
   const [isListOpen, setIsListOpen] = useState(false);
 
   return (
-    <>
-      <div className="space-y-8 2xl:space-y-10 p-8">
-        <section className="rounded-[2rem] border border-border/70 bg-card/95 p-6 shadow-sm sm:p-7">
-          <div className="space-y-2">
-            <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-              Lançamentos
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Cadastre e acompanhe suas movimentações.
-            </p>
-          </div>
-        </section>
+    <div className="space-y-6 2xl:space-y-8">
+      <DashboardPageHeader
+        title="Lançamentos"
+        description="Cadastre e acompanhe suas movimentações."
+      />
 
-        <section id="nova-transacao">
-          <div className="grid gap-6 xl:grid-cols-[minmax(320px,0.65fr)_minmax(0,1.35fr)] xl:items-start">
-            <aside className="min-w-0 space-y-4 xl:sticky xl:top-6">
-              <FinanceSummaryCard
-                initialBalance={initialBalance}
-                totalIncome={totalIncome}
-                totalExpense={totalExpense}
-                currentBalance={currentBalance}
-                forecastTotalIncome={forecastTotalIncome}
-                forecastTotalExpense={forecastTotalExpense}
-                forecastProjectedBalance={forecastProjectedBalance}
-                isPreviewActive={isPreviewActive}
-                onClearPreview={onClearPreview}
-                onUpdateInitialBalance={onUpdateInitialBalance}
-                nextUpcomingMonthLabel={nextUpcomingMonthLabel}
-              />
+      <section id="nova-transacao">
+        <div className="grid gap-6 xl:grid-cols-[minmax(320px,0.65fr)_minmax(0,1.35fr)] xl:items-start">
+          <aside className="min-w-0 space-y-4 xl:sticky xl:top-6">
+            <FinanceSummaryCard
+              initialBalance={initialBalance}
+              totalIncome={totalIncome}
+              totalExpense={totalExpense}
+              currentBalance={currentBalance}
+              forecastTotalIncome={forecastTotalIncome}
+              forecastTotalExpense={forecastTotalExpense}
+              forecastProjectedBalance={forecastProjectedBalance}
+              isPreviewActive={isPreviewActive}
+              onClearPreview={onClearPreview}
+              onUpdateInitialBalance={onUpdateInitialBalance}
+              nextUpcomingMonthLabel={nextUpcomingMonthLabel}
+            />
 
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-                <Button
-                  type="button"
-                  className="h-11 justify-start rounded-2xl"
-                  onClick={onOpenCalendar}
-                >
-                  <CalendarDays className="size-4" />
-                  Calendário
-                </Button>
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+              <Button
+                type="button"
+                className="h-11 justify-start rounded-2xl"
+                onClick={onOpenCalendar}
+              >
+                <CalendarDays className="size-4" />
+                Calendário
+              </Button>
 
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-11 justify-start rounded-2xl"
-                  onClick={onOpenStatementProjection}
-                >
-                  <FileText className="size-4" />
-                  Extrato
-                </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-11 justify-start rounded-2xl"
+                onClick={onOpenStatementProjection}
+              >
+                <FileText className="size-4" />
+                Extrato
+              </Button>
+            </div>
+
+            <a
+              href={`https://wa.me/${WHATSAPP_SUPPORT_NUMBER}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex h-11 w-full items-center justify-center rounded-2xl border border-dashed border-border/70 bg-background/60 px-4 text-sm font-medium text-muted-foreground transition hover:border-primary/40 hover:text-foreground"
+            >
+              Reportar problema
+            </a>
+          </aside>
+
+          <div className="min-w-0 space-y-6">
+            <TransactionForm
+              onAddTransaction={onAddTransaction}
+              onPreviewTransaction={onPreviewTransaction}
+              onClearPreview={onClearPreview}
+              isPreviewActive={isPreviewActive}
+              showPreviewNotice={false}
+              isSubmitting={isSubmitting}
+            />
+
+            <section className="space-y-4">
+              <div className="rounded-[1.75rem] border border-border/70 bg-card/95 p-5 shadow-sm sm:p-6">
+                <div className="space-y-4">
+                  <button
+                    type="button"
+                    onClick={() => setIsListOpen((prev) => !prev)}
+                    className="flex w-full items-center justify-between gap-2 text-left"
+                  >
+                    <h3 className="text-xl font-semibold tracking-tight text-foreground">
+                      {isListOpen
+                        ? "Ocultar lançamentos"
+                        : "Visualizar lançamentos"}
+                    </h3>
+                    <ChevronDown
+                      className={`size-5 shrink-0 text-muted-foreground transition-transform duration-200 ${isListOpen ? "rotate-180" : ""}`}
+                    />
+                  </button>
+
+                  {isListOpen ? (
+                    <>
+                      <TransactionFilterTabs
+                        value={transactionFilter}
+                        onChange={onTransactionFilterChange}
+                      />
+
+                      <TransactionAdvancedFilters
+                        searchValue={searchTerm}
+                        onSearchChange={onSearchTermChange}
+                        categoryValue={categoryFilter}
+                        onCategoryChange={onCategoryFilterChange}
+                        sortValue={sortOption}
+                        onSortChange={onSortOptionChange}
+                        resultCount={filteredTransactions.length}
+                        totalCount={statementTransactions.length}
+                        hasActiveFilters={
+                          transactionFilter !== "all" ||
+                          hasActiveAdvancedFilters
+                        }
+                        onClearFilters={onClearAdvancedFilters}
+                      />
+                    </>
+                  ) : null}
+                </div>
               </div>
 
-              <a
-                href={`https://wa.me/${WHATSAPP_SUPPORT_NUMBER}`}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex h-11 w-full items-center justify-center rounded-2xl border border-dashed border-border/70 bg-background/60 px-4 text-sm font-medium text-muted-foreground transition hover:border-primary/40 hover:text-foreground"
-              >
-                Reportar problema
-              </a>
-            </aside>
-
-            <div className="min-w-0 space-y-6">
-              <TransactionForm
-                onAddTransaction={onAddTransaction}
-                onPreviewTransaction={onPreviewTransaction}
-                onClearPreview={onClearPreview}
-                isPreviewActive={isPreviewActive}
-                showPreviewNotice={false}
-                isSubmitting={isSubmitting}
-              />
-
-              <section className="space-y-4">
-                <div className="rounded-[1.75rem] border border-border/70 bg-card/95 p-5 shadow-sm sm:p-6">
-                  <div className="space-y-4">
-                    <button
-                      type="button"
-                      onClick={() => setIsListOpen((prev) => !prev)}
-                      className="flex w-full items-center justify-between gap-2 text-left"
-                    >
-                      <h3 className="text-xl font-semibold tracking-tight text-foreground">
-                        {isListOpen ? "Ocultar lançamentos" : "Visualizar lançamentos"}
-                      </h3>
-                      <ChevronDown
-                        className={`size-5 shrink-0 text-muted-foreground transition-transform duration-200 ${isListOpen ? "rotate-180" : ""}`}
-                      />
-                    </button>
-
-                    {isListOpen ? (
-                      <>
-                        <TransactionFilterTabs
-                          value={transactionFilter}
-                          onChange={onTransactionFilterChange}
-                        />
-
-                        <TransactionAdvancedFilters
-                          searchValue={searchTerm}
-                          onSearchChange={onSearchTermChange}
-                          categoryValue={categoryFilter}
-                          onCategoryChange={onCategoryFilterChange}
-                          sortValue={sortOption}
-                          onSortChange={onSortOptionChange}
-                          resultCount={filteredTransactions.length}
-                          totalCount={statementTransactions.length}
-                          hasActiveFilters={
-                            transactionFilter !== "all" || hasActiveAdvancedFilters
-                          }
-                          onClearFilters={onClearAdvancedFilters}
-                        />
-                      </>
-                    ) : null}
-                  </div>
-                </div>
-
-                {isListOpen ? (
-                  <TransactionList
-                    transactions={filteredTransactions}
-                    onEditTransaction={onEditTransaction}
-                    onRemoveTransaction={onRemoveTransaction}
-                    getNextRecurringOccurrence={getNextRecurringOccurrence}
-                    emptyStateTitle={emptyStateTitle}
-                    emptyStateDescription={emptyStateDescription}
-                  />
-                ) : null}
-              </section>
-            </div>
+              {isListOpen ? (
+                <TransactionList
+                  transactions={filteredTransactions}
+                  onEditTransaction={onEditTransaction}
+                  onRemoveTransaction={onRemoveTransaction}
+                  getNextRecurringOccurrence={getNextRecurringOccurrence}
+                  emptyStateTitle={emptyStateTitle}
+                  emptyStateDescription={emptyStateDescription}
+                />
+              ) : null}
+            </section>
           </div>
-        </section>
-      </div>
-
-    </>
+        </div>
+      </section>
+    </div>
   );
 }

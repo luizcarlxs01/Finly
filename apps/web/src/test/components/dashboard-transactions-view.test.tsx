@@ -2,8 +2,9 @@ import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
+import type { TransactionSortOption } from "@/components/dashboard/transaction-advanced-filters";
 import type { LocalFinanceTransactionInput } from "@/hooks/use-local-finance";
-import type { Transaction } from "@/types/finance";
+import type { Transaction, TransactionFilter } from "@/types/finance";
 
 vi.mock("@/components/dashboard/transaction-form", () => ({
   TransactionForm: ({
@@ -145,13 +146,13 @@ vi.mock("@/components/dashboard/overlays/statement-projection-modal", () => ({
     open: boolean;
     onClose: () => void;
     transactionFilter: string;
-    onTransactionFilterChange: (value: any) => void;
+    onTransactionFilterChange: (value: TransactionFilter) => void;
     searchTerm: string;
     onSearchTermChange: (value: string) => void;
     categoryFilter: string;
     onCategoryFilterChange: (value: string) => void;
     sortOption: string;
-    onSortOptionChange: (value: any) => void;
+    onSortOptionChange: (value: TransactionSortOption) => void;
     filteredTransactions: Transaction[];
     statementTransactions: Transaction[];
     hasActiveAdvancedFilters: boolean;
@@ -310,7 +311,9 @@ describe("DashboardTransactionsView", () => {
   it("deve renderizar os blocos principais da view com dados completos", () => {
     renderDashboardTransactionsView();
 
-    expect(screen.getByText("Lançamentos")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Lançamentos" }),
+    ).toBeInTheDocument();
     expect(screen.getByText("Resumo rápido")).toBeInTheDocument();
     expect(screen.getAllByText("Extrato").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Calendário").length).toBeGreaterThan(0);

@@ -60,6 +60,9 @@ describe("TransactionForm", () => {
     expect(
       screen.getByRole("button", { name: /Simular impacto/i }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByText("Registre uma movimentação para manter seu saldo em dia."),
+    ).toBeInTheDocument();
   });
 
   it("deve compactar os botoes apenas no layout desktop", () => {
