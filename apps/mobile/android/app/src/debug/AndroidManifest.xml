@@ -1,3 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Builds de debug apontam para a API local (http://10.0.2.2:8080 no
+         emulador). A produção é HTTPS, então cleartext fica restrito ao debug. -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <application android:usesCleartextTraffic="true" />
 </manifest>
