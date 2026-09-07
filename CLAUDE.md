@@ -33,11 +33,14 @@ Finly/
 ├── apps/
 │   ├── web/        → Next.js + React + TypeScript + TailwindCSS (Vercel)
 │   ├── api/        → ASP.NET Core .NET 8 (Azure App Service)
-│   └── mobile/     → Flutter (em desenvolvimento)
+│   └── mobile/     → Flutter — app completo, espelho do web (ver seção 25)
 ├── docs/           → documentação do projeto
 └── .github/
     └── workflows/  → GitHub Actions
 ```
+
+Não existe `apps/landing` — a landing pública foi incorporada à aba **Início**
+de `apps/web` (ver seção 24).
 
 Branches principais: `main`, `luiz`, `leo`
 
@@ -60,9 +63,15 @@ Branches principais: `main`, `luiz`, `leo`
 
 ### mobile (Flutter)
 - Flutter + Dart
-- Stack planejada: Riverpod (estado), GoRouter (navegação), Dio + flutter_secure_storage
-- Status: **pasta criada, sem código ainda — pertence à Fase 7**
-- Não iniciar o mobile antes de concluir as Fases 1 a 6
+- Stack: `flutter_riverpod` (AsyncNotifier por feature), `go_router`
+  (StatefulShellRoute), `dio`, `flutter_secure_storage` (JWT),
+  `shared_preferences` (modo sem conta + tema), `uuid`, `intl`
+- Estrutura `lib/{app,core,features,shared}` — `features/{auth,home,transactions,
+  goals,insights,calendar}/{data,state,ui}`
+- **Status: app completo e reescrito como espelho de `apps/web`** — mesmas telas,
+  mesmas regras, mesma paleta, modo híbrido local/API. Ver seção 25.
+- `flutter analyze` limpo. Validado no emulador Android (modo local e modo API
+  com dados reais de `api.finly.systems`).
 
 ---
 
@@ -93,11 +102,20 @@ src/
 └── utils/
 ```
 
-**Estrutura funcional atual da Fase 1**
-- `FinanceSummaryCard` fica apenas na aba **Lançamentos**, no `aside` da tela.
-- O `FinanceSummaryCard` é colapsável: mostra **Saldo Atual** por padrão, permite ocultar todos os valores com o "olhinho" e mantém a **Simulação** visível mesmo colapsado.
-- O `AccountAccessCard` é aberto por toggle via ícone no header (`AppFloatingHeader`).
-- O FAB `[+]` fixo aparece nas abas **Lançamentos**, **Metas** e **Insights**.
+**Estrutura funcional atual**
+- A aba **Início** é a Home oficial (landing incorporada — ver seção 24), com
+  hero, showcase interativo (`GSAP + ScrollTrigger`), diferencial de uso sem
+  conta e CTA final. Não há mais `apps/landing`.
+- Todas as abas usam o mesmo `AppFloatingHeader` (Início / Lançamentos / Metas /
+  Insights + ícone de conta + toggle de tema).
+- `FinanceSummaryCard` fica apenas na aba **Lançamentos**, no `aside`. Colapsável:
+  mostra **Saldo Atual** por padrão, "olhinho" oculta todos os valores,
+  **Simulação** sempre visível mesmo colapsado.
+- O aviso de modo sem conta e o login/cadastro (`AccountAccessCard`) aparecem só
+  quando a área **Conta** é aberta pelo ícone no header — não ocupam mais espaço
+  permanente na Home.
+- O FAB `[+]` (speed dial) aparece nas abas **Lançamentos**, **Metas** e
+  **Insights**.
 
 ---
 
@@ -157,6 +175,12 @@ Goal Form, Goal List, Goal Progress Modal,
 Financial Calendar Modal (+ Grid e Day Panel), Statement Projection Modal,
 Account Access Card, App Floating Header, Login Form, Register Form, Password Strength Bar
 
+**Home (aba Início — `components/dashboard/home-landing/`):** `HomeLanding`,
+`LandingHero` (+ `ProductDashboard` mockup demonstrativo em HTML/CSS, sem cálculo
+real), `ProductShowcase` / `ProductJourney` (jornada GSAP de 4 estados: visão
+financeira → calendário → metas → insights), `SyncFeature`, `FinalCta`,
+`ScrollReveal`, `FinlyMark`, `home-styles.ts`, `home-landing.module.css`.
+
 ---
 
 ## 9. Sistema de eventos (web)
@@ -210,6 +234,8 @@ Account Access Card, App Floating Header, Login Form, Register Form, Password St
 ✅ Modo Com Conta (API)  
 ✅ Hooks Unificados  
 ✅ Refresh Automático  
+✅ Home oficial (landing incorporada à aba Início) + showcase GSAP — ver seção 24  
+✅ App Mobile (Flutter) — espelho completo do web, modo híbrido local/API — ver seção 25  
 
 ---
 
@@ -532,7 +558,8 @@ Somente depois de tudo acima estar estável:
 - Troca de Perfil Financeiro (Pessoal / Empresa / Família)
 - Importação / Exportação
 - Notificações
-- App Mobile (Flutter)
+- ✅ App Mobile (Flutter) — **CONCLUÍDO** (antecipado a pedido do usuário; ver
+  seção 25). Falta: testes automatizados, build de release assinado, setup iOS.
 
 ---
 
@@ -540,7 +567,8 @@ Somente depois de tudo acima estar estável:
 
 **Troca de Perfil Financeiro** — adiada para Fase 7. Não sugerir, não implementar, não criar estrutura.
 
-**App Mobile (Flutter)** — `apps/mobile` está vazio intencionalmente. Pertence à Fase 7. Não iniciar.
+**App Mobile (Flutter)** — **CONCLUÍDO** (antecipado a pedido do usuário). App
+completo em `apps/mobile`, espelho de `apps/web`. Ver seção 25 antes de mexer.
 
 **Docker** — Fase 3 concluída. Não alterar os arquivos em `docker/` sem motivo explícito.
 
@@ -908,3 +936,205 @@ commit, menos o teste da Agenda que foi reescrito. Nenhuma regressão.
       `<IP-da-VPS>:1433` — as portas não são mais publicadas
 - [ ] Testar login por `https://app.finly.systems` (valida CORS + JWT +
       ForwardedHeaders juntos)
+
+---
+
+## 24. Estado visual atual do Finly Web
+
+> A identidade visual da aplicação web foi refinada para aproximar todas as áreas
+> do mesmo produto, mantendo intactas as regras financeiras, autenticação, API,
+> hooks e fontes de dados. (Alterações feitas pelo usuário via ChatGPT —
+> registradas aqui para referência.)
+
+### Home oficial
+
+A landing foi incorporada diretamente à aba **Início** de `apps/web`. Não existe
+mais uma aplicação pública separada em `apps/landing`.
+
+A Home possui quatro áreas principais:
+
+1. Hero com mensagem principal e mockup financeiro.
+2. Showcase interativo do produto.
+3. Diferencial de uso sem conta e sincronização opcional.
+4. CTA final para acessar os lançamentos.
+
+O mockup é demonstrativo, construído em HTML/CSS e **não executa cálculos
+financeiros reais**.
+
+### Header flutuante
+
+Toda a aplicação utiliza o mesmo `AppFloatingHeader`. O header mantém:
+
+- navegação entre Início, Lançamentos, Metas e Insights;
+- acesso à área de conta;
+- alternância entre tema claro e escuro;
+- comportamento responsivo;
+- mesma aparência em todas as abas.
+
+O aviso de modo sem conta e os controles de login/cadastro aparecem **somente
+quando a área Conta é aberta**. Eles não ocupam mais espaço permanente na Home.
+
+### Identidade visual
+
+Linguagem consistente de fintech/SaaS premium:
+
+- azul Finly como cor principal;
+- fundos com gradientes discretos;
+- bordas suaves;
+- sombras com pouca intensidade;
+- maior profundidade visual;
+- tipografia e espaçamentos mais refinados;
+- suporte consistente aos temas claro e escuro.
+
+As abas Lançamentos, Metas e Insights continuam sendo áreas **funcionais** da
+aplicação, sem assumir aparência de landing page.
+
+### Animações da Home
+
+A Home utiliza animações CSS para: entrada do eyebrow; entrada da headline;
+supporting text; CTAs; mockup financeiro; elementos ambientais; reveals das
+seções durante a rolagem.
+
+O showcase utiliza `GSAP + ScrollTrigger` em uma única jornada visual com quatro
+estados:
+
+1. Visão financeira.
+2. Calendário.
+3. Metas.
+4. Insights.
+
+Os estados podem ser acessados pela rolagem ou clicando nos respectivos botões.
+
+No **desktop**, as animações são sempre executadas a partir de `921px`, mesmo
+quando o sistema informa `prefers-reduced-motion: reduce`. No **tablet e mobile**,
+a preferência de movimento reduzido continua sendo respeitada.
+
+### Estabilidade do ScrollTrigger
+
+O dashboard do showcase utiliza pin nativo com `pinType: "fixed"` para manter o
+`ScrollTrigger` estável durante a jornada.
+
+---
+
+## 25. App Mobile (Flutter) — `apps/mobile`
+
+> **Reescrito do zero** (06/09/2026, a pedido do usuário) como **espelho exato de
+> `apps/web`** — mesmas telas, mesmas regras de negócio, mesmo fluxo, mesma
+> paleta, modo híbrido local/API. O scaffold anterior (baseado num mockup solto
+> "Finly Mobile v2", paleta violeta, telas Onboarding/Premium/Notificações/
+> Orçamento que não existem no web) foi **totalmente descartado**. Plataformas
+> `android/` e `ios/` preservadas.
+
+### Regra absoluta (mesma da seção 2)
+
+A UI **nunca** sabe de onde o dado veio. A fonte (`local` vs `api`) é decidida
+automaticamente em `lib/core/finance_source.dart` (`financeSourceProvider` —
+equivalente ao `FinanceSourceProvider` do web): sem sessão → `local`, com sessão
+→ `api`. Jamais criar tela/widget/controller separado por modo.
+
+### Arquitetura
+
+```
+lib/
+├── app/        → app.dart, router.dart, shell.dart, theme.dart, theme_mode
+├── core/       → api/ (client + interceptor + exception + config),
+│                 storage/ (secure_storage p/ JWT), widgets/, format/,
+│                 finance_source.dart
+├── features/   → auth, home, transactions, goals, insights, calendar
+│                 (cada uma com data/ state/ ui/)
+└── shared/     → models/ (enums, transaction, goal, profile, dashboard_summary,
+                  financial_rule, categories)
+```
+
+- **Estado:** `flutter_riverpod` — 1 `AsyncNotifier` por feature
+  (`FinanceController`, `GoalsController`, `RulesController`, `AuthController`).
+- **Navegação:** `go_router` + `StatefulShellRoute.indexedStack` (4 abas) +
+  rotas empilhadas `/account` `/calendar` `/statement`. **Sem gate de auth** — o
+  app é sempre acessível.
+- **HTTP:** `dio` centralizado em `core/api/api_client.dart` (nenhum widget fala
+  com Dio direto). Interceptor anexa `Authorization: Bearer` e dispara logout no
+  401. `ApiException.fromDio` lê o campo `message` do corpo (a API **não** usa
+  ProblemDetails/RFC 7807, usa `{ message }`) e cai em fallback por status code.
+- **JWT:** `flutter_secure_storage` (Keychain/Keystore), espelha
+  `auth-storage.ts` (expira quando `expiresAt` passa).
+
+### Telas (espelham `apps/web`)
+
+| Tela | Espelha |
+|---|---|
+| Início | `hero-section.tsx` — hero + 3 cards + atalhos Calendário/Extrato, sem FAB |
+| Lançamentos | `dashboard-transactions-view.tsx` — `FinanceSummaryCard` colapsável (olhinho, saldo inicial in-place, banner de simulação), lista colapsável com filtros (Todas/Entradas/Saídas + busca + categoria + ordenação), **FAB speed dial** (Nova transação / Nova meta) |
+| Nova transação / Editar | `transaction-form.tsx` / `transaction-edit-modal.tsx` — Único/Parcelado/Recorrente com todos os campos condicionais; no editar: bloco **"Esta ocorrência"** só p/ Installment/Recurring (regra Fase C), **"Excluir toda a série"** sempre |
+| Calendário | `financial-calendar-modal.tsx` (+ grid + day-panel) — grade mensal, pontos verde (Pago) / cinza (Pendente), toque no dia abre o painel, "Editar" abre a folha de edição |
+| Extrato | `statement-projection-modal.tsx` — abas Histórico / Previsão |
+| Metas | `dashboard-goals-view.tsx` + `goal-form.tsx` + `goal-progress-modal.tsx` |
+| Insights | `dashboard-insights-view.tsx` — 5 leituras (`dashboard-insights.ts` portada 1:1) + card "Próximo período" + **Regras financeiras** (só no modo API) |
+| Conta | `account-access-card.tsx` — deslogado: aviso "modo sem conta" + entrar/criar conta (com barra de força de senha); logado: identidade + Sair |
+
+Navegação = `NavigationBar` de 4 abas (adaptação de plataforma do
+`AppFloatingHeader`, PASSO 8) + ícone de conta em todas as AppBars + toggle de
+tema (claro/escuro/sistema, persistido).
+
+### Modo híbrido local/API
+
+- **`lib/features/transactions/data/local_finance_store.dart`** — `LocalFinanceStore`
+  (`AsyncNotifier` persistido em `shared_preferences`, chave `finly.local-finance`).
+  Espelha `use-local-finance.ts`: `LocalContract` + `Occurrence`s à parte;
+  `addTransaction` / `updateContract` / `deleteContract` / `updateOccurrence` /
+  `markPaid` / `markPending` / `cancelOccurrence` (soft-delete, status Cancelled) /
+  `updateInitialBalance`. Geração via `generateOccurrences`
+  (`occurrence_generation.dart`, réplica de `occurrence-generation.ts` /
+  `OccurrenceGenerationService.cs`), extensão lazy de recorrência indefinida
+  (`_extendIndefiniteRecurrences`, threshold hoje+6m / horizonte hoje+12m).
+  `updateContract` replica o **fix do Bug 1 da Fase C** (Single propaga
+  amount/dueDate pra sua única Occurrence).
+- **`lib/features/goals/data/local_goals_store.dart`** — `LocalGoalsStore`
+  (chave `finly.local-goals`), espelha `use-local-goals.ts`.
+- **Controllers** ramificam por `financeSourceProvider` no `build` e em **toda
+  escrita**. Modo local persiste no aparelho e o `build` re-roda sozinho (watch);
+  modo API chama o backend e recarrega.
+- **Regras financeiras** só existem no modo API (igual ao web:
+  `isApiMode && selectedProfile`).
+- Ao logar, `financeSourceProvider` vira `api` automaticamente e o app mostra os
+  dados da API; os dados locais ficam guardados e voltam ao sair da conta.
+
+### Ambiente
+
+`lib/core/api/api_config.dart`: release → `https://api.finly.systems`; debug →
+`http://10.0.2.2:8080` (emulador). Sobreponível:
+`--dart-define=FINLY_API_BASE_URL=...` (equivalente ao `NEXT_PUBLIC_API_URL` do
+web — Docker=8080, Kestrel=5149). `android/app/src/debug/AndroidManifest.xml`
+tem `usesCleartextTraffic` só no debug.
+
+### Armadilhas registradas (verificar se regredir)
+
+- **`Column` / filho de `ListView` dentro de scroll view sempre com
+  `mainAxisSize: MainAxisSize.min` e largura explícita.** Um `Column` com
+  `mainAxisSize.max` em altura ilimitada + `.when()` devolvendo widget cru pra
+  dentro de outra Column travou a rolagem da aba Insights (o sliver dava
+  extent ≈ 0 no card das regras). Não pôr widget de altura variável montado
+  tardiamente como último filho de `ListView(children:)` — para páginas curtas
+  use `SingleChildScrollView` + `Column`.
+- A API devolve `Type` PascalCase (`"Income"/"Expense"`) — normalizar com
+  `.toLowerCase()` (`TransactionType.fromApi`), senão **entrada vira saída e o
+  saldo inverte de sinal**.
+- Controllers da API (`Transactions`, `Goals`, `FinancialRules`) exigem
+  `?financialProfileId=` (query); `Dashboard` é `/api/Dashboard/{id}` (path).
+  Buscar sempre o perfil primário primeiro.
+- `main()` precisa de `WidgetsFlutterBinding.ensureInitialized()` +
+  `initializeDateFormatting('pt_BR')` antes de qualquer `DateFormat`.
+- Valor de parcela = valor de **cada** Occurrence (nunca dividir por N).
+
+### Validação
+
+`flutter analyze` limpo. `flutter build apk --debug` OK. Emulador Android
+(emulator-5554): instalação limpa → cai direto na Home em modo local; criar
+transação Single → saldo atualiza e aparece ponto verde no calendário no dia
+certo; persiste após force-stop; tela Conta mostra o painel de acesso; modo API
+validado com a conta real de produção (dados de `api.finly.systems`).
+
+### Pendente
+
+Testes (widget + unit p/ `occurrence_generation`, `financial_calendar`,
+`dashboard_insights`, `password_strength`), assinatura de release +
+`flutter build appbundle --release`, setup iOS.
