@@ -1156,3 +1156,119 @@ validado com a conta real de produção (dados de `api.finly.systems`).
 Testes (widget + unit p/ `occurrence_generation`, `financial_calendar`,
 `dashboard_insights`, `password_strength`), assinatura de release +
 `flutter build appbundle --release`, setup iOS.
+
+---
+
+## 26. Verificação de e-mail por código (2FA leve) — backend, web e mobile
+
+> Implementado em 20/09/2026. Cadastro e o primeiro login em seguida passam a
+> exigir a confirmação de um código de 6 dígitos enviado por e-mail antes de
+> emitir o JWT. **Não é 2FA recorrente** — depois da primeira verificação,
+> logins seguintes continuam sem código, como decidido nesta sessão (a
+> alternativa, código em todo login, foi descartada por mudar a experiência de
+> todo usuário já existente).
+
+### Por que e-mail via Resend, não Postfix próprio
+
+Cogitou-se instalar um MTA (Postfix) direto na VPS Ubuntu para "envio grátis".
+Testado na prática: a porta 25 de saída está aberta na Hostinger (não é o
+bloqueio comum de outros provedores), mas o domínio `finly.systems` não tinha
+SPF/DKIM/DMARC e o IP não tinha nenhuma reputação de envio — ou seja,
+tecnicamente funcionaria, mas o e-mail cairia em spam/seria rejeitado por
+Gmail/Outlook, o que é inaceitável para um código de verificação (ninguém
+consegue entrar na própria conta se o e-mail não chegar). [Resend](https://resend.com)
+foi escolhido por ser gratuito no volume do projeto (3.000 e-mails/mês) e não
+ter esse problema de reputação/deliverability.
+
+### Modelo de dados (apps/api)
+
+- `User.EmailVerified` (bool) — novo campo.
+- `EmailVerificationCode` (nova entidade): `UserId`, `CodeHash` (SHA-256, nunca
+  o código em texto puro), `ExpiresAt` (10 min), `ConsumedAt`, `AttemptCount`
+  (trava em 5 tentativas por código).
+- Migration `AddEmailVerification`: além do `ADD COLUMN`, roda
+  `UPDATE Users SET EmailVerified = 1` para todos os usuários **já
+  existentes** — eles já comprovaram o e-mail no cadastro original, então não
+  são pegos de surpresa por uma verificação retroativa no próximo login.
+
+### Fluxo
+
+- `AuthService.RegisterAsync`: cria o usuário normalmente, mas em vez de
+  devolver um JWT, chama `IEmailVerificationService.GenerateAndSendCodeAsync` e
+  devolve `AuthResponseDto` com `RequiresVerification = true` (token/userId
+  nulos).
+- `AuthService.LoginAsync`: se `!user.EmailVerified`, mesmo comportamento do
+  registro (reenvia código, sem token). Se já verificado, login segue igual a
+  antes.
+- Novos endpoints: `POST /api/Auth/verify-email` (email + code → JWT real) e
+  `POST /api/Auth/resend-code` (email → reenvia).
+- Rate limiting dedicado: `auth-verify` (10/15min por IP) e `auth-resend`
+  (5/60min por IP), mesmo padrão dos buckets de login/registro da Fase 2.
+
+### Arquivos-chave
+
+- `Finly.Domain/Entities/EmailVerificationCode.cs`
+- `Finly.Application/Services/EmailVerificationService.cs` — geração do
+  código, hash, expiração, contagem de tentativas
+- `Finly.Application/Interfaces/IEmailSender.cs` +
+  `Finly.Infrastructure/Email/ResendEmailSender.cs` — chamada HTTP à API do
+  Resend (`POST https://api.resend.com/emails`)
+- `Finly.Infrastructure/Email/ResendSettings.cs` — `Resend:ApiKey` (secreta,
+  via env `Resend__ApiKey`, mesmo padrão do `JWT__SecretKey`) e
+  `Resend:FromEmail`
+- Web: `hooks/use-auth-session.ts` (estado `pendingVerification` + `verifyCode`
+  / `resendCode`), `components/auth/email-verification-form.tsx`,
+  `components/auth/account-access-card.tsx` (troca para o form de código
+  quando há verificação pendente)
+- Mobile: `features/auth/state/auth_controller.dart` (mesmo
+  `pendingVerification`), `features/auth/ui/email_verification_panel.dart`,
+  `features/auth/ui/account_access_panel.dart`
+
+`AuthResponseDto` (e o `AuthResponse`/`AuthOutcome` do web, `AuthOutcome` do
+mobile) ganhou o campo `requiresVerification`; quando `true`, os demais campos
+de sessão vêm nulos. Web e mobile tratam isso da mesma forma: se
+`requiresVerification`, mostram a tela de código em vez de considerar a pessoa
+logada — nenhuma duplicação de lógica entre as duas UIs além do necessário
+para cada framework.
+
+### ⚠️ Limitação conhecida — remetente ainda no domínio de teste do Resend
+
+`Resend__FromEmail` está como `Finly <onboarding@resend.dev>` (domínio de
+teste do Resend) em produção. **Nesse modo, o Resend só entrega e-mail para o
+e-mail da própria conta Resend cadastrada** — qualquer outro destinatário
+recebe 403 (`validation_error`) e o cadastro falha com "Não foi possível
+enviar o e-mail". Ou seja, **hoje só quem é dono da conta Resend consegue se
+cadastrar/verificar** — isso não é utilizável para usuários reais ainda.
+
+Domínio `finly.systems` já foi adicionado no painel do Resend e os registros
+DNS (DKIM `resend._domainkey`, SPF via CNAME `send`/`rsend`, DMARC) já
+propagaram (confirmado via `nslookup` contra `8.8.8.8`), mas o Resend ainda não
+tinha marcado o domínio como verificado na última checagem (`POST /emails`
+retornou "The finly.systems domain is not verified"). Depois que o painel do
+Resend mostrar o domínio verificado:
+
+1. Trocar `Resend__FromEmail` para `Finly <naoresponda@finly.systems>` em
+   `docker/.env` (local) e no `.env` da VPS.
+2. `docker compose --env-file .env up -d` na VPS (só recria o container `api`,
+   não precisa rebuild — é só variável de ambiente).
+3. Testar um cadastro com um e-mail que **não** seja o da conta Resend para
+   confirmar que a restrição de sandbox caiu.
+
+### Validação
+
+Backend testado ponta a ponta duas vezes com e-mail real (local via Docker e
+direto em `https://api.finly.systems`, ambos com o Resend em modo sandbox):
+cadastro → e-mail chega (na caixa de spam, esperado sem domínio verificado
+ainda) → código confirmado → JWT emitido → login seguinte sem pedir código de
+novo. Migration validada em produção (`UPDATE Users SET EmailVerified = 1`
+rodou, usuários antigos não afetados). Mobile: `flutter analyze` limpo,
+`flutter build apk --debug` OK — **não validado num emulador real nesta
+sessão** (sem emulador disponível no ambiente); a lógica espelha 1:1 o que já
+foi validado no web e no backend, usando o mesmo contrato de API.
+
+### Pendente
+
+- Verificar o domínio no Resend e trocar o remetente (ver seção acima)
+- Validar o fluxo de verificação no emulador Android
+- Fórum de reclamações com resposta do admin por e-mail (próxima etapa,
+  combinada para só começar depois deste 2FA estar 100% fechado)
