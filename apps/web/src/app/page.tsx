@@ -150,6 +150,8 @@ export default function HomePage() {
     useState<string | null>(null);
   const [pendingContractDeletionId, setPendingContractDeletionId] =
     useState<string | null>(null);
+  const [pendingGoalDeletionId, setPendingGoalDeletionId] =
+    useState<string | null>(null);
   const [writeModeMessage, setWriteModeMessage] = useState<string | null>(null);
   const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
   const [isStatementProjectionModalOpen, setIsStatementProjectionModalOpen] = useState(false);
@@ -606,10 +608,19 @@ export default function HomePage() {
     setWriteModeMessage(null);
   }
 
-  async function handleRemoveGoal(id: string) {
+  function handleRemoveGoal(id: string) {
+    setPendingGoalDeletionId(id);
+  }
+
+  async function handleConfirmRemoveGoal() {
+    if (!pendingGoalDeletionId) {
+      return;
+    }
+
     try {
-      await deleteGoalUnified(id);
+      await deleteGoalUnified(pendingGoalDeletionId);
       setWriteModeMessage(null);
+      setPendingGoalDeletionId(null);
     } catch {
       // A mensagem de erro e tratada na pagina principal.
     }
@@ -976,6 +987,20 @@ export default function HomePage() {
         onOpenChange={(open) => {
           if (!open) {
             setPendingContractDeletionId(null);
+          }
+        }}
+      />
+
+      <ConfirmationModal
+        open={Boolean(pendingGoalDeletionId)}
+        title="Remover meta"
+        description="Tem certeza que deseja remover esta meta? Essa ação não pode ser desfeita."
+        cancelLabel="Cancelar"
+        confirmLabel="Remover meta"
+        onConfirm={handleConfirmRemoveGoal}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPendingGoalDeletionId(null);
           }
         }}
       />
