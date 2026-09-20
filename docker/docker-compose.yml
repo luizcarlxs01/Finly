@@ -3,6 +3,7 @@ name: finly
 services:
   banco:
     image: mcr.microsoft.com/mssql/server:2022-latest
+    restart: unless-stopped
     environment:
       SA_PASSWORD: ${SA_PASSWORD}
       ACCEPT_EULA: "Y"
@@ -35,6 +36,7 @@ services:
     build:
       context: ../apps/api
       dockerfile: ../../docker/api/Dockerfile
+    restart: unless-stopped
     # Sem publicação de porta: quem expõe a API para a internet é o Traefik,
     # que alcança o container pela rede do Compose na porta 8080.
     expose:
