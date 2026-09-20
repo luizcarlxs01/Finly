@@ -6,6 +6,7 @@ import '../../../core/widgets/form_fields.dart';
 import '../../../core/widgets/widgets.dart';
 import '../data/auth_models.dart';
 import '../state/auth_controller.dart';
+import 'email_verification_panel.dart';
 import 'password_strength_bar.dart';
 
 /// Espelha apps/web/src/components/auth/account-access-card.tsx (estado
@@ -64,8 +65,11 @@ class _AccountAccessPanelState extends ConsumerState<AccountAccessPanel> {
           ),
         );
       }
-      // Sucesso -> o app passa a modo com conta e mostra os dados da API.
-      if (mounted) Navigator.of(context).maybePop();
+      // Sucesso direto -> modo com conta. Se ficou pendente de verificação,
+      // o build() abaixo troca para o EmailVerificationPanel sem fechar a tela.
+      final stillPending =
+          ref.read(authControllerProvider).pendingVerification != null;
+      if (mounted && !stillPending) Navigator.of(context).maybePop();
     } catch (error) {
       setState(() => _error = error.toString());
     }
@@ -73,7 +77,14 @@ class _AccountAccessPanelState extends ConsumerState<AccountAccessPanel> {
 
   @override
   Widget build(BuildContext context) {
-    final isSubmitting = ref.watch(authControllerProvider).isSubmitting;
+    final authState = ref.watch(authControllerProvider);
+    final pending = authState.pendingVerification;
+
+    if (pending != null) {
+      return EmailVerificationPanel(email: pending.email);
+    }
+
+    final isSubmitting = authState.isSubmitting;
     final isRegister = _intent == _Intent.register;
 
     return Column(

@@ -53,3 +53,46 @@ class RegisterRequest {
   Map<String, dynamic> toJson() =>
       {'name': name, 'email': email, 'password': password};
 }
+
+/// Resultado de login/register — espelha `AuthOutcome` de
+/// apps/web/src/types/auth.ts. O backend sempre devolve `requiresVerification`;
+/// quando `true`, [session] vem nulo e é preciso confirmar o código antes de
+/// ter uma sessão de verdade.
+class AuthOutcome {
+  AuthOutcome({required this.requiresVerification, this.session, this.email, this.name});
+
+  final bool requiresVerification;
+  final AuthSession? session;
+  final String? email;
+  final String? name;
+
+  factory AuthOutcome.fromJson(Map<String, dynamic> json) {
+    final requiresVerification = json['requiresVerification'] as bool? ?? false;
+
+    if (requiresVerification) {
+      return AuthOutcome(
+        requiresVerification: true,
+        email: json['email'] as String?,
+        name: json['name'] as String?,
+      );
+    }
+
+    return AuthOutcome(
+      requiresVerification: false,
+      session: AuthSession.fromJson(json),
+    );
+  }
+}
+
+class VerifyEmailCodeRequest {
+  VerifyEmailCodeRequest({required this.email, required this.code});
+  final String email;
+  final String code;
+  Map<String, dynamic> toJson() => {'email': email, 'code': code};
+}
+
+class ResendVerificationCodeRequest {
+  ResendVerificationCodeRequest({required this.email});
+  final String email;
+  Map<String, dynamic> toJson() => {'email': email};
+}

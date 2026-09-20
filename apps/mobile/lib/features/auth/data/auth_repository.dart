@@ -12,20 +12,35 @@ class AuthRepository {
 
   final ApiClient _client;
 
-  Future<AuthSession> login(LoginRequest request) async {
+  Future<AuthOutcome> login(LoginRequest request) async {
     final json = await _client.post<Map<String, dynamic>>(
       '/api/Auth/login',
+      body: request.toJson(),
+    );
+    return AuthOutcome.fromJson(json);
+  }
+
+  Future<AuthOutcome> register(RegisterRequest request) async {
+    final json = await _client.post<Map<String, dynamic>>(
+      '/api/Auth/register',
+      body: request.toJson(),
+    );
+    return AuthOutcome.fromJson(json);
+  }
+
+  Future<AuthSession> verifyEmailCode(VerifyEmailCodeRequest request) async {
+    final json = await _client.post<Map<String, dynamic>>(
+      '/api/Auth/verify-email',
       body: request.toJson(),
     );
     return AuthSession.fromJson(json);
   }
 
-  Future<AuthSession> register(RegisterRequest request) async {
-    final json = await _client.post<Map<String, dynamic>>(
-      '/api/Auth/register',
+  Future<void> resendVerificationCode(ResendVerificationCodeRequest request) async {
+    await _client.post<Map<String, dynamic>>(
+      '/api/Auth/resend-code',
       body: request.toJson(),
     );
-    return AuthSession.fromJson(json);
   }
 }
 

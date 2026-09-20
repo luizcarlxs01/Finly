@@ -12,16 +12,24 @@ import '../data/auth_repository.dart';
 /// válida → telas de acesso; com sessão → dados da API. (O web ainda tem um
 /// modo local/localStorage; no mobile isso está fora de escopo — PASSO 11 do
 /// briefing amarra o app à API de produção.)
+class PendingVerification {
+  const PendingVerification({required this.email, required this.name});
+  final String email;
+  final String name;
+}
+
 class AuthState {
   const AuthState({
     this.session,
     this.isBootstrapping = true,
     this.isSubmitting = false,
+    this.pendingVerification,
   });
 
   final AuthSession? session;
   final bool isBootstrapping;
   final bool isSubmitting;
+  final PendingVerification? pendingVerification;
 
   bool get authenticated => session != null && !session!.isExpired;
 
@@ -30,11 +38,16 @@ class AuthState {
     bool clearSession = false,
     bool? isBootstrapping,
     bool? isSubmitting,
+    PendingVerification? pendingVerification,
+    bool clearPendingVerification = false,
   }) {
     return AuthState(
       session: clearSession ? null : (session ?? this.session),
       isBootstrapping: isBootstrapping ?? this.isBootstrapping,
       isSubmitting: isSubmitting ?? this.isSubmitting,
+      pendingVerification: clearPendingVerification
+          ? null
+          : (pendingVerification ?? this.pendingVerification),
     );
   }
 }
@@ -71,9 +84,8 @@ class AuthController extends Notifier<AuthState> {
   Future<void> login(LoginRequest request) async {
     state = state.copyWith(isSubmitting: true);
     try {
-      final session = await ref.read(authRepositoryProvider).login(request);
-      await ref.read(secureStorageProvider).saveSession(session);
-      _applySession(session);
+      final outcome = await ref.read(authRepositoryProvider).login(request);
+      await _applyOutcome(outcome);
     } finally {
       state = state.copyWith(isSubmitting: false);
     }
@@ -82,12 +94,62 @@ class AuthController extends Notifier<AuthState> {
   Future<void> register(RegisterRequest request) async {
     state = state.copyWith(isSubmitting: true);
     try {
-      final session = await ref.read(authRepositoryProvider).register(request);
+      final outcome = await ref.read(authRepositoryProvider).register(request);
+      await _applyOutcome(outcome);
+    } finally {
+      state = state.copyWith(isSubmitting: false);
+    }
+  }
+
+  Future<void> _applyOutcome(AuthOutcome outcome) async {
+    if (outcome.requiresVerification) {
+      state = state.copyWith(
+        pendingVerification: PendingVerification(
+          email: outcome.email ?? '',
+          name: outcome.name ?? '',
+        ),
+      );
+      return;
+    }
+
+    final session = outcome.session!;
+    await ref.read(secureStorageProvider).saveSession(session);
+    _applySession(session);
+  }
+
+  Future<void> verifyCode(String code) async {
+    final pending = state.pendingVerification;
+    if (pending == null) return;
+
+    state = state.copyWith(isSubmitting: true);
+    try {
+      final session = await ref.read(authRepositoryProvider).verifyEmailCode(
+            VerifyEmailCodeRequest(email: pending.email, code: code),
+          );
       await ref.read(secureStorageProvider).saveSession(session);
+      state = state.copyWith(clearPendingVerification: true);
       _applySession(session);
     } finally {
       state = state.copyWith(isSubmitting: false);
     }
+  }
+
+  Future<void> resendCode() async {
+    final pending = state.pendingVerification;
+    if (pending == null) return;
+
+    state = state.copyWith(isSubmitting: true);
+    try {
+      await ref
+          .read(authRepositoryProvider)
+          .resendVerificationCode(ResendVerificationCodeRequest(email: pending.email));
+    } finally {
+      state = state.copyWith(isSubmitting: false);
+    }
+  }
+
+  void cancelVerification() {
+    state = state.copyWith(clearPendingVerification: true);
   }
 
   Future<void> logout() async {
