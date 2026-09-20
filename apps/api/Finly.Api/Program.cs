@@ -80,6 +80,32 @@ builder.Services.AddRateLimiter(options =>
                 QueueProcessingOrder = QueueProcessingOrder.OldestFirst
             }));
 
+    // Verificação de código: protege contra tentativa de adivinhar o código de
+    // 6 dígitos por força bruta. O EmailVerificationService já trava depois de
+    // 5 tentativas por código, isso aqui é a segunda camada, por IP.
+    options.AddPolicy("auth-verify", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(15),
+                QueueLimit = 0,
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+            }));
+
+    // Reenvio de código: mesma lógica do registro (evita spam de e-mail).
+    options.AddPolicy("auth-resend", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(60),
+                QueueLimit = 0,
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+            }));
+
     options.OnRejected = async (context, cancellationToken) =>
     {
         context.HttpContext.Response.StatusCode = (int)HttpStatusCode.TooManyRequests;

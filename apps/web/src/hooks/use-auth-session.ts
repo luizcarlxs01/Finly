@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { login as loginWithApi, register as registerWithApi } from "@/lib/api/auth";
+import {
+  login as loginWithApi,
+  register as registerWithApi,
+  resendVerificationCode as resendVerificationCodeWithApi,
+  verifyEmailCode as verifyEmailCodeWithApi,
+} from "@/lib/api/auth";
 import {
   AUTH_SESSION_EVENT,
   clearAuthSession,
@@ -10,13 +15,22 @@ import {
 } from "@/lib/auth-storage";
 import type { AuthResponse, LoginRequest, RegisterRequest } from "@/types/auth";
 
+type PendingVerification = {
+  email: string;
+  name: string;
+};
+
 type UseAuthSessionReturn = {
   session: AuthResponse | null;
   authenticated: boolean;
   isLoaded: boolean;
   isSubmitting: boolean;
+  pendingVerification: PendingVerification | null;
   login: (payload: LoginRequest) => Promise<void>;
   register: (payload: RegisterRequest) => Promise<void>;
+  verifyCode: (code: string) => Promise<void>;
+  resendCode: () => Promise<void>;
+  cancelVerification: () => void;
   logout: () => void;
 };
 
@@ -36,6 +50,8 @@ export function useAuthSession(): UseAuthSessionReturn {
   const [session, setSession] = useState<AuthResponse | null>(getInitialSession);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pendingVerification, setPendingVerification] =
+    useState<PendingVerification | null>(null);
 
   useEffect(() => {
     function syncSession() {
@@ -90,9 +106,15 @@ export function useAuthSession(): UseAuthSessionReturn {
     setIsSubmitting(true);
 
     try {
-      const nextSession = await loginWithApi(payload);
-      saveAuthSession(nextSession);
-      setSession(nextSession);
+      const outcome = await loginWithApi(payload);
+
+      if (outcome.requiresVerification) {
+        setPendingVerification({ email: outcome.email, name: outcome.name });
+        return;
+      }
+
+      saveAuthSession(outcome);
+      setSession(outcome);
     } finally {
       setIsSubmitting(false);
     }
@@ -102,12 +124,56 @@ export function useAuthSession(): UseAuthSessionReturn {
     setIsSubmitting(true);
 
     try {
-      const nextSession = await registerWithApi(payload);
-      saveAuthSession(nextSession);
-      setSession(nextSession);
+      const outcome = await registerWithApi(payload);
+
+      if (outcome.requiresVerification) {
+        setPendingVerification({ email: outcome.email, name: outcome.name });
+        return;
+      }
+
+      saveAuthSession(outcome);
+      setSession(outcome);
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  async function verifyCode(code: string) {
+    if (!pendingVerification) {
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const nextSession = await verifyEmailCodeWithApi({
+        email: pendingVerification.email,
+        code,
+      });
+      saveAuthSession(nextSession);
+      setSession(nextSession);
+      setPendingVerification(null);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function resendCode() {
+    if (!pendingVerification) {
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      await resendVerificationCodeWithApi({ email: pendingVerification.email });
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  function cancelVerification() {
+    setPendingVerification(null);
   }
 
   function logout() {
@@ -120,8 +186,12 @@ export function useAuthSession(): UseAuthSessionReturn {
     authenticated: isSessionValid(session),
     isLoaded,
     isSubmitting,
+    pendingVerification,
     login,
     register,
+    verifyCode,
+    resendCode,
+    cancelVerification,
     logout,
   };
 }

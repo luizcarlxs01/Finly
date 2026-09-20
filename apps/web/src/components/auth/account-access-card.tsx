@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { EmailVerificationForm } from "@/components/auth/email-verification-form";
 import { LoginForm } from "@/components/auth/login-form";
 import { RegisterForm } from "@/components/auth/register-form";
 import { Button } from "@/components/ui/button";
@@ -38,8 +39,12 @@ export function AccountAccessCard() {
     authenticated,
     isLoaded,
     isSubmitting,
+    pendingVerification,
     login,
     register,
+    verifyCode,
+    resendCode,
+    cancelVerification,
     logout,
     session,
   } = useAuthSession();
@@ -82,6 +87,18 @@ export function AccountAccessCard() {
           </Button>
         </CardFooter>
       </Card>
+    );
+  }
+
+  if (pendingVerification) {
+    return (
+      <EmailVerificationForm
+        email={pendingVerification.email}
+        isSubmitting={isSubmitting}
+        onVerify={verifyCode}
+        onResend={resendCode}
+        onCancel={cancelVerification}
+      />
     );
   }
 

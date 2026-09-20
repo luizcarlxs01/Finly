@@ -11,17 +11,20 @@ public class AuthService : IAuthService
     private readonly IPasswordHasherService _passwordHasherService;
     private readonly ITokenService _tokenService;
     private readonly IEmailDomainValidationService _emailDomainValidationService;
+    private readonly IEmailVerificationService _emailVerificationService;
 
     public AuthService(
         IAppDbContext context,
         IPasswordHasherService passwordHasherService,
         ITokenService tokenService,
-        IEmailDomainValidationService emailDomainValidationService)
+        IEmailDomainValidationService emailDomainValidationService,
+        IEmailVerificationService emailVerificationService)
     {
         _context = context;
         _passwordHasherService = passwordHasherService;
         _tokenService = tokenService;
         _emailDomainValidationService = emailDomainValidationService;
+        _emailVerificationService = emailVerificationService;
     }
 
     public async Task<AuthResponseDto> RegisterAsync(
@@ -76,7 +79,14 @@ public class AuthService : IAuthService
         _context.FinancialProfiles.Add(defaultProfile);
         await _context.SaveChangesAsync(cancellationToken);
 
-        return _tokenService.GenerateToken(user);
+        await _emailVerificationService.GenerateAndSendCodeAsync(user, cancellationToken);
+
+        return new AuthResponseDto
+        {
+            RequiresVerification = true,
+            Name = user.Name,
+            Email = user.Email
+        };
     }
 
     public async Task<AuthResponseDto> LoginAsync(
@@ -110,6 +120,63 @@ public class AuthService : IAuthService
             await _context.SaveChangesAsync(cancellationToken);
         }
 
+        if (!user.EmailVerified)
+        {
+            await _emailVerificationService.GenerateAndSendCodeAsync(user, cancellationToken);
+
+            return new AuthResponseDto
+            {
+                RequiresVerification = true,
+                Name = user.Name,
+                Email = user.Email
+            };
+        }
+
         return _tokenService.GenerateToken(user);
+    }
+
+    public async Task<AuthResponseDto> VerifyEmailCodeAsync(
+        VerifyEmailCodeRequestDto request,
+        CancellationToken cancellationToken = default)
+    {
+        var email = request.Email.Trim().ToLowerInvariant();
+        var code = request.Code.Trim();
+
+        var user = await _context.Users
+            .FirstOrDefaultAsync(x => x.Email == email, cancellationToken);
+
+        if (user is null)
+            throw new InvalidOperationException("Código inválido ou expirado.");
+
+        var codeIsValid = await _emailVerificationService.VerifyCodeAsync(user, code, cancellationToken);
+
+        if (!codeIsValid)
+            throw new InvalidOperationException("Código inválido ou expirado.");
+
+        if (!user.EmailVerified)
+        {
+            user.EmailVerified = true;
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+
+        return _tokenService.GenerateToken(user);
+    }
+
+    public async Task ResendVerificationCodeAsync(
+        ResendVerificationCodeRequestDto request,
+        CancellationToken cancellationToken = default)
+    {
+        var email = request.Email.Trim().ToLowerInvariant();
+
+        var user = await _context.Users
+            .FirstOrDefaultAsync(x => x.Email == email, cancellationToken);
+
+        if (user is null)
+            throw new InvalidOperationException("Não foi possível reenviar o código.");
+
+        if (user.EmailVerified)
+            throw new InvalidOperationException("Este e-mail já foi verificado.");
+
+        await _emailVerificationService.GenerateAndSendCodeAsync(user, cancellationToken);
     }
 }

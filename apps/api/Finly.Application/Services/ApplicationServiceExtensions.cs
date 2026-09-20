@@ -8,6 +8,7 @@ public static class ApplicationServiceExtensions
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IEmailVerificationService, EmailVerificationService>();
         services.AddScoped<IProfileService, ProfileService>();
         services.AddScoped<ITransactionService, TransactionService>();
         services.AddScoped<IOccurrenceGenerationService, OccurrenceGenerationService>();

@@ -11,6 +11,7 @@ public interface IAppDbContext
     DbSet<Occurrence> Occurrences { get; }
     DbSet<Goal> Goals { get; }
     DbSet<FinancialRule> FinancialRules { get; }
+    DbSet<EmailVerificationCode> EmailVerificationCodes { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

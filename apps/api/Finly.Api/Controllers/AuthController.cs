@@ -58,4 +58,46 @@ public class AuthController : ControllerBase
             });
         }
     }
+
+    [AllowAnonymous]
+    [EnableRateLimiting("auth-verify")]
+    [HttpPost("verify-email")]
+    public async Task<IActionResult> VerifyEmail(
+        [FromBody] VerifyEmailCodeRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var response = await _authService.VerifyEmailCodeAsync(request, cancellationToken);
+            return Ok(response);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new
+            {
+                message = ex.Message
+            });
+        }
+    }
+
+    [AllowAnonymous]
+    [EnableRateLimiting("auth-resend")]
+    [HttpPost("resend-code")]
+    public async Task<IActionResult> ResendCode(
+        [FromBody] ResendVerificationCodeRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _authService.ResendVerificationCodeAsync(request, cancellationToken);
+            return Ok(new { message = "Código reenviado." });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new
+            {
+                message = ex.Message
+            });
+        }
+    }
 }

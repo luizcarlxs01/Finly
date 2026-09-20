@@ -18,6 +18,7 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<Occurrence> Occurrences => Set<Occurrence>();
     public DbSet<Goal> Goals => Set<Goal>();
     public DbSet<FinancialRule> FinancialRules => Set<FinancialRule>();
+    public DbSet<EmailVerificationCode> EmailVerificationCodes => Set<EmailVerificationCode>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -40,6 +41,9 @@ public class AppDbContext : DbContext, IAppDbContext
             entity.Property(x => x.PasswordHash)
                 .IsRequired()
                 .HasMaxLength(500);
+
+            entity.Property(x => x.EmailVerified)
+                .IsRequired();
 
             entity.HasIndex(x => x.Email)
                 .IsUnique();
@@ -94,6 +98,7 @@ public class AppDbContext : DbContext, IAppDbContext
         });
 
         modelBuilder.ApplyConfiguration(new OccurrenceConfiguration());
+        modelBuilder.ApplyConfiguration(new EmailVerificationCodeConfiguration());
 
         modelBuilder.Entity<Goal>(entity =>
         {

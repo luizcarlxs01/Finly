@@ -2,6 +2,7 @@ using System.Text;
 using DnsClient;
 using Finly.Application.Interfaces;
 using Finly.Infrastructure.Data;
+using Finly.Infrastructure.Email;
 using Finly.Infrastructure.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -26,6 +27,19 @@ public static class InfrastructureServiceExtensions
         services.AddScoped<ITokenService, TokenService>();
         services.AddSingleton<ILookupClient>(new LookupClient());
         services.AddScoped<IEmailDomainValidationService, EmailDomainValidationService>();
+
+        var resendSettingsSection = configuration.GetSection(ResendSettings.SectionName);
+        services.Configure<ResendSettings>(resendSettingsSection);
+
+        var resendSettings = resendSettingsSection.Get<ResendSettings>()
+                            ?? throw new InvalidOperationException("As configurações do Resend não foram encontradas.");
+
+        if (!environment.IsDevelopment() && string.IsNullOrWhiteSpace(resendSettings.ApiKey))
+        {
+            throw new InvalidOperationException("A chave da API do Resend não foi configurada.");
+        }
+
+        services.AddHttpClient<IEmailSender, ResendEmailSender>();
 
         var jwtSettingsSection = configuration.GetSection(JwtSettings.SectionName);
         services.Configure<JwtSettings>(jwtSettingsSection);
