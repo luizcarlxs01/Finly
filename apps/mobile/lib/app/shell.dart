@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-/// Casca das 4 abas — adaptação de plataforma do AppFloatingHeader do web
+/// Casca das 5 abas — adaptação de plataforma do AppFloatingHeader do web
 /// (PASSO 8 do briefing: bottom nav é o padrão mobile idiomático). O ícone de
 /// conta fica no `AppBar` de cada tela, acessível de qualquer lugar.
 class AppShell extends StatelessWidget {
@@ -39,6 +39,11 @@ class AppShell extends StatelessWidget {
             icon: Icon(Icons.lightbulb_outline),
             selectedIcon: Icon(Icons.lightbulb_rounded),
             label: 'Insights',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.forum_outlined),
+            selectedIcon: Icon(Icons.forum_rounded),
+            label: 'Fórum',
           ),
         ],
       ),

@@ -67,6 +67,32 @@ enum OccurrenceStatus {
   bool get isPaid => this == OccurrenceStatus.paid;
 }
 
+/// Status de um tópico do fórum — espelha Finly.Domain.Enums.TopicStatus /
+/// apps/web/src/types/forum.ts.
+enum TopicStatus {
+  published,
+  pendingReview,
+  hidden;
+
+  String get apiValue => switch (this) {
+        TopicStatus.published => 'Published',
+        TopicStatus.pendingReview => 'PendingReview',
+        TopicStatus.hidden => 'Hidden',
+      };
+
+  static TopicStatus fromApi(String value) => switch (value) {
+        'PendingReview' => TopicStatus.pendingReview,
+        'Hidden' => TopicStatus.hidden,
+        _ => TopicStatus.published,
+      };
+
+  String get label => switch (this) {
+        TopicStatus.published => 'Publicado',
+        TopicStatus.pendingReview => 'Em análise',
+        TopicStatus.hidden => 'Oculto',
+      };
+}
+
 /// Modo de recorrência do formulário/edição — mesmos 3 valores do web.
 enum RecurrenceMode {
   indefinite,

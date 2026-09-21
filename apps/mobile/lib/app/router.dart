@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../features/auth/ui/account_screen.dart';
 import '../features/calendar/ui/calendar_screen.dart';
+import '../features/forum/ui/forum_screen.dart';
 import '../features/goals/ui/goals_screen.dart';
 import '../features/home/ui/home_screen.dart';
 import '../features/insights/ui/insights_screen.dart';
@@ -63,6 +64,9 @@ final routerProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(routes: [
             GoRoute(
                 path: '/insights', builder: (_, __) => const InsightsScreen()),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(path: '/forum', builder: (_, __) => const ForumScreen()),
           ]),
         ],
       ),
