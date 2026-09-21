@@ -75,6 +75,27 @@ class _AccountAccessPanelState extends ConsumerState<AccountAccessPanel> {
     }
   }
 
+  Future<void> _forgotPassword() async {
+    final email = _email.text.trim();
+    if (email.isEmpty) {
+      showErrorSnack(context, 'Informe seu e-mail para receber o link.');
+      return;
+    }
+
+    final controller = ref.read(authControllerProvider.notifier);
+    try {
+      await controller.forgotPassword(email);
+      if (!mounted) return;
+      showInfoSnack(
+        context,
+        'Se $email tiver uma conta no Finly, enviamos um link para redefinir a senha.',
+      );
+    } catch (error) {
+      if (!mounted) return;
+      showErrorSnack(context, error);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
@@ -179,6 +200,25 @@ class _AccountAccessPanelState extends ConsumerState<AccountAccessPanel> {
                 Padding(
                   padding: const EdgeInsets.only(top: 4),
                   child: PasswordStrengthBar(password: _passwordValue),
+                ),
+              if (!isRegister)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton(
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        minimumSize: const Size(0, 0),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      onPressed: isSubmitting ? null : _forgotPassword,
+                      child: const Text(
+                        'Esqueci minha senha',
+                        style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ),
                 ),
               if (_error != null) ...[
                 const SizedBox(height: 14),

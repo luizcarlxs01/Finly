@@ -42,6 +42,16 @@ class AuthRepository {
       body: request.toJson(),
     );
   }
+
+  /// POST /api/Auth/forgot-password — sempre 200, exista ou não o e-mail
+  /// (anti-enumeração, seção 28 do CLAUDE.md). O link de redefinição sempre
+  /// abre no navegador; não há tela de redefinição no app.
+  Future<void> forgotPassword(ForgotPasswordRequest request) async {
+    await _client.post<Map<String, dynamic>>(
+      '/api/Auth/forgot-password',
+      body: request.toJson(),
+    );
+  }
 }
 
 final authRepositoryProvider = Provider<AuthRepository>(

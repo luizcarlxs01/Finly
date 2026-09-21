@@ -152,6 +152,17 @@ class AuthController extends Notifier<AuthState> {
     state = state.copyWith(clearPendingVerification: true);
   }
 
+  Future<void> forgotPassword(String email) async {
+    state = state.copyWith(isSubmitting: true);
+    try {
+      await ref
+          .read(authRepositoryProvider)
+          .forgotPassword(ForgotPasswordRequest(email: email));
+    } finally {
+      state = state.copyWith(isSubmitting: false);
+    }
+  }
+
   Future<void> logout() async {
     await ref.read(secureStorageProvider).clearSession();
     _applySession(null);
