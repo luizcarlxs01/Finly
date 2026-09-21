@@ -12,6 +12,7 @@ describe("DashboardShell", () => {
         transactionsView={<div>Lançamentos View</div>}
         goalsView={<div>Metas View</div>}
         insightsView={<div>Insights View</div>}
+        forumView={<div>Fórum View</div>}
       />,
     );
 
@@ -19,6 +20,7 @@ describe("DashboardShell", () => {
     expect(screen.queryByText("Lançamentos View")).not.toBeInTheDocument();
     expect(screen.queryByText("Metas View")).not.toBeInTheDocument();
     expect(screen.queryByText("Insights View")).not.toBeInTheDocument();
+    expect(screen.queryByText("Fórum View")).not.toBeInTheDocument();
   });
 
   it('deve renderizar lançamentos quando activeView for "transactions"', () => {
@@ -29,6 +31,7 @@ describe("DashboardShell", () => {
         transactionsView={<div>Lançamentos View</div>}
         goalsView={<div>Metas View</div>}
         insightsView={<div>Insights View</div>}
+        forumView={<div>Fórum View</div>}
       />,
     );
 
@@ -36,6 +39,7 @@ describe("DashboardShell", () => {
     expect(screen.queryByText("Home View")).not.toBeInTheDocument();
     expect(screen.queryByText("Metas View")).not.toBeInTheDocument();
     expect(screen.queryByText("Insights View")).not.toBeInTheDocument();
+    expect(screen.queryByText("Fórum View")).not.toBeInTheDocument();
   });
 
   it('deve renderizar metas quando activeView for "goals"', () => {
@@ -46,6 +50,7 @@ describe("DashboardShell", () => {
         transactionsView={<div>Lançamentos View</div>}
         goalsView={<div>Metas View</div>}
         insightsView={<div>Insights View</div>}
+        forumView={<div>Fórum View</div>}
       />,
     );
 
@@ -53,6 +58,7 @@ describe("DashboardShell", () => {
     expect(screen.queryByText("Home View")).not.toBeInTheDocument();
     expect(screen.queryByText("Lançamentos View")).not.toBeInTheDocument();
     expect(screen.queryByText("Insights View")).not.toBeInTheDocument();
+    expect(screen.queryByText("Fórum View")).not.toBeInTheDocument();
   });
 
   it('deve renderizar insights quando activeView for "insights"', () => {
@@ -63,6 +69,7 @@ describe("DashboardShell", () => {
         transactionsView={<div>Lançamentos View</div>}
         goalsView={<div>Metas View</div>}
         insightsView={<div>Insights View</div>}
+        forumView={<div>Fórum View</div>}
       />,
     );
 
@@ -70,5 +77,25 @@ describe("DashboardShell", () => {
     expect(screen.queryByText("Home View")).not.toBeInTheDocument();
     expect(screen.queryByText("Lançamentos View")).not.toBeInTheDocument();
     expect(screen.queryByText("Metas View")).not.toBeInTheDocument();
+    expect(screen.queryByText("Fórum View")).not.toBeInTheDocument();
+  });
+
+  it('deve renderizar o fórum quando activeView for "forum"', () => {
+    render(
+      <DashboardShell
+        activeView="forum"
+        homeView={<div>Home View</div>}
+        transactionsView={<div>Lançamentos View</div>}
+        goalsView={<div>Metas View</div>}
+        insightsView={<div>Insights View</div>}
+        forumView={<div>Fórum View</div>}
+      />,
+    );
+
+    expect(screen.getByText("Fórum View")).toBeInTheDocument();
+    expect(screen.queryByText("Home View")).not.toBeInTheDocument();
+    expect(screen.queryByText("Lançamentos View")).not.toBeInTheDocument();
+    expect(screen.queryByText("Metas View")).not.toBeInTheDocument();
+    expect(screen.queryByText("Insights View")).not.toBeInTheDocument();
   });
 });

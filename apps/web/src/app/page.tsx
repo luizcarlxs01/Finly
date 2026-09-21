@@ -13,6 +13,7 @@ import { DashboardHomeView } from "@/components/dashboard/views/dashboard-home-v
 import { DashboardTransactionsView } from "@/components/dashboard/views/dashboard-transactions-view";
 import { DashboardGoalsView } from "@/components/dashboard/views/dashboard-goals-view";
 import { DashboardInsightsView } from "@/components/dashboard/views/dashboard-insights-view";
+import { DashboardForumView } from "@/components/dashboard/views/dashboard-forum-view";
 import { FinancialRulesManager } from "@/components/dashboard/financial-rules-manager";
 import { useFinanceSource } from "@/contexts/finance-source-context";
 import { useCreateTransaction } from "@/hooks/use-create-transaction";
@@ -743,6 +744,8 @@ export default function HomePage() {
     />
   );
 
+  const forumView = <DashboardForumView />;
+
   const isLandingHome = activeView === "home";
 
   return (
@@ -799,6 +802,7 @@ export default function HomePage() {
             transactionsView={transactionsView}
             goalsView={goalsView}
             insightsView={insightsView}
+            forumView={forumView}
           />
         </div>
       </PageContainer>
