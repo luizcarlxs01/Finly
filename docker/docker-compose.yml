@@ -55,6 +55,7 @@ services:
       JWT__Audience: Finly.Web
       Resend__ApiKey: ${Resend__ApiKey}
       Resend__FromEmail: "${Resend__FromEmail:-Finly <onboarding@resend.dev>}"
+      Admin__Email: ${Admin__Email:-}
       ConnectionStrings__DefaultConnection: "Server=banco,1433;Database=FinlyDb;User ID=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;MultipleActiveResultSets=True;"
     depends_on:
       banco:

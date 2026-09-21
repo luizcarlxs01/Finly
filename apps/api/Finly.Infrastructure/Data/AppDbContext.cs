@@ -19,6 +19,8 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<Goal> Goals => Set<Goal>();
     public DbSet<FinancialRule> FinancialRules => Set<FinancialRule>();
     public DbSet<EmailVerificationCode> EmailVerificationCodes => Set<EmailVerificationCode>();
+    public DbSet<Topic> Topics => Set<Topic>();
+    public DbSet<TopicReply> TopicReplies => Set<TopicReply>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -99,6 +101,8 @@ public class AppDbContext : DbContext, IAppDbContext
 
         modelBuilder.ApplyConfiguration(new OccurrenceConfiguration());
         modelBuilder.ApplyConfiguration(new EmailVerificationCodeConfiguration());
+        modelBuilder.ApplyConfiguration(new TopicConfiguration());
+        modelBuilder.ApplyConfiguration(new TopicReplyConfiguration());
 
         modelBuilder.Entity<Goal>(entity =>
         {

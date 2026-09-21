@@ -12,4 +12,9 @@ public abstract class ApiControllerBase : ControllerBase
             ? userId
             : null;
     }
+
+    protected string? GetAuthenticatedEmail()
+    {
+        return User.FindFirstValue(ClaimTypes.Email);
+    }
 }

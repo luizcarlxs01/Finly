@@ -12,6 +12,8 @@ public interface IAppDbContext
     DbSet<Goal> Goals { get; }
     DbSet<FinancialRule> FinancialRules { get; }
     DbSet<EmailVerificationCode> EmailVerificationCodes { get; }
+    DbSet<Topic> Topics { get; }
+    DbSet<TopicReply> TopicReplies { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

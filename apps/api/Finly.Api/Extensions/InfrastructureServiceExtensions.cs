@@ -41,6 +41,8 @@ public static class InfrastructureServiceExtensions
 
         services.AddHttpClient<IEmailSender, ResendEmailSender>();
 
+        services.Configure<AdminSettings>(configuration.GetSection(AdminSettings.SectionName));
+
         var jwtSettingsSection = configuration.GetSection(JwtSettings.SectionName);
         services.Configure<JwtSettings>(jwtSettingsSection);
 
