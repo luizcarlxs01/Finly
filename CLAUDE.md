@@ -1273,11 +1273,13 @@ foi validado no web e no backend, usando o mesmo contrato de API.
 
 ---
 
-## 27. Fórum público com moderação automática — backend e web
+## 27. Fórum público com moderação automática — backend, web e mobile
 
 > Implementado em 20-21/09/2026, depois do 2FA (seção 26) estar 100% fechado no
-> backend/web, conforme combinado. **Web e backend em produção. Mobile ainda
-> não tem essa aba** — ficou pendente, ver seção "Pendente" abaixo.
+> backend/web, conforme combinado. Backend e web em produção. Mobile
+> implementado e validado no emulador Android contra produção (ver "Validação"
+> abaixo) — ainda não publicado em loja, mesma situação de todo o app mobile
+> (seção 25).
 
 ### O que é
 
@@ -1350,6 +1352,38 @@ sem chamar a API nem mostrar erro). Corrigido remontando o componente via
 sessão muda. Também foi adicionada uma mensagem de erro visível quando campos
 obrigatórios estão vazios (antes falhava calado).
 
+### Mobile (`apps/mobile`)
+
+5ª aba na `NavigationBar` (`Icons.forum_outlined`/`forum_rounded`). Mesma
+estrutura data/state/ui das outras features: `forum_repository.dart`,
+`forum_controller.dart` (`AsyncNotifier<ForumState>`, mesmo papel do
+`use-forum.ts`), `ui/forum_screen.dart` (lista + FAB "Novo tópico"),
+`ui/topic_form_sheet.dart`, `ui/topic_detail_screen.dart` (tela empilhada via
+`Navigator.push` comum, não rota do `go_router` — só é alcançável de dentro da
+própria aba Fórum), `ui/forum_admin_panel.dart`.
+
+Dois bugs reais encontrados e corrigidos na validação no emulador (ambos por
+causa de padrões que não existiam ainda nas outras features do mobile):
+
+1. **`AsyncNotifier.build()` só roda uma vez.** `ForumController.build()`
+   checava admin com `ref.read(authControllerProvider)` — login depois de já
+   ter aberto a aba Fórum não revelava o painel de moderação até reabrir o
+   app. Corrigido com `ref.watch(authControllerProvider.select((s) =>
+   s.session?.token))` logo no início do `build()`, forçando reavaliação a
+   cada login/logout. Vale checar esse padrão em qualquer controller futuro
+   que decida algo a partir da sessão sem ela fazer parte do `FinanceSource`.
+2. **`ApiClient.put<Map<String, dynamic>>` (ou `post<Map<...>>`) contra um
+   endpoint que devolve 204 sem corpo quebra em runtime** — "type 'String' is
+   not a subtype of type 'Map<String, dynamic>' in type cast". O servidor já
+   tinha processado a ação corretamente (confirmado via curl); só o parsing
+   do client crashava depois. `ForumRepository.updateStatus` tipava a resposta
+   como `Map<String, dynamic>`; corrigido para `<void>`, igual o
+   `ApiClient.delete` já fazia.
+
+`AppTextField` (`core/widgets/form_fields.dart`) ganhou `maxLines` (default 1,
+retrocompatível) para o campo de descrição do tópico — nenhum outro campo do
+app precisava de textarea multi-linha até agora.
+
 ### Bug de serialização de enum (backend)
 
 `System.Text.Json` não desserializa string→enum por padrão neste projeto
@@ -1372,12 +1406,27 @@ resposta do admin destacada como "Resposta do Finly", login como admin revela
 o painel de moderação automaticamente. Zero erros de console. `tsc --noEmit`
 limpo, mesmas 4 falhas pré-existentes na suíte (nenhuma nova).
 
+Mobile validado no emulador Android (`Pixel_6a`) contra produção
+(`api.finly.systems`, via `--dart-define=FINLY_API_BASE_URL`): criar tópico
+pela UI publica e aparece na lista com mensagem de sucesso; abrir o detalhe
+mostra corpo e respostas; login como admin revela o painel de moderação
+(depois do fix do item 1 acima); aprovar/ocultar funcionam (depois do fix do
+item 2); responder grava a resposta, dispara e-mail e mostra "Resposta do
+Finly" no detalhe. `flutter analyze` limpo, build debug OK. Tópico de teste
+removido (oculto) de produção ao final da validação.
+
 ### Pendente
 
-- **Mobile não tem a aba Fórum ainda** — únicas duas coisas pendentes deste
-  ciclo: (1) verificar o domínio no Resend (seção 26) e (2) trazer o Fórum pro
-  mobile, espelhando `use-forum.ts` + os 4 componentes de `components/dashboard/forum/`
+- Verificar o domínio no Resend e trocar o remetente (seção 26)
 - Lista de termos ofensivos do `ContentModerationService` é propositalmente
   enxuta — expandir conforme casos reais aparecerem
 - Sem paginação na listagem de tópicos (não é problema em baixo volume, mas
   não escala indefinidamente)
+- A lista pública de tópicos (`topics`, contador de respostas) não é
+  recarregada automaticamente depois de uma resposta do admin — só a fila de
+  moderação (`adminTopics`) é. Mesmo comportamento no web e no mobile (nenhum
+  dos dois chama `refreshTopics()`/`getTopics()` dentro de
+  `replyAsAdmin`), então o contador de respostas na lista pública fica
+  desatualizado até o próximo carregamento. Baixo impacto (só um número
+  desatualizado, não perda de dado), mas se for corrigir, corrigir nos dois
+  lados juntos para não desalinhar o comportamento.
