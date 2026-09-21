@@ -1430,3 +1430,123 @@ removido (oculto) de produção ao final da validação.
   desatualizado até o próximo carregamento. Baixo impacto (só um número
   desatualizado, não perda de dado), mas se for corrigir, corrigir nos dois
   lados juntos para não desalinhar o comportamento.
+
+---
+
+## 28. Esqueci minha senha — backend e web
+
+> Implementado em 21/09/2026, depois do fórum (seção 27). Link seguro enviado
+> por e-mail (não código OTP, ao contrário do 2FA da seção 26) — decisão
+> explícita do usuário. Sem login automático após redefinir: a tela de sucesso
+> só oferece "Ir para o login", nunca autentica sozinha.
+
+### Modelo de dados (apps/api)
+
+- `PasswordResetToken`: `UserId`, `TokenHash` (SHA-256, nunca o token em texto
+  puro — mesmo padrão do `EmailVerificationCode` da seção 26), `ExpiresAt` (60
+  min), `ConsumedAt`. Migration `AddPasswordReset`.
+- Token bruto: `RandomNumberGenerator.GetBytes(32)` em hex — só existe em texto
+  puro no link do e-mail, nunca persistido.
+
+### Fluxo
+
+- `POST /api/Auth/forgot-password` (`[AllowAnonymous]`, rate limit dedicado
+  `auth-forgot-password`, 5/60min por IP): sempre responde `200` com a mesma
+  mensagem, exista ou não o e-mail — **anti-enumeração de usuários**, mesmo
+  padrão de "nunca revelar quem tem conta" já usado no domínio-MX do cadastro.
+  Se o e-mail existir: invalida qualquer token pendente do mesmo usuário
+  (`ConsumedAt = UtcNow` em lote) antes de gerar um novo, gera o token, salva o
+  hash e dispara e-mail via `IEmailSender` (Resend, mesma integração da seção
+  26) com o link `{FrontendBaseUrl}/redefinir-senha?token={token}`.
+- `POST /api/Auth/reset-password` (`[AllowAnonymous]`, rate limit
+  `auth-forgot-password` compartilhado): valida hash + `ConsumedAt is null` +
+  `ExpiresAt` no futuro: se falhar, `400` com "Link inválido ou expirado.
+  Solicite um novo." Se ok, atualiza `PasswordHash` do usuário, marca o token
+  como consumido. **Não emite JWT** — front decide o que fazer com a resposta
+  de sucesso.
+
+### `IFrontendUrlProvider` — por que essa abstração existe
+
+`PasswordResetService` fica em `Finly.Application`, que **não pode** depender
+de `Finly.Infrastructure` (regra de camadas do projeto, seção 7). Como o link
+do e-mail precisa da URL base do front (que varia por ambiente — ver abaixo),
+foi criada a interface `IFrontendUrlProvider` em `Finly.Application/Interfaces`
+e a implementação `FrontendUrlProvider` (lê `IOptions<FrontendSettings>`) em
+`Finly.Infrastructure/Security`, registrada via DI em
+`InfrastructureServiceExtensions`. Mesmo padrão já usado para `IEmailSender`/
+`ResendEmailSender` na seção 26 — não referenciar `FrontendSettings` diretamente
+de dentro do Application.
+
+`Frontend:BaseUrl` por ambiente (`appsettings.json` / `appsettings.Development.json`,
+mesmo padrão de `AllowedHosts` da seção 14):
+- Production → `https://app.finly.systems`
+- Development → `http://localhost:3000`
+
+⚠️ Isso significa que um e-mail de redefinição disparado pelo backend rodando
+localmente (Docker em modo Development) **sempre** aponta pro `localhost:3000`
+do computador que rodou o `docker compose up` — mesmo que o e-mail seja
+recebido em outro dispositivo. Não é bug: é o comportamento correto para testar
+localmente sem misturar com produção. Só funciona se o `npm run dev` do
+frontend estiver rodando na mesma máquina de quem abrir o link.
+
+### Arquivos-chave (apps/api)
+
+- `Finly.Domain/Entities/PasswordResetToken.cs`
+- `Finly.Infrastructure/Data/Configurations/PasswordResetTokenConfiguration.cs`
+  — índice único em `TokenHash`, índice em `(UserId, ConsumedAt)`, cascade
+  delete no `User`
+- `Finly.Application/Interfaces/IFrontendUrlProvider.cs`,
+  `Finly.Infrastructure/Security/FrontendUrlProvider.cs` + `FrontendSettings.cs`
+- `Finly.Application/Interfaces/IPasswordResetService.cs`,
+  `Finly.Application/Services/PasswordResetService.cs`
+- `Finly.Application/DTOs/Auth/ForgotPasswordRequestDto.cs`,
+  `ResetPasswordRequestDto.cs`
+- `Finly.Api/Controllers/AuthController.cs` — dois novos endpoints
+- `Finly.Api/Program.cs` — policy `auth-forgot-password` (5/60min por IP)
+- Migration: `AddPasswordReset`
+
+### Web (`apps/web`)
+
+- `hooks/use-auth-session.ts` — `forgotPassword(email)`, sem alterar o estado
+  de sessão (a API nunca devolve token nesse fluxo)
+- `components/auth/forgot-password-form.tsx` (novo) — e-mail → estado local
+  `wasSent` mostra "Verifique seu e-mail... Se {email} tiver uma conta..."
+  (mesma linguagem anti-enumeração do backend refletida na UI)
+- `components/auth/login-form.tsx` — prop opcional `onForgotPassword`, mostra
+  o link "Esqueci minha senha" só quando o pai passa o handler (não aparece nos
+  outros usos do `LoginForm`, se algum dia surgir um)
+- `components/auth/account-access-card.tsx` — novo estado `isForgotPasswordOpen`,
+  alterna com `ForgotPasswordForm` do mesmo jeito que já fazia com
+  `pendingVerification` (2FA) e `activeIntent` (login/registro) — sem
+  componente ou tela nova fora do card existente
+- `app/redefinir-senha/page.tsx` (novo, rota standalone fora do `AppFloatingHeader`,
+  já que é acessada direto por link de e-mail, sem sessão nem navegação):
+  lê `?token=` via `useSearchParams()` — **obrigatório envolver em `<Suspense>`**,
+  senão o build estático do Next.js falha. Três estados: sem token → "Link
+  inválido"; formulário → nova senha + confirmação (reaproveita
+  `PasswordStrengthBar`, valida client-side comprimento ≥ 8 e igualdade antes
+  de chamar a API); sucesso → "Senha redefinida!" com botão "Ir para o login"
+  linkando pra `/` — **sem login automático**, decisão explícita do usuário.
+
+### Validação
+
+Backend: `dotnet build` limpo. Testado via curl local (Docker) — e-mail
+existente e inexistente devolvem a mesma resposta `200`. Testado ponta a ponta
+no browser (local, `luiz.barbosaf288@gmail.com` real): "Esqueci minha senha" →
+`forgot-password` 200 → e-mail chegou via Resend (sandbox, caiu no spam, mesmo
+padrão documentado na seção 26) → link abriu `/redefinir-senha?token=...` →
+nova senha → `reset-password` 200 → tela "Senha redefinida!" sem sessão criada
+→ login com a senha nova → `200`, sessão autenticada normalmente. `npx tsc
+--noEmit` limpo, `npm run build` gerou `/redefinir-senha` como rota estática
+sem erro de `Suspense`, `npx vitest run` sem regressão (mesmas 4 falhas
+pré-existentes).
+
+### Pendente
+
+- Mobile (`apps/mobile`) ainda não tem "Esqueci minha senha" — próximo passo é
+  só um botão em `account_access_panel.dart` chamando
+  `AuthRepository.forgotPassword(email)` com um snackbar de confirmação; **não**
+  criar tela de redefinição no app, já que o link do e-mail sempre abre no
+  navegador (mesmo padrão de qualquer link de e-mail em app mobile)
+- Verificar o domínio no Resend e trocar o remetente (pendência já registrada
+  na seção 26, vale para todo e-mail transacional, incluindo este)
