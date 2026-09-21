@@ -1270,5 +1270,114 @@ foi validado no web e no backend, usando o mesmo contrato de API.
 
 - Verificar o domínio no Resend e trocar o remetente (ver seção acima)
 - Validar o fluxo de verificação no emulador Android
-- Fórum de reclamações com resposta do admin por e-mail (próxima etapa,
-  combinada para só começar depois deste 2FA estar 100% fechado)
+
+---
+
+## 27. Fórum público com moderação automática — backend e web
+
+> Implementado em 20-21/09/2026, depois do 2FA (seção 26) estar 100% fechado no
+> backend/web, conforme combinado. **Web e backend em produção. Mobile ainda
+> não tem essa aba** — ficou pendente, ver seção "Pendente" abaixo.
+
+### O que é
+
+Qualquer pessoa (com ou sem conta) cria um tópico com título, descrição, nome e
+e-mail. Um filtro automático decide se publica na hora ou entra numa fila de
+aprovação manual. O admin (você) vê a fila numa seção que só aparece pra você,
+aprova/oculta e responde — a resposta fica pública no tópico **e** dispara
+e-mail pro autor original.
+
+### Por que filtro de regras, não IA
+
+Cogitou-se usar a API da Claude/Anthropic pra analisar o conteúdo (entende
+contexto de verdade, custo ínfimo em Haiku), mas foi descartado a pedido do
+usuário em favor de um filtro sem custo e sem conta nova — mais raso (não
+entende ironia/contexto), mas resolve o caso óbvio de ofensa/spam sem
+dependência externa.
+
+### Modelo de dados (apps/api)
+
+- `Topic`: Title, Body, AuthorName, AuthorEmail, UserId (nullable — preenchido
+  se logado), Status (`Published` / `PendingReview` / `Hidden`),
+  ModerationReason (por que foi sinalizado, se foi).
+- `TopicReply`: TopicId, Body, IsFromAdmin.
+- Migration `AddForum`.
+
+### Moderação automática — `ContentModerationService`
+
+Sem API externa: lista de termos ofensivos em pt-BR (whole-word match) + lista
+de frases de spam/golpe + heurísticas (mais de 2 links, texto majoritariamente
+em caixa alta). Sinalizado → `PendingReview` (fila do admin, com o motivo).
+Limpo → `Published` na hora. Ver `Finly.Application/Services/ContentModerationService.cs`
+— lista pode/deve crescer com o tempo, é propositalmente enxuta na v1.
+
+### Quem é admin
+
+Sem tabela de papéis nova: um único e-mail em config (`Admin:Email`, env
+`Admin__Email`, mesmo padrão do `Resend:ApiKey`), comparado contra o e-mail do
+JWT (`ClaimTypes.Email` — **atenção**: o claim curto `"email"` que o
+`TokenService` grava é remapeado pelo ASP.NET Core para
+`ClaimTypes.Email`/URI longa ao validar o token, então ler via
+`User.FindFirstValue("email")` retorna `null`; use sempre `ClaimTypes.Email`,
+igual ao `GetAuthenticatedEmail()` novo em `ApiControllerBase`).
+
+### Endpoints (`ForumController`)
+
+Públicos: `POST /api/forum/topics` (rate limit `forum-post`, 5/60min por IP —
+mesma lógica do `auth-register`), `GET /api/forum/topics` (só `Published`),
+`GET /api/forum/topics/{id}` (404 se não publicado, pra visitante anônimo).
+
+Admin (`[Authorize]` + checagem de `Admin:Email`, `Forbid()` se não bater):
+`GET /api/forum/admin/topics` (com filtro `?status=`), `PUT
+/api/forum/admin/topics/{id}/status`, `POST /api/forum/admin/topics/{id}/reply`.
+
+### Web (`apps/web`)
+
+5ª aba no `AppFloatingHeader` ("Fórum", ícone `MessagesSquare`, grid do nav
+mobile virou `grid-cols-5`). `hooks/use-forum.ts` concentra tudo (lista,
+detalhe, criar, e — se a sessão atual bater como admin no backend — fila de
+moderação). O painel de moderação (`forum-admin-panel.tsx`) só aparece se a
+chamada a `/api/forum/admin/topics` for bem-sucedida (não existe uma flag
+"isAdmin" separada — a própria resposta 200 vs 403 decide, mesma ideia da
+seção de Regras Financeiras que só aparece condicionalmente).
+
+**Bug real encontrado e corrigido na validação manual**: `TopicForm` inicializa
+nome/e-mail com `useState(defaultName)` — como `useState` só usa o valor
+inicial na primeira renderização, logar *depois* de abrir a aba Fórum não
+atualizava os campos (ficavam vazios, e o formulário falhava em silêncio,
+sem chamar a API nem mostrar erro). Corrigido remontando o componente via
+`key={sessionEmail || "anon"}` em `dashboard-forum-view.tsx` sempre que a
+sessão muda. Também foi adicionada uma mensagem de erro visível quando campos
+obrigatórios estão vazios (antes falhava calado).
+
+### Bug de serialização de enum (backend)
+
+`System.Text.Json` não desserializa string→enum por padrão neste projeto
+(nenhum `JsonStringEnumConverter` global — e não dá pra adicionar um global
+sem arriscar quebrar todo enum já em uso, tipo `TransactionKind`). Por isso
+`UpdateTopicStatusRequestDto.Status` é `string`, convertido manualmente com
+`Enum.TryParse` no controller — não copiar o padrão de tipar o campo como
+enum direto num DTO de request.
+
+### Validação
+
+Testado localmente via Docker (curl + browser) e depois em produção (curl):
+tópico limpo publica na hora; tópico com termo ofensivo ou spam entra em
+`PendingReview` com o motivo certo; lista pública nunca mostra pendente/oculto;
+`GET` de tópico pendente por visitante anônimo dá 404; admin (mesmo e-mail do
+`Admin__Email`) vê a fila completa, filtra por status, aprova/oculta, responde
+e o e-mail chega pro autor; sem token dá 401. No browser: criar tópico pela UI
+publica e atualiza a lista com mensagem de sucesso, abrir um tópico mostra a
+resposta do admin destacada como "Resposta do Finly", login como admin revela
+o painel de moderação automaticamente. Zero erros de console. `tsc --noEmit`
+limpo, mesmas 4 falhas pré-existentes na suíte (nenhuma nova).
+
+### Pendente
+
+- **Mobile não tem a aba Fórum ainda** — únicas duas coisas pendentes deste
+  ciclo: (1) verificar o domínio no Resend (seção 26) e (2) trazer o Fórum pro
+  mobile, espelhando `use-forum.ts` + os 4 componentes de `components/dashboard/forum/`
+- Lista de termos ofensivos do `ContentModerationService` é propositalmente
+  enxuta — expandir conforme casos reais aparecerem
+- Sem paginação na listagem de tópicos (não é problema em baixo volume, mas
+  não escala indefinidamente)
