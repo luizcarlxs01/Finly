@@ -21,6 +21,7 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<EmailVerificationCode> EmailVerificationCodes => Set<EmailVerificationCode>();
     public DbSet<Topic> Topics => Set<Topic>();
     public DbSet<TopicReply> TopicReplies => Set<TopicReply>();
+    public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -103,6 +104,7 @@ public class AppDbContext : DbContext, IAppDbContext
         modelBuilder.ApplyConfiguration(new EmailVerificationCodeConfiguration());
         modelBuilder.ApplyConfiguration(new TopicConfiguration());
         modelBuilder.ApplyConfiguration(new TopicReplyConfiguration());
+        modelBuilder.ApplyConfiguration(new PasswordResetTokenConfiguration());
 
         modelBuilder.Entity<Goal>(entity =>
         {

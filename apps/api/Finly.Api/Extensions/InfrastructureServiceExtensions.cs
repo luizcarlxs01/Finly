@@ -43,6 +43,9 @@ public static class InfrastructureServiceExtensions
 
         services.Configure<AdminSettings>(configuration.GetSection(AdminSettings.SectionName));
 
+        services.Configure<FrontendSettings>(configuration.GetSection(FrontendSettings.SectionName));
+        services.AddSingleton<IFrontendUrlProvider, FrontendUrlProvider>();
+
         var jwtSettingsSection = configuration.GetSection(JwtSettings.SectionName);
         services.Configure<JwtSettings>(jwtSettingsSection);
 

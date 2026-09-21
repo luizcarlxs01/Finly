@@ -14,6 +14,7 @@ public interface IAppDbContext
     DbSet<EmailVerificationCode> EmailVerificationCodes { get; }
     DbSet<Topic> Topics { get; }
     DbSet<TopicReply> TopicReplies { get; }
+    DbSet<PasswordResetToken> PasswordResetTokens { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

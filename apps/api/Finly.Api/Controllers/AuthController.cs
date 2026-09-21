@@ -11,10 +11,12 @@ namespace Finly.Api.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
+    private readonly IPasswordResetService _passwordResetService;
 
-    public AuthController(IAuthService authService)
+    public AuthController(IAuthService authService, IPasswordResetService passwordResetService)
     {
         _authService = authService;
+        _passwordResetService = passwordResetService;
     }
 
     [AllowAnonymous]
@@ -91,6 +93,40 @@ public class AuthController : ControllerBase
         {
             await _authService.ResendVerificationCodeAsync(request, cancellationToken);
             return Ok(new { message = "Código reenviado." });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new
+            {
+                message = ex.Message
+            });
+        }
+    }
+
+    [AllowAnonymous]
+    [EnableRateLimiting("auth-forgot-password")]
+    [HttpPost("forgot-password")]
+    public async Task<IActionResult> ForgotPassword(
+        [FromBody] ForgotPasswordRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        // Sempre 200, exista ou não o e-mail — não é bug, é pra não revelar
+        // quem tem conta no Finly (ver PasswordResetService.RequestResetAsync).
+        await _passwordResetService.RequestResetAsync(request.Email, cancellationToken);
+        return Ok(new { message = "Se esse e-mail existir, enviamos um link de redefinição." });
+    }
+
+    [AllowAnonymous]
+    [EnableRateLimiting("auth-forgot-password")]
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword(
+        [FromBody] ResetPasswordRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _passwordResetService.ResetPasswordAsync(request.Token, request.NewPassword, cancellationToken);
+            return Ok(new { message = "Senha redefinida com sucesso." });
         }
         catch (InvalidOperationException ex)
         {

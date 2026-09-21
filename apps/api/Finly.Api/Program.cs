@@ -106,6 +106,20 @@ builder.Services.AddRateLimiter(options =>
                 QueueProcessingOrder = QueueProcessingOrder.OldestFirst
             }));
 
+    // Esqueci minha senha / redefinir — mesma janela do reenvio de código
+    // (evita spam de e-mail e tentativas de adivinhar token por força bruta,
+    // ainda que o token de 32 bytes já seja inviável de adivinhar sozinho).
+    options.AddPolicy("auth-forgot-password", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(60),
+                QueueLimit = 0,
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+            }));
+
     // Criação de tópico no fórum — público, sem login. Mesma janela do
     // registro (criação de conta em massa e spam de tópicos são a mesma
     // ameaça: abuso automatizado de um endpoint público de escrita).

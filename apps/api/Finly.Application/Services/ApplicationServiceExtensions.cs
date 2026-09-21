@@ -9,6 +9,7 @@ public static class ApplicationServiceExtensions
     {
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IEmailVerificationService, EmailVerificationService>();
+        services.AddScoped<IPasswordResetService, PasswordResetService>();
         services.AddScoped<IProfileService, ProfileService>();
         services.AddScoped<ITransactionService, TransactionService>();
         services.AddScoped<IOccurrenceGenerationService, OccurrenceGenerationService>();
