@@ -16,6 +16,7 @@ import type { LoginRequest } from "@/types/auth";
 type LoginFormProps = {
   isSubmitting?: boolean;
   onSubmit: (payload: LoginRequest) => Promise<void>;
+  onForgotPassword?: () => void;
   title?: string;
   description?: string;
   submitLabel?: string;
@@ -34,6 +35,7 @@ function getErrorMessage(error: unknown) {
 export function LoginForm({
   isSubmitting = false,
   onSubmit,
+  onForgotPassword,
   title = "Login com a API do Finly",
   description = "Use sua conta real para validar a integração com o backend.",
   submitLabel = "Entrar",
@@ -119,6 +121,15 @@ export function LoginForm({
                 )}
               </button>
             </div>
+            {onForgotPassword ? (
+              <button
+                type="button"
+                onClick={onForgotPassword}
+                className="text-xs font-medium text-primary underline-offset-4 hover:underline"
+              >
+                Esqueci minha senha
+              </button>
+            ) : null}
           </div>
 
           {errorMessage ? (

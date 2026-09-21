@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import {
+  forgotPassword as forgotPasswordWithApi,
   login as loginWithApi,
   register as registerWithApi,
   resendVerificationCode as resendVerificationCodeWithApi,
@@ -31,6 +32,7 @@ type UseAuthSessionReturn = {
   verifyCode: (code: string) => Promise<void>;
   resendCode: () => Promise<void>;
   cancelVerification: () => void;
+  forgotPassword: (email: string) => Promise<void>;
   logout: () => void;
 };
 
@@ -176,6 +178,16 @@ export function useAuthSession(): UseAuthSessionReturn {
     setPendingVerification(null);
   }
 
+  async function forgotPassword(email: string) {
+    setIsSubmitting(true);
+
+    try {
+      await forgotPasswordWithApi({ email });
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
   function logout() {
     clearAuthSession();
     setSession(null);
@@ -192,6 +204,7 @@ export function useAuthSession(): UseAuthSessionReturn {
     verifyCode,
     resendCode,
     cancelVerification,
+    forgotPassword,
     logout,
   };
 }

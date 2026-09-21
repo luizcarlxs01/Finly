@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { EmailVerificationForm } from "@/components/auth/email-verification-form";
+import { ForgotPasswordForm } from "@/components/auth/forgot-password-form";
 import { LoginForm } from "@/components/auth/login-form";
 import { RegisterForm } from "@/components/auth/register-form";
 import { Button } from "@/components/ui/button";
@@ -45,11 +46,13 @@ export function AccountAccessCard() {
     verifyCode,
     resendCode,
     cancelVerification,
+    forgotPassword,
     logout,
     session,
   } = useAuthSession();
   const [activeIntent, setActiveIntent] = useState<AccessIntent>("login");
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
 
   if (!isLoaded) {
     return (
@@ -98,6 +101,16 @@ export function AccountAccessCard() {
         onVerify={verifyCode}
         onResend={resendCode}
         onCancel={cancelVerification}
+      />
+    );
+  }
+
+  if (isForgotPasswordOpen) {
+    return (
+      <ForgotPasswordForm
+        isSubmitting={isSubmitting}
+        onSubmit={forgotPassword}
+        onCancel={() => setIsForgotPasswordOpen(false)}
       />
     );
   }
@@ -154,6 +167,7 @@ export function AccountAccessCard() {
             <LoginForm
               isSubmitting={isSubmitting}
               onSubmit={login}
+              onForgotPassword={() => setIsForgotPasswordOpen(true)}
               title="Entrar na sua conta"
               description="Acesse sua conta para sincronizar transações, metas e resumo financeiro."
               footerText="Seu acesso fica salvo neste navegador para facilitar os próximos acessos."
