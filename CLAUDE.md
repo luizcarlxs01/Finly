@@ -1541,12 +1541,28 @@ nova senha → `reset-password` 200 → tela "Senha redefinida!" sem sessão cri
 sem erro de `Suspense`, `npx vitest run` sem regressão (mesmas 4 falhas
 pré-existentes).
 
+### Mobile (`apps/mobile`)
+
+Implementado em seguida, mesmo dia. **Sem tela de redefinição no app** — o link
+do e-mail sempre abre no navegador do aparelho, igual qualquer link de e-mail
+em app mobile. Só o gatilho de "Esqueci minha senha":
+
+- `features/auth/data/auth_models.dart` — `ForgotPasswordRequest`
+- `features/auth/data/auth_repository.dart` — `forgotPassword()`, `POST
+  /api/Auth/forgot-password`
+- `features/auth/state/auth_controller.dart` — `forgotPassword(email)`,
+  mesmo padrão de `isSubmitting` dos outros métodos
+- `features/auth/ui/account_access_panel.dart` — botão "Esqueci minha senha"
+  abaixo do campo de senha, **só no modo login** (`!isRegister`, espelha o
+  `onForgotPassword` condicional do `LoginForm` do web); dispara
+  `showInfoSnack` com a mesma mensagem anti-enumeração do web ("Se {email}
+  tiver uma conta no Finly...")
+
+`flutter analyze` limpo.
+
 ### Pendente
 
-- Mobile (`apps/mobile`) ainda não tem "Esqueci minha senha" — próximo passo é
-  só um botão em `account_access_panel.dart` chamando
-  `AuthRepository.forgotPassword(email)` com um snackbar de confirmação; **não**
-  criar tela de redefinição no app, já que o link do e-mail sempre abre no
-  navegador (mesmo padrão de qualquer link de e-mail em app mobile)
 - Verificar o domínio no Resend e trocar o remetente (pendência já registrada
   na seção 26, vale para todo e-mail transacional, incluindo este)
+- Validar o botão "Esqueci minha senha" no emulador Android (implementado e
+  com `flutter analyze` limpo, mas sem teste manual no emulador nesta sessão)
