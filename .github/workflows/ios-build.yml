@@ -1,0 +1,38 @@
+name: iOS IPA Build (Finly Mobile)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    name: Build iOS IPA
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - run: flutter pub get
+        working-directory: apps/mobile
+
+      - run: pod repo update
+        working-directory: apps/mobile/ios
+
+      - run: flutter build ios --release --no-codesign
+        working-directory: apps/mobile
+
+      - run: mkdir Payload && mv Runner.app Payload/
+        working-directory: apps/mobile/build/ios/iphoneos
+
+      - name: Zip into ipa
+        run: zip -qq -r -9 FinlyMobile.ipa Payload
+        working-directory: apps/mobile/build/ios/iphoneos
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FinlyMobile-ipa
+          path: apps/mobile/build/ios/iphoneos/FinlyMobile.ipa
+          retention-days: 14
