@@ -1612,3 +1612,196 @@ em app mobile. Só o gatilho de "Esqueci minha senha":
   na seção 26, vale para todo e-mail transacional, incluindo este)
 - Validar o botão "Esqueci minha senha" no emulador Android (implementado e
   com `flutter analyze` limpo, mas sem teste manual no emulador nesta sessão)
+
+---
+
+## 29. Perfil de gastos + painel de análise — Insights (backend e web)
+
+> Implementado em 27/09/2026. Backend e web em produção. **Mobile ainda não
+> implementado** — fica para uma sessão futura, mesmo padrão de sempre
+> (backend + web primeiro, validar, só depois portar).
+
+### Por que existe
+
+Antes desta mudança, o único aviso de saldo em Insights (`getBalanceStatus`)
+usava um corte fixo — saldo ≥ 50% da despesa total = "bom" — igual pra
+qualquer pessoa. A pedido do usuário: alguém com renda mais alta pode ter uma
+sobra de R$ 2.000–10.000 na conta que pra ela é só o normal, enquanto pra
+outra pessoa esse mesmo valor seria uma folga excelente. O aviso precisa ser
+calibrado pelo porte financeiro de cada um, não por uma régua única.
+
+### Os quatro perfis
+
+Substituem o corte de 50%-da-despesa por faixas de **saldo atual** (R$)
+absolutas, específicas por perfil. Saldo negativo é **sempre** "Ruim",
+independente do perfil.
+
+| Perfil | Ruim | Mais ou menos | Bom |
+|---|---|---|---|
+| Econômico | < R$ 200 | R$ 200 – R$ 800 | > R$ 800 |
+| Padrão (default) | < R$ 500 | R$ 500 – R$ 2.000 | > R$ 2.000 |
+| Gastão | < R$ 2.000 | R$ 2.000 – R$ 8.000 | > R$ 8.000 |
+| Personalizado | a pessoa define | | |
+
+Os valores das faixas são uma estimativa, não uma pesquisa de campo — ajustar
+se algum dia houver dado real de referência. A métrica de "% de saídas sobre
+entradas" (`expense-ratio`, corte em 70%) **não muda** por perfil — ela já é
+relativa à própria renda da pessoa, então é neutra em relação ao porte
+financeiro; só a classificação do saldo/sobra depende do perfil.
+
+**Personalizado tem dois modos**, decisão tomada em conversa com o usuário
+depois de eu propor só um valor e ele pedir as duas opções:
+- **Só o valor de "Bom"**: a pessoa digita um número; "Mais ou menos" é
+  derivado automaticamente como 25% desse valor (mesma proporção do perfil
+  Padrão, 500/2000) — mostrado como prévia antes de salvar.
+- **Personalizar tudo**: dois campos, "Mais ou menos" e "Bom". Validação
+  obrigatória nos dois lados (client e backend): "Mais ou menos" tem que ser
+  ≥ 0 e estritamente menor que "Bom", senão bloqueia o salvar com mensagem
+  clara.
+
+### Backend (`apps/api`)
+
+- `Finly.Domain/Enums/SpendingProfile.cs`: `Padrao = 0` (não `Economico`!),
+  `Economico = 1`, `Gastao = 2`, `Personalizado = 3`.
+  ⚠️ **Padrao precisa ser o valor 0 do enum.** `AppDbContext` configura
+  `HasDefaultValue(SpendingProfile.Padrao)` na coluna; se o valor 0 do enum
+  fosse outro (ex.: `Economico = 0`), o EF Core trataria qualquer escolha
+  explícita desse primeiro valor como "não definido" (sentinel = CLR default)
+  e sobrescreveria silenciosamente pelo default do banco — bug pego ainda em
+  dev, antes de gerar a migration definitiva.
+- `FinancialProfile` ganhou `SpendingProfile SpendingProfile`,
+  `decimal? CustomOkThreshold`, `decimal? CustomGoodThreshold`. Perfis prontos
+  (Economico/Padrao/Gastao) **não** guardam limiar no banco — os valores fixos
+  vivem no cliente (web, réplica futura no mobile), só o Personalizado usa as
+  duas colunas.
+- `CreateProfileRequestDto`/`UpdateProfileRequestDto.SpendingProfile` é
+  `string?`, não enum — mesmo motivo de sempre neste projeto (`System.Text.Json`
+  não desserializa string→enum sem `JsonStringEnumConverter` global, que não dá
+  pra adicionar sem risco pros enums já em uso). Parse manual via
+  `Enum.TryParse` em `ProfileService`.
+- **No Update, `SpendingProfile` omitido ou vazio = mantém o perfil atual, não
+  reseta pra Padrao.** Importante porque `UpdateProfileRequestDto` é
+  reaproveitado por fluxos que não sabem nada de perfil de gastos — ex.:
+  `use-update-initial-balance.ts` só reenvia nome/descrição/saldo ao editar o
+  saldo inicial in-place. Se a ausência do campo fosse tratada como "resetar",
+  qualquer edição de saldo inicial apagaria silenciosamente a escolha de
+  perfil da pessoa.
+- `ProfileService.NormalizeThresholds`: mesma lógica de validação/derivação do
+  Personalizado do lado do servidor (nunca confiar só no client) — 25% de
+  ratio (`PersonalizadoOkRatio`), mesmas regras de ordem.
+- `GetAllAsync`/`GetByIdAsync` migrados de projeção `.Select()` direta pra
+  materializar a entidade e mapear em memória (`MapToResponse`) — mesmo motivo
+  do `ForumService` com `TopicStatus`: `Enum.ToString()` não é traduzível pelo
+  EF Core numa query LINQ-to-SQL.
+- Migration `AddSpendingProfileToFinancialProfile` — perfis existentes recebem
+  `SpendingProfile = 0` (Padrao) automaticamente via `defaultValue` da coluna.
+
+### Web (`apps/web`)
+
+- `utils/spending-profile.ts` (novo) — fonte única de verdade: presets fixos,
+  `resolveSpendingThresholds`, `validateCustomThresholds`,
+  `deriveCustomOkThreshold` (ratio 25%, mesmo valor do backend),
+  normalização de vocabulário API↔front (`spendingProfileFromApi`/
+  `getBackendSpendingProfile`, mesmo padrão de `normalizeTransactionType`).
+  **Réplica futura em mobile precisa espelhar este arquivo exatamente**, igual
+  `occurrence-generation.ts` espelha o backend (seção 21).
+- `utils/dashboard-insights.ts`: `getBalanceStatus` trocou o parâmetro
+  `totalExpense` (corte de 50%) por `thresholds: SpendingThresholds`
+  (`{ ok, good }`) vindo do perfil. Ganhou uma 3ª faixa de verdade — o tipo
+  `DashboardInsightTone` já tinha `"neutral"` mas `getBalanceStatus` nunca
+  produzia esse tom; agora "Mais ou menos" usa `neutral`, distinto de "Ruim"
+  (`warning`) e "Bom" (`positive`). **Mudança de rótulo**: saldo baixo mas não
+  negativo agora é "Saldo baixo" (antes "Saldo em atenção", que passou a
+  descrever só a faixa intermediária).
+- `types/profile.ts` / `types/local-finance-profile.ts`: `Profile` ganhou os
+  3 campos (não-opcionais, sempre vêm da API). `LocalFinanceProfile` ganhou os
+  mesmos 3 campos **opcionais** — dados salvos no localStorage antes desta
+  feature não têm esses campos, `normalizeStoredProfile` em
+  `use-local-finance.ts` preenche o default (`"padrao"`, `null`, `null`) na
+  leitura.
+- `hooks/use-local-finance.ts` ganhou `updateSpendingProfile`; `hooks/
+  use-finance-data.ts` unifica local/API em `spendingProfileSettings`
+  (`SpendingProfileSettings`), consumido por `page.tsx` via
+  `resolveSpendingThresholds()` antes de chamar `getDashboardInsights`.
+- `hooks/use-update-spending-profile.ts` (novo) — mesmo formato de
+  `use-update-initial-balance.ts`: `source === "local"` grava direto no
+  hook local; `source === "api"` chama `PUT /api/Profiles/{id}` reenviando
+  nome/descrição/saldo atuais (nunca sabidos como "parciais" pelo backend) +
+  o novo perfil de gastos. Valida os limiares do Personalizado **antes** de
+  decidir o caminho local/API — mesma regra nos dois modos, nunca só num lado.
+- `components/dashboard/insights/spending-profile-card.tsx` (novo) — seletor
+  de perfil (4 botões) + sub-modos do Personalizado + prévia ao vivo das 3
+  faixas (Ruim/Mais ou menos/Bom) antes de salvar. Ao resincronizar com o
+  `settings` vindo do servidor (após salvar ou no load), **infere** se deve
+  mostrar "Só o Bom" ou "Personalizar tudo" comparando o `customOkThreshold`
+  salvo com o valor que seria calculado automaticamente pro `customGoodThreshold`
+  salvo — a UI não persiste qual modo a pessoa usou da última vez, então essa
+  inferência evita mostrar uma prévia de "Mais ou menos" que não bate com o
+  valor real gravado (bug pego e corrigido na validação desta sessão: sem essa
+  inferência, o card sempre voltava pro modo "Só o Bom" e recalculava um valor
+  diferente do que estava realmente salvo).
+- Renderizado no topo da aba Insights, antes de "Leituras rápidas"
+  (`dashboard-insights-view.tsx`, prop `spendingProfileCard`).
+
+### Painel de análise de gastos (gráficos)
+
+Segunda parte do pedido do usuário: substituiu o placeholder "Mais análises em
+breve" por um painel de verdade. **Não grava nada** — só lê e agrega os
+lançamentos já pagos (`postedTransactions`) que já estavam disponíveis, sem
+plumbing novo de dados.
+
+- Dependência nova: [`recharts@^3`](https://recharts.org) (não havia nenhuma
+  lib de gráfico no projeto, web ou mobile, antes desta feature — confirmado
+  por busca antes de escolher). Peer deps compatíveis com React 19.2.3 sem
+  ressalva. Cores via `var(--chart-1)`...`var(--chart-5)` — paleta que já
+  existia em `globals.css` (convenção shadcn) mas não era usada em lugar
+  nenhum ainda.
+- `components/dashboard/insights/spending-analysis-panel.tsx` (novo) — um
+  seletor de tipo de gráfico (não fixa um só, a pessoa escolhe) + filtros
+  compartilhados:
+  - **Tipos de gráfico**: Pizza por categoria, Evolução mensal (entradas ×
+    saídas, barras agrupadas por mês), Ranking de categorias (barras
+    horizontais, maior pro menor).
+  - **Filtros**: entradas/saídas/ambos (default: só saídas — é o caso de uso
+    mais comum, "pra onde meu dinheiro está indo"), tipo de lançamento
+    (todos/único/parcelado/recorrente — agrega `installment-template` +
+    `installment-instance` como "parcelado", idem recorrente), categoria
+    (todas ou uma específica), período (3/6/12 meses ou tudo).
+  - Data efetiva de cada linha para filtro de período e agrupamento mensal:
+    `transaction.occurrenceDate ?? transaction.createdAt` (occurrenceDate vem
+    de `Occurrence.DueDate`, sempre preenchido — seção 21).
+- Renderizado depois do card "Leituras rápidas" + `FinancialForecastCard`,
+  antes das Regras Financeiras (`dashboard-insights-view.tsx`, prop
+  `analysisTransactions`).
+
+### Validação
+
+Backend: `dotnet build` limpo, migration aplicada localmente via Docker sem
+erro. Testado via curl (perfil existente): update pra Gastao ok; Personalizado
+só com "Bom" → "Mais ou menos" calculado automaticamente e devolvido na
+resposta; Personalizado com "Mais ou menos" ≥ "Bom" → `400`; update sem o
+campo `spendingProfile` → mantém o perfil anterior (não reseta).
+
+Web: `npx tsc --noEmit` limpo, `npx vitest run` sem regressão (mesmas 4 falhas
+pré-existentes; `dashboard-insights.test.ts` reescrito pros novos limiares e
+rótulos, `dashboard-insights-view.test.tsx` e `use-local-finance.test.ts`
+ajustados pros novos campos). Testado no browser (Docker local): modo API
+logado — perfil Personalizado carregado da API bate com o salvo via curl;
+trocar pra "Personalizar tudo" com "Mais ou menos" > "Bom" bloqueia com a
+mensagem certa; salvar com valores válidos reflete no banco (`PUT` 200,
+confirmado via curl direto no `GET /api/Profiles`); recarregar a página
+mostra o modo certo (auto vs manual) e a prévia batendo com o valor real.
+Criadas 3 transações reais (Alimentação/Moradia/Transporte) e confirmado:
+pizza, evolução mensal e ranking todos renderizam com os dados corretos;
+trocar de tipo de gráfico via `<select>` funciona. Modo local (deslogado):
+perfil Padrão por default, trocar pra Gastão persiste em
+`localStorage.finly:local-finance` e sobrevive a reload.
+
+### Pendente
+
+- Mobile: réplica completa (backend/web já validados) — `SpendingProfile` no
+  modelo local Dart, tela equivalente ao `spending-profile-card.tsx`, painel
+  de análise com alguma lib de gráfico Flutter (ex. `fl_chart`, ainda não
+  usada no projeto)
+- Faixas de R$ dos perfis prontos são estimativas — revisar se surgir dado
+  real de referência de renda/gasto do público brasileiro
