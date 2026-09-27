@@ -7,5 +7,8 @@ public class ProfileResponseDto
     public string? Description { get; set; }
     public decimal InitialBalance { get; set; }
     public bool IsPrimary { get; set; }
+    public string SpendingProfile { get; set; } = string.Empty;
+    public decimal? CustomOkThreshold { get; set; }
+    public decimal? CustomGoodThreshold { get; set; }
     public DateTime CreatedAt { get; set; }
 }

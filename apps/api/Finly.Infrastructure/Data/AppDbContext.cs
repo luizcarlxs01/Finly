@@ -71,6 +71,16 @@ public class AppDbContext : DbContext, IAppDbContext
             entity.Property(x => x.IsPrimary)
                 .IsRequired();
 
+            entity.Property(x => x.SpendingProfile)
+                .IsRequired()
+                .HasDefaultValue(Finly.Domain.Enums.SpendingProfile.Padrao);
+
+            entity.Property(x => x.CustomOkThreshold)
+                .HasColumnType("decimal(18,2)");
+
+            entity.Property(x => x.CustomGoodThreshold)
+                .HasColumnType("decimal(18,2)");
+
             entity.HasOne(x => x.User)
                 .WithMany(x => x.FinancialProfiles)
                 .HasForeignKey(x => x.UserId)

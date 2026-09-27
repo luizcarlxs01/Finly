@@ -12,4 +12,14 @@ public class CreateProfileRequestDto
     public string? Description { get; set; }
 
     public decimal InitialBalance { get; set; }
+
+    /// <summary>
+    /// "Economico" | "Padrao" | "Gastao" | "Personalizado". Omitido ou vazio = Padrao.
+    /// String, não enum: System.Text.Json não desserializa string-&gt;enum neste
+    /// projeto (mesmo padrão de UpdateTopicStatusRequestDto).
+    /// </summary>
+    public string? SpendingProfile { get; set; }
+
+    public decimal? CustomOkThreshold { get; set; }
+    public decimal? CustomGoodThreshold { get; set; }
 }
