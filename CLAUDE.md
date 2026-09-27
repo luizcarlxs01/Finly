@@ -1114,7 +1114,40 @@ tema (claro/escuro/sistema, persistido).
   inicial `/splash`. Logo (fade + scale + respiração) dentro de um arco girando
   (loading), wordmark "Finly". Espera `AuthController` terminar o bootstrap da
   sessão (teto de 4s) e então `context.go('/home')`.
-- iOS fora de escopo (`ios: false` nos dois — projeto iOS incompleto no repo).
+- iOS fora de escopo pra ícone/splash automatizados (`ios: false` nos dois,
+  ver "iOS — scaffold" abaixo).
+
+### iOS — scaffold completado em 27/09/2026
+
+`apps/mobile/ios` tinha sido criado incompleto desde o início (faltavam
+`Runner.xcodeproj/project.pbxproj`, `Runner/Info.plist` e
+`Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme` — sem o `.pbxproj`,
+o Xcode nem consegue abrir o projeto). Causa raiz não era o projeto: o SDK do
+Flutter em `C:\flutter` (que é ele mesmo um checkout git) tinha ~300 arquivos
+de template apagados do disco (antivírus ou limpeza, não identificado),
+incluindo justamente `ios.tmpl/Runner/Info.plist.tmpl` e
+`ios.tmpl/Runner.xcodeproj/project.pbxproj.tmpl` — `flutter create` para
+qualquer plataforma, em qualquer projeto novo, falhava silenciosamente em
+gerar esses arquivos. Corrigido com `git restore .` dentro de `C:\flutter`
+(repo git da própria instalação do SDK, sem relação com o repo do Finly).
+
+Depois do SDK corrigido, `flutter create --platforms=ios --org com.finly
+--overwrite .` gerou os arquivos que faltavam. ⚠️ Esse comando, mesmo com
+`--platforms=ios`, também sobrescreveu arquivos de **raiz** do projeto
+(`lib/main.dart`, `pubspec.yaml`, `pubspec.lock`, `.metadata`) com o template
+genérico do contador — revertidos via `git checkout --` logo em seguida
+(confirmado `git diff` vazio depois). Se rodar de novo por qualquer motivo,
+**checar `git status` logo depois** e reverter qualquer coisa fora de `ios/`.
+
+Bundle id resultante: `com.finly.finlyMobile` (não precisa bater com o
+`com.finly.finly_mobile` do Android — só precisa ser único na sua conta Apple
+para o sideload funcionar). `flutter analyze` limpo e `flutter pub get` OK
+depois da correção.
+
+**Ainda não validado**: abrir o projeto no Xcode de verdade (precisa de um
+Mac, real ou alugado — nenhum disponível neste ambiente) e rodar
+`pod install`/build. O scaffold agora existe e é válido, mas nunca foi aberto
+num Xcode de fato.
 
 ### Ambiente
 
@@ -1155,7 +1188,8 @@ validado com a conta real de produção (dados de `api.finly.systems`).
 
 Testes (widget + unit p/ `occurrence_generation`, `financial_calendar`,
 `dashboard_insights`, `password_strength`), assinatura de release +
-`flutter build appbundle --release`, setup iOS.
+`flutter build appbundle --release`. iOS: scaffold completado (ver acima),
+falta abrir no Xcode/Mac e fazer o primeiro build de verdade.
 
 ---
 
