@@ -28,48 +28,29 @@ class _TopicFormSheet extends ConsumerStatefulWidget {
 class _TopicFormSheetState extends ConsumerState<_TopicFormSheet> {
   final _title = TextEditingController();
   final _body = TextEditingController();
-  late final TextEditingController _authorName;
-  late final TextEditingController _authorEmail;
   bool _busy = false;
-
-  @override
-  void initState() {
-    super.initState();
-    final session = ref.read(authControllerProvider).session;
-    _authorName = TextEditingController(text: session?.name ?? '');
-    _authorEmail = TextEditingController(text: session?.email ?? '');
-  }
 
   @override
   void dispose() {
     _title.dispose();
     _body.dispose();
-    _authorName.dispose();
-    _authorEmail.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
     final title = _title.text.trim();
     final body = _body.text.trim();
-    final name = _authorName.text.trim();
-    final email = _authorEmail.text.trim();
 
-    if (title.isEmpty || body.isEmpty || name.isEmpty || email.isEmpty) {
+    if (title.isEmpty || body.isEmpty) {
       showInfoSnack(context, 'Preencha todos os campos antes de publicar.');
       return;
     }
 
     setState(() => _busy = true);
     try {
-      final created = await ref.read(forumControllerProvider.notifier).submitTopic(
-            CreateTopicRequest(
-              title: title,
-              body: body,
-              authorName: name,
-              authorEmail: email,
-            ),
-          );
+      final created = await ref
+          .read(forumControllerProvider.notifier)
+          .submitTopic(CreateTopicRequest(title: title, body: body));
       if (mounted) {
         Navigator.of(context).pop();
         showInfoSnack(
@@ -88,6 +69,8 @@ class _TopicFormSheetState extends ConsumerState<_TopicFormSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final session = ref.watch(authControllerProvider).session;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -114,29 +97,32 @@ class _TopicFormSheetState extends ConsumerState<_TopicFormSheet> {
           ),
         ),
         const SizedBox(height: 14),
-        LabeledField(
-          label: 'Seu nome',
-          child: AppTextField(
-            controller: _authorName,
-            hint: 'Seu nome',
-            textInputAction: TextInputAction.next,
-            autofillHints: const [AutofillHints.name],
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: context.scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(14),
           ),
-        ),
-        const SizedBox(height: 14),
-        LabeledField(
-          label: 'Seu e-mail',
-          child: AppTextField(
-            controller: _authorEmail,
-            hint: 'voce@exemplo.com',
-            keyboardType: TextInputType.emailAddress,
-            autofillHints: const [AutofillHints.email],
+          child: Text.rich(
+            TextSpan(
+              style: TextStyle(fontSize: 12.5, color: context.mutedForeground),
+              children: [
+                const TextSpan(text: 'Publicando como '),
+                TextSpan(
+                  text: session?.name ?? '',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                const TextSpan(text: ' ('),
+                TextSpan(
+                  text: session?.email ?? '',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                const TextSpan(
+                  text: ') — os dados da sua conta, usamos o e-mail só para avisar quando alguém responder.',
+                ),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Usamos seu e-mail só para avisar quando alguém responder seu tópico.',
-          style: TextStyle(fontSize: 11.5, color: context.mutedForeground),
         ),
         const SizedBox(height: 20),
         ElevatedButton(

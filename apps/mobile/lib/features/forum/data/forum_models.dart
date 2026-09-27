@@ -92,22 +92,10 @@ class TopicDetail {
 }
 
 class CreateTopicRequest {
-  CreateTopicRequest({
-    required this.title,
-    required this.body,
-    required this.authorName,
-    required this.authorEmail,
-  });
+  CreateTopicRequest({required this.title, required this.body});
 
   final String title;
   final String body;
-  final String authorName;
-  final String authorEmail;
 
-  Map<String, dynamic> toJson() => {
-        'title': title,
-        'body': body,
-        'authorName': authorName,
-        'authorEmail': authorEmail,
-      };
+  Map<String, dynamic> toJson() => {'title': title, 'body': body};
 }

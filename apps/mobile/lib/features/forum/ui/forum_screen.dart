@@ -7,6 +7,7 @@ import '../../../app/shell.dart';
 import '../../../app/theme.dart';
 import '../../../core/widgets/widgets.dart';
 import '../../../shared/models/enums.dart';
+import '../../auth/state/auth_controller.dart';
 import '../data/forum_models.dart';
 import '../state/forum_controller.dart';
 import 'forum_admin_panel.dart';
@@ -20,14 +21,17 @@ class ForumScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final forumAsync = ref.watch(forumControllerProvider);
+    final authenticated = ref.watch(authControllerProvider).authenticated;
 
     return Scaffold(
       appBar:
           const FinlyAppBar(title: 'Fórum', themeToggle: ThemeToggleButton()),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => showTopicFormSheet(context),
-        child: const Icon(Icons.add),
-      ),
+      floatingActionButton: authenticated
+          ? FloatingActionButton(
+              onPressed: () => showTopicFormSheet(context),
+              child: const Icon(Icons.add),
+            )
+          : null,
       body: RefreshIndicator(
         onRefresh: () => ref.read(forumControllerProvider.notifier).refreshTopics(),
         child: forumAsync.when(
@@ -49,6 +53,25 @@ class ForumScreen extends ConsumerWidget {
                     'Dúvidas, reclamações e sugestões da comunidade Finly.',
               ),
               const SizedBox(height: 14),
+              if (!authenticated) ...[
+                FinlyCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Entre para publicar',
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Só quem tem uma conta no Finly pode criar tópicos. Abra a aba Conta para entrar ou criar a sua.',
+                        style: TextStyle(fontSize: 12.5, color: context.mutedForeground),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
               if (state.isAdmin && state.adminTopics != null) ...[
                 ForumAdminPanel(
                   topics: state.adminTopics!,
