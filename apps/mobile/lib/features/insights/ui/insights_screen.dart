@@ -6,6 +6,7 @@ import '../../../app/shell.dart';
 import '../../../app/theme.dart';
 import '../../../core/finance_source.dart';
 import '../../../core/widgets/widgets.dart';
+import '../../../shared/models/spending_profile.dart';
 import '../../goals/state/goals_controller.dart';
 import '../../transactions/state/finance_controller.dart';
 import '../../transactions/state/simulation_controller.dart';
@@ -13,6 +14,8 @@ import '../data/dashboard_insights.dart';
 import '../state/rules_controller.dart';
 import 'financial_rules_manager.dart';
 import 'forecast_card.dart';
+import 'spending_analysis_panel.dart';
+import 'spending_profile_card.dart';
 
 /// Espelha apps/web/src/components/dashboard/views/dashboard-insights-view.tsx.
 ///
@@ -37,12 +40,14 @@ class InsightsScreen extends ConsumerWidget {
         finance.profile != null;
 
     final paid = finance.lineItems.where((i) => i.isPaid).toList();
+    final spendingThresholds = resolveSpendingThresholds(finance.spendingProfileSettings);
     final insights = buildDashboardInsights(
       paidTransactions: paid,
       goals: goals,
       totalIncome: finance.totalIncome,
       totalExpense: finance.totalExpense,
       currentBalance: finance.currentBalance,
+      spendingThresholds: spendingThresholds,
     );
     final forecast = buildForecast(
       currentBalance: finance.currentBalance,
@@ -88,6 +93,8 @@ class InsightsScreen extends ConsumerWidget {
                       ref.read(financeControllerProvider.notifier).refresh(),
                 )
               else ...[
+                SpendingProfileCard(settings: finance.spendingProfileSettings),
+                const SizedBox(height: 12),
                 FinlyCard(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -116,20 +123,7 @@ class InsightsScreen extends ConsumerWidget {
                   projectedBalance: forecast.projectedBalance,
                 ),
                 const SizedBox(height: 12),
-                FinlyCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Mais contexto, no seu tempo',
-                          style: TextStyle(
-                              fontSize: 15, fontWeight: FontWeight.w700)),
-                      const SizedBox(height: 4),
-                      Text('Mais análises em breve.',
-                          style: TextStyle(
-                              fontSize: 12.5, color: context.mutedForeground)),
-                    ],
-                  ),
-                ),
+                SpendingAnalysisPanel(lineItems: paid),
                 if (showRules) ...[
                   const SizedBox(height: 12),
                   const FinancialRulesManager(),

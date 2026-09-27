@@ -32,6 +32,10 @@ dependencies:
   # IDs para o modo sem conta (espelha crypto.randomUUID() do web)
   uuid: ^4.5.1
 
+  # Gráficos do painel de análise em Insights (pizza, barras) — equivalente ao
+  # recharts do web. Nenhuma lib de gráfico existia no mobile antes desta feature.
+  fl_chart: ^0.69.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

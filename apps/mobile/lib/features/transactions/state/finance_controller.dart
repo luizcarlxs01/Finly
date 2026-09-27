@@ -4,6 +4,7 @@ import '../../../core/finance_source.dart';
 import '../../../shared/models/dashboard_summary.dart';
 import '../../../shared/models/enums.dart';
 import '../../../shared/models/profile.dart';
+import '../../../shared/models/spending_profile.dart';
 import '../../../shared/models/transaction.dart';
 import '../data/finance_repository.dart';
 import '../data/local_finance_store.dart';
@@ -21,12 +22,14 @@ class FinanceData {
     required this.dashboard,
     required this.contracts,
     required this.lineItems,
+    required this.spendingProfileSettings,
   });
 
   final Profile? profile;
   final DashboardSummary dashboard;
   final List<TransactionContract> contracts;
   final List<LineItem> lineItems;
+  final SpendingProfileSettings spendingProfileSettings;
 
   double get currentBalance => dashboard.currentBalance;
   double get initialBalance => dashboard.initialBalance;
@@ -38,6 +41,7 @@ class FinanceData {
     dashboard: DashboardSummary.empty,
     contracts: const [],
     lineItems: const [],
+    spendingProfileSettings: SpendingProfileSettings.defaults,
   );
 }
 
@@ -86,6 +90,7 @@ class FinanceController extends AsyncNotifier<FinanceData> {
       ),
       contracts: contracts,
       lineItems: lineItems,
+      spendingProfileSettings: p.spendingProfileSettings,
     );
   }
 
@@ -99,6 +104,7 @@ class FinanceController extends AsyncNotifier<FinanceData> {
         dashboard: DashboardSummary.empty,
         contracts: const [],
         lineItems: const [],
+        spendingProfileSettings: SpendingProfileSettings.defaults,
       );
     }
 
@@ -119,6 +125,7 @@ class FinanceController extends AsyncNotifier<FinanceData> {
       dashboard: dashboard,
       contracts: contracts,
       lineItems: lineItems,
+      spendingProfileSettings: profile.spendingProfileSettings,
     );
   }
 
@@ -203,6 +210,24 @@ class FinanceController extends AsyncNotifier<FinanceData> {
     final profile = state.valueOrNull?.profile;
     if (profile == null) throw StateError('Perfil da conta indisponível.');
     await _repo.updateInitialBalance(profile, value);
+    await refresh();
+  }
+
+  /// Valida os limiares do Personalizado antes de decidir o caminho local/API
+  /// — mesma regra nos dois modos, nunca só num lado.
+  Future<void> updateSpendingProfile(SpendingProfileSettings settings) async {
+    if (settings.id == SpendingProfileId.personalizado) {
+      final error = validateCustomThresholds(
+        goodThreshold: settings.customGoodThreshold,
+        okThreshold: settings.customOkThreshold,
+      );
+      if (error != null) throw StateError(error);
+    }
+
+    if (_isLocal) return _local.updateSpendingProfile(settings);
+    final profile = state.valueOrNull?.profile;
+    if (profile == null) throw StateError('Perfil da conta indisponível.');
+    await _repo.updateSpendingProfile(profile, settings);
     await refresh();
   }
 }

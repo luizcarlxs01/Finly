@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../shared/models/enums.dart';
+import '../../../shared/models/spending_profile.dart';
 import '../../../shared/models/transaction.dart';
 import 'occurrence_generation.dart';
 import 'transaction_form_input.dart';
@@ -125,11 +126,23 @@ class LocalFinanceProfile {
     required this.initialBalance,
     required this.contracts,
     required this.occurrences,
+    this.spendingProfile = SpendingProfileId.padrao,
+    this.customOkThreshold,
+    this.customGoodThreshold,
   });
 
   final double initialBalance;
   final List<LocalContract> contracts;
   final List<Occurrence> occurrences;
+  final SpendingProfileId spendingProfile;
+  final double? customOkThreshold;
+  final double? customGoodThreshold;
+
+  SpendingProfileSettings get spendingProfileSettings => SpendingProfileSettings(
+        id: spendingProfile,
+        customOkThreshold: customOkThreshold,
+        customGoodThreshold: customGoodThreshold,
+      );
 
   static LocalFinanceProfile get empty =>
       LocalFinanceProfile(initialBalance: 0, contracts: const [], occurrences: const []);
@@ -143,6 +156,9 @@ class LocalFinanceProfile {
         initialBalance: initialBalance ?? this.initialBalance,
         contracts: contracts ?? this.contracts,
         occurrences: occurrences ?? this.occurrences,
+        spendingProfile: spendingProfile,
+        customOkThreshold: customOkThreshold,
+        customGoodThreshold: customGoodThreshold,
       );
 
   factory LocalFinanceProfile.fromJson(Map<String, dynamic> json) =>
@@ -154,12 +170,18 @@ class LocalFinanceProfile {
         occurrences: (json['occurrences'] as List<dynamic>? ?? [])
             .map((e) => Occurrence.fromJson(e as Map<String, dynamic>))
             .toList(),
+        spendingProfile: SpendingProfileId.fromLocalName(json['spendingProfile'] as String?),
+        customOkThreshold: (json['customOkThreshold'] as num?)?.toDouble(),
+        customGoodThreshold: (json['customGoodThreshold'] as num?)?.toDouble(),
       );
 
   Map<String, dynamic> toJson() => {
         'initialBalance': initialBalance,
         'transactions': contracts.map((c) => c.toJson()).toList(),
         'occurrences': occurrences.map((o) => o.toJson()).toList(),
+        'spendingProfile': spendingProfile.name,
+        'customOkThreshold': customOkThreshold,
+        'customGoodThreshold': customGoodThreshold,
       };
 
   List<TransactionContract> toContracts() => contracts
@@ -206,6 +228,22 @@ class LocalFinanceStore extends AsyncNotifier<LocalFinanceProfile> {
 
   Future<void> updateInitialBalance(double value) =>
       _save(_p.copyWith(initialBalance: value));
+
+  /// Substitui integralmente o perfil/limiares — nunca reaproveita valores
+  /// antigos por `??`, senão trocar de "Personalizar tudo" pra "Só o Bom"
+  /// deixaria o "Mais ou menos" anterior vazando por trás.
+  Future<void> updateSpendingProfile(SpendingProfileSettings settings) {
+    final isPersonalizado = settings.id == SpendingProfileId.personalizado;
+    final p = _p;
+    return _save(LocalFinanceProfile(
+      initialBalance: p.initialBalance,
+      contracts: p.contracts,
+      occurrences: p.occurrences,
+      spendingProfile: settings.id,
+      customOkThreshold: isPersonalizado ? settings.customOkThreshold : null,
+      customGoodThreshold: isPersonalizado ? settings.customGoodThreshold : null,
+    ));
+  }
 
   Future<void> addTransaction(TransactionFormInput input) async {
     if (!input.isValid) return;

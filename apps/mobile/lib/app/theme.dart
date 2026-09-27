@@ -50,6 +50,22 @@ class AppColors {
   static const warning = Color(0xFFEAB308); // yellow-500 — "Senha média" / pendente
   static const passwordWeak = Color(0xFFEF4444); // red-500 — "Senha fraca"
 
+  // ---- Paleta de gráficos (globals.css --chart-1..5) --------------------
+  static const chartLight = [
+    Color(0xFF1A75FF),
+    Color(0xFF7EB0F2),
+    Color(0xFF031533),
+    Color(0xFFD0DFF2),
+    Color(0xFF4F698D),
+  ];
+  static const chartDark = [
+    Color(0xFF7EB0F2),
+    Color(0xFF1A75FF),
+    Color(0xFFD0DFF2),
+    Color(0xFFF4F7FB),
+    Color(0xFF8FB8F3),
+  ];
+
   // O raio base do web (--radius: 0.625rem = 10px). Cartões usam multiplicadores
   // maiores (1.25rem–2rem); aqui aproximamos com 20 para os cartões e 12 para os
   // campos, replicando a sensação arredondada da UI.
@@ -226,6 +242,7 @@ extension AppColorsX on BuildContext {
       isDark ? AppColors.mutedForegroundDark : AppColors.mutedForegroundLight;
   Color get success => isDark ? AppColors.successDark : AppColors.successLight;
   Color get warning => AppColors.warning;
+  List<Color> get chartColors => isDark ? AppColors.chartDark : AppColors.chartLight;
 
   /// Cor de um valor monetário conforme a natureza (mesma regra do web:
   /// entrada usa a primária, saída usa o foreground neutro).

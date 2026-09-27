@@ -55,30 +55,38 @@ class DashboardInsight {
   return withProgress.isEmpty ? null : withProgress.first;
 }
 
+/// Classifica o saldo atual conforme os limiares do perfil de gastos (seção 29
+/// do CLAUDE.md) — não é mais um corte único de 50% da despesa pra todo mundo.
+/// Negativo é sempre "ruim", independente do perfil.
 ({String label, String description, InsightTone tone}) _balanceStatus(
   double currentBalance,
-  double totalExpense,
+  ({double ok, double good}) thresholds,
 ) {
-  if (currentBalance > 0 && currentBalance >= totalExpense * 0.5) {
+  if (currentBalance < 0) {
     return (
-      label: 'Saldo saudável',
+      label: 'Saldo negativo',
       description:
-          'Seu saldo atual mantém uma folga confortável em relação ao ritmo das saídas.',
-      tone: InsightTone.positive,
-    );
-  }
-  if (currentBalance >= 0) {
-    return (
-      label: 'Saldo em atenção',
-      description:
-          'Seu saldo segue positivo, mas já merece acompanhamento mais próximo.',
+          'Seu saldo atual está abaixo de zero e pede revisão das próximas movimentações.',
       tone: InsightTone.warning,
     );
   }
+  if (currentBalance >= thresholds.good) {
+    return (
+      label: 'Saldo saudável',
+      description: 'Seu saldo atual mantém uma folga confortável para o seu perfil de gastos.',
+      tone: InsightTone.positive,
+    );
+  }
+  if (currentBalance >= thresholds.ok) {
+    return (
+      label: 'Saldo em atenção',
+      description: 'Seu saldo está numa faixa intermediária para o seu perfil — dá pra melhorar.',
+      tone: InsightTone.neutral,
+    );
+  }
   return (
-    label: 'Saldo negativo',
-    description:
-        'Seu saldo atual está abaixo de zero e pede revisão das próximas movimentações.',
+    label: 'Saldo baixo',
+    description: 'Seu saldo está abaixo do esperado para o seu perfil de gastos.',
     tone: InsightTone.warning,
   );
 }
@@ -89,12 +97,13 @@ List<DashboardInsight> buildDashboardInsights({
   required double totalIncome,
   required double totalExpense,
   required double currentBalance,
+  required ({double ok, double good}) spendingThresholds,
 }) {
   final topExpense = _topExpenseCategory(paidTransactions);
   final expenseRatio =
       totalIncome > 0 ? ((totalExpense / totalIncome) * 100).round() : null;
   final closest = _closestGoal(goals);
-  final balance = _balanceStatus(currentBalance, totalExpense);
+  final balance = _balanceStatus(currentBalance, spendingThresholds);
 
   return [
     DashboardInsight(

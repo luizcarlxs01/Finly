@@ -4,6 +4,7 @@ import '../../../core/api/api_client.dart';
 import '../../../shared/models/dashboard_summary.dart';
 import '../../../shared/models/enums.dart';
 import '../../../shared/models/profile.dart';
+import '../../../shared/models/spending_profile.dart';
 import '../../../shared/models/transaction.dart';
 import 'transaction_form_input.dart';
 
@@ -99,6 +100,24 @@ class FinanceRepository {
         'name': profile.name,
         'description': profile.description,
         'initialBalance': value,
+      },
+    );
+  }
+
+  /// Reenvia nome/descrição/saldo atuais junto — o backend trata
+  /// `spendingProfile` ausente como "mantém o perfil atual, não reseta", mas
+  /// aqui sempre mandamos o valor novo explicitamente.
+  Future<void> updateSpendingProfile(Profile profile, SpendingProfileSettings settings) {
+    final isPersonalizado = settings.id == SpendingProfileId.personalizado;
+    return _client.put<Map<String, dynamic>>(
+      '/api/Profiles/${profile.id}',
+      body: {
+        'name': profile.name,
+        'description': profile.description,
+        'initialBalance': profile.initialBalance,
+        'spendingProfile': settings.id.apiValue,
+        'customOkThreshold': isPersonalizado ? settings.customOkThreshold : null,
+        'customGoodThreshold': isPersonalizado ? settings.customGoodThreshold : null,
       },
     );
   }
