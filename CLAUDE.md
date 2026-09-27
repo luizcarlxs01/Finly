@@ -598,6 +598,15 @@ chore:     tarefa técnica (config, dependências)
 style:     formatação, sem alteração de lógica
 ```
 
+### Convenção de versionamento (decidida em 27/09/2026)
+
+Não é semver padrão (`1.0.0`). O Finly usa **`MAJOR.MINOR.PATCH` com
+zero-padding** — minor com 2 dígitos, patch com 3: `1.00.000`. Exemplos:
+próximo patch → `1.00.001`; próxima minor → `1.01.000`; próxima major →
+`2.00.000`. Aplicar em `apps/mobile/pubspec.yaml` (`version:`), no texto de
+versão exibido na aba Download (`dashboard-download-view.tsx`) e em qualquer
+outro lugar que exiba a versão do app pro usuário.
+
 ---
 
 ## 20. Antes de qualquer implementação — perguntas obrigatórias
