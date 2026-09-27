@@ -1,7 +1,15 @@
 "use client";
 
 import Image from "next/image";
-import { Home, Lightbulb, MessagesSquare, Target, User, WalletCards } from "lucide-react";
+import {
+  Download,
+  Home,
+  Lightbulb,
+  MessagesSquare,
+  Target,
+  User,
+  WalletCards,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
@@ -11,7 +19,8 @@ export type DashboardView =
   | "transactions"
   | "goals"
   | "insights"
-  | "forum";
+  | "forum"
+  | "download";
 
 type AppFloatingHeaderProps = {
   activeView: DashboardView;
@@ -50,6 +59,11 @@ const navigationItems: Array<{
     value: "forum",
     icon: MessagesSquare,
   },
+  {
+    label: "Download",
+    value: "download",
+    icon: Download,
+  },
 ];
 
 export function AppFloatingHeader({
@@ -85,7 +99,7 @@ export function AppFloatingHeader({
           </div>
 
           <div className="flex items-center gap-1 sm:gap-2">
-            <nav className="grid grid-cols-5 gap-1 sm:flex sm:w-auto sm:flex-wrap sm:items-center sm:gap-2">
+            <nav className="grid grid-cols-6 gap-1 sm:flex sm:w-auto sm:flex-wrap sm:items-center sm:gap-2">
               {navigationItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = activeView === item.value;

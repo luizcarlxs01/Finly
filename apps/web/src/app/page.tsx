@@ -13,6 +13,7 @@ import { DashboardHomeView } from "@/components/dashboard/views/dashboard-home-v
 import { DashboardTransactionsView } from "@/components/dashboard/views/dashboard-transactions-view";
 import { DashboardGoalsView } from "@/components/dashboard/views/dashboard-goals-view";
 import { DashboardInsightsView } from "@/components/dashboard/views/dashboard-insights-view";
+import { DashboardDownloadView } from "@/components/dashboard/views/dashboard-download-view";
 import { DashboardForumView } from "@/components/dashboard/views/dashboard-forum-view";
 import { FinancialRulesManager } from "@/components/dashboard/financial-rules-manager";
 import { SpendingProfileCard } from "@/components/dashboard/insights/spending-profile-card";
@@ -771,6 +772,8 @@ export default function HomePage() {
 
   const forumView = <DashboardForumView />;
 
+  const downloadView = <DashboardDownloadView />;
+
   const isLandingHome = activeView === "home";
 
   return (
@@ -828,11 +831,12 @@ export default function HomePage() {
             goalsView={goalsView}
             insightsView={insightsView}
             forumView={forumView}
+            downloadView={downloadView}
           />
         </div>
       </PageContainer>
 
-      {activeView !== "home" ? (
+      {activeView !== "home" && activeView !== "download" ? (
         <div className="fixed bottom-6 right-6 z-40 flex flex-col-reverse items-end gap-3">
           <button
             type="button"

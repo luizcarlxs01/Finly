@@ -1938,3 +1938,94 @@ contrato de API, mesmo padrão de risco aceito já registrado nas seções 26 e
 - Validar perfil de gastos e painel de análise no emulador Android
 - Faixas de R$ dos perfis prontos são estimativas — revisar se surgir dado
   real de referência de renda/gasto do público brasileiro
+
+---
+
+## 30. Aba Download — APK Android assinado (27/09/2026)
+
+> Implementado depois de validar manualmente o sideload de iOS num iPhone real
+> (Sideloadly + Apple ID grátis + Modo Desenvolvedor). Decisão registrada
+> nessa sessão: **não** publicar o `.ipa` de iOS ao lado do APK. O processo de
+> sideload (driver, pareamento do iPhone, Modo Desenvolvedor, certificado que
+> expira em 7 dias) é viável para o próprio desenvolvedor testando, mas
+> inviável para um usuário final repetir sozinho. iOS público de verdade
+> depende da Apple Developer Program (US$ 99/ano) + TestFlight/App Store —
+> ver seção 25. Até lá, a aba mostra só "Em breve" para iOS.
+
+### O que é
+
+6ª aba no `AppFloatingHeader` ("Download", ícone `Download`, grid do nav
+mobile virou `grid-cols-6`). Dois cards: **Android** (link direto para o APK)
+e **iOS** (texto "Em breve", sem link). FAB de lançamento rápido não aparece
+nessa aba (`activeView !== "download"` adicionado à condição em `page.tsx`,
+já que não há "novo lançamento" para criar aqui).
+
+### Assinatura de release do Android (pendência da seção 25, resolvida agora)
+
+Até esta sessão, `android/app/build.gradle.kts` assinava o `release` com o
+keystore de **debug** — funcional para teste no emulador, mas inadequado para
+distribuir a usuários reais (Android exige a mesma chave em toda atualização
+futura; usar a chave de debug não é prática segura para isso).
+
+- Gerado `apps/mobile/android/keystore/finly-release.jks` (RSA 2048, validade
+  10.000 dias, `keytool` do JDK do Android Studio) — **gitignored**
+  (`**/*.jks` já estava no `.gitignore` padrão do Flutter).
+- `apps/mobile/android/key.properties` (também gitignored) guarda
+  `storePassword`/`keyPassword`/`keyAlias`/`storeFile`, mesmo padrão de
+  segredo-nunca-commitado já usado em `docker/.env`.
+- `android/app/build.gradle.kts`: novo `signingConfigs.release` lido de
+  `key.properties`; `buildTypes.release` usa esse config **se** o arquivo
+  existir, senão cai de volta pro debug (mesmo padrão documentado em
+  flutter.dev/to/reference-keystore — outro desenvolvedor sem o keystore
+  ainda consegue buildar).
+- ⚠️ **O keystore em si não está commitado em lugar nenhum** — existe só na
+  máquina onde foi gerado. Se for perdido, qualquer atualização futura do APK
+  não poderá usar a mesma assinatura (usuários teriam que desinstalar a
+  versão antiga antes de instalar uma nova). Fazer backup do arquivo
+  `finly-release.jks` fora do repositório.
+
+Verificado com `apksigner verify --print-certs` que o APK final está assinado
+com `CN=Finly` (nosso certificado), não com o certificado de debug do
+Android.
+
+### Hospedagem do APK
+
+`apps/web/public/downloads/finly.apk` (56 MB) — servido como arquivo estático
+pelo Next.js/Vercel. Optado por commitar o binário direto no repo do web (mais
+simples, sem infraestrutura nova) em vez de GitHub Releases — trade-off aceito:
+toda atualização de versão engorda o histórico do git em ~50 MB por commit.
+Se isso virar problema real (repo muito grande), migrar para GitHub Releases
+é o próximo passo natural — não fazer isso preventivamente agora.
+
+### Arquivos
+
+**Novos**
+- `components/dashboard/views/dashboard-download-view.tsx`
+- `apps/mobile/android/keystore/finly-release.jks` (gitignored)
+- `apps/mobile/android/key.properties` (gitignored)
+- `apps/web/public/downloads/finly.apk`
+
+**Alterados**
+- `components/layout/app-floating-header.tsx` — tipo `DashboardView` ganhou
+  `"download"`, item de navegação novo, grid mobile `grid-cols-5` →
+  `grid-cols-6`
+- `components/dashboard/dashboard-shell.tsx` — prop `downloadView` + branch
+- `app/page.tsx` — `downloadView`, FAB oculto nessa aba
+- `apps/mobile/android/app/build.gradle.kts` — signing config de release
+- `test/components/dashboard-shell.test.tsx` — prop nova em todos os testes
+  existentes + caso novo para `"download"`
+
+### Validação
+
+`npx tsc --noEmit` limpo. `npx vitest run`: mesmas 4 falhas pré-existentes
+(nenhuma nova), `dashboard-shell.test.tsx` passando com o caso novo. Testado
+no browser (desktop e mobile 375px): aba destacada corretamente ao navegar,
+link de download aponta pro APK certo, sem erros de console, FAB
+corretamente ausente nessa aba.
+
+### Pendente
+
+- Botão de iOS shows apenas texto informativo — reavaliar quando (e se) a
+  Apple Developer Program for contratada
+- Backup do `finly-release.jks` fora do repositório (perda = quebra de
+  continuidade de assinatura em atualizações futuras)

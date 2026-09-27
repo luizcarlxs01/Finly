@@ -13,6 +13,7 @@ describe("DashboardShell", () => {
         goalsView={<div>Metas View</div>}
         insightsView={<div>Insights View</div>}
         forumView={<div>Fórum View</div>}
+        downloadView={<div>Download View</div>}
       />,
     );
 
@@ -21,6 +22,7 @@ describe("DashboardShell", () => {
     expect(screen.queryByText("Metas View")).not.toBeInTheDocument();
     expect(screen.queryByText("Insights View")).not.toBeInTheDocument();
     expect(screen.queryByText("Fórum View")).not.toBeInTheDocument();
+    expect(screen.queryByText("Download View")).not.toBeInTheDocument();
   });
 
   it('deve renderizar lançamentos quando activeView for "transactions"', () => {
@@ -32,6 +34,7 @@ describe("DashboardShell", () => {
         goalsView={<div>Metas View</div>}
         insightsView={<div>Insights View</div>}
         forumView={<div>Fórum View</div>}
+        downloadView={<div>Download View</div>}
       />,
     );
 
@@ -40,6 +43,7 @@ describe("DashboardShell", () => {
     expect(screen.queryByText("Metas View")).not.toBeInTheDocument();
     expect(screen.queryByText("Insights View")).not.toBeInTheDocument();
     expect(screen.queryByText("Fórum View")).not.toBeInTheDocument();
+    expect(screen.queryByText("Download View")).not.toBeInTheDocument();
   });
 
   it('deve renderizar metas quando activeView for "goals"', () => {
@@ -51,6 +55,7 @@ describe("DashboardShell", () => {
         goalsView={<div>Metas View</div>}
         insightsView={<div>Insights View</div>}
         forumView={<div>Fórum View</div>}
+        downloadView={<div>Download View</div>}
       />,
     );
 
@@ -59,6 +64,7 @@ describe("DashboardShell", () => {
     expect(screen.queryByText("Lançamentos View")).not.toBeInTheDocument();
     expect(screen.queryByText("Insights View")).not.toBeInTheDocument();
     expect(screen.queryByText("Fórum View")).not.toBeInTheDocument();
+    expect(screen.queryByText("Download View")).not.toBeInTheDocument();
   });
 
   it('deve renderizar insights quando activeView for "insights"', () => {
@@ -70,6 +76,7 @@ describe("DashboardShell", () => {
         goalsView={<div>Metas View</div>}
         insightsView={<div>Insights View</div>}
         forumView={<div>Fórum View</div>}
+        downloadView={<div>Download View</div>}
       />,
     );
 
@@ -78,6 +85,7 @@ describe("DashboardShell", () => {
     expect(screen.queryByText("Lançamentos View")).not.toBeInTheDocument();
     expect(screen.queryByText("Metas View")).not.toBeInTheDocument();
     expect(screen.queryByText("Fórum View")).not.toBeInTheDocument();
+    expect(screen.queryByText("Download View")).not.toBeInTheDocument();
   });
 
   it('deve renderizar o fórum quando activeView for "forum"', () => {
@@ -89,6 +97,7 @@ describe("DashboardShell", () => {
         goalsView={<div>Metas View</div>}
         insightsView={<div>Insights View</div>}
         forumView={<div>Fórum View</div>}
+        downloadView={<div>Download View</div>}
       />,
     );
 
@@ -97,5 +106,27 @@ describe("DashboardShell", () => {
     expect(screen.queryByText("Lançamentos View")).not.toBeInTheDocument();
     expect(screen.queryByText("Metas View")).not.toBeInTheDocument();
     expect(screen.queryByText("Insights View")).not.toBeInTheDocument();
+    expect(screen.queryByText("Download View")).not.toBeInTheDocument();
+  });
+
+  it('deve renderizar o download quando activeView for "download"', () => {
+    render(
+      <DashboardShell
+        activeView="download"
+        homeView={<div>Home View</div>}
+        transactionsView={<div>Lançamentos View</div>}
+        goalsView={<div>Metas View</div>}
+        insightsView={<div>Insights View</div>}
+        forumView={<div>Fórum View</div>}
+        downloadView={<div>Download View</div>}
+      />,
+    );
+
+    expect(screen.getByText("Download View")).toBeInTheDocument();
+    expect(screen.queryByText("Home View")).not.toBeInTheDocument();
+    expect(screen.queryByText("Lançamentos View")).not.toBeInTheDocument();
+    expect(screen.queryByText("Metas View")).not.toBeInTheDocument();
+    expect(screen.queryByText("Insights View")).not.toBeInTheDocument();
+    expect(screen.queryByText("Fórum View")).not.toBeInTheDocument();
   });
 });
