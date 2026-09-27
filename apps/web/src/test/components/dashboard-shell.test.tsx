@@ -14,6 +14,7 @@ describe("DashboardShell", () => {
         insightsView={<div>Insights View</div>}
         forumView={<div>Fórum View</div>}
         downloadView={<div>Download View</div>}
+        accountView={<div>Conta View</div>}
       />,
     );
 
@@ -35,6 +36,7 @@ describe("DashboardShell", () => {
         insightsView={<div>Insights View</div>}
         forumView={<div>Fórum View</div>}
         downloadView={<div>Download View</div>}
+        accountView={<div>Conta View</div>}
       />,
     );
 
@@ -56,6 +58,7 @@ describe("DashboardShell", () => {
         insightsView={<div>Insights View</div>}
         forumView={<div>Fórum View</div>}
         downloadView={<div>Download View</div>}
+        accountView={<div>Conta View</div>}
       />,
     );
 
@@ -77,6 +80,7 @@ describe("DashboardShell", () => {
         insightsView={<div>Insights View</div>}
         forumView={<div>Fórum View</div>}
         downloadView={<div>Download View</div>}
+        accountView={<div>Conta View</div>}
       />,
     );
 
@@ -98,6 +102,7 @@ describe("DashboardShell", () => {
         insightsView={<div>Insights View</div>}
         forumView={<div>Fórum View</div>}
         downloadView={<div>Download View</div>}
+        accountView={<div>Conta View</div>}
       />,
     );
 
@@ -119,6 +124,7 @@ describe("DashboardShell", () => {
         insightsView={<div>Insights View</div>}
         forumView={<div>Fórum View</div>}
         downloadView={<div>Download View</div>}
+        accountView={<div>Conta View</div>}
       />,
     );
 
@@ -128,5 +134,23 @@ describe("DashboardShell", () => {
     expect(screen.queryByText("Metas View")).not.toBeInTheDocument();
     expect(screen.queryByText("Insights View")).not.toBeInTheDocument();
     expect(screen.queryByText("Fórum View")).not.toBeInTheDocument();
+  });
+
+  it('deve renderizar a conta quando activeView for "account"', () => {
+    render(
+      <DashboardShell
+        activeView="account"
+        homeView={<div>Home View</div>}
+        transactionsView={<div>Lançamentos View</div>}
+        goalsView={<div>Metas View</div>}
+        insightsView={<div>Insights View</div>}
+        forumView={<div>Fórum View</div>}
+        downloadView={<div>Download View</div>}
+        accountView={<div>Conta View</div>}
+      />,
+    );
+
+    expect(screen.getByText("Conta View")).toBeInTheDocument();
+    expect(screen.queryByText("Insights View")).not.toBeInTheDocument();
   });
 });

@@ -10,6 +10,7 @@ type DashboardShellProps = {
   insightsView: ReactNode;
   forumView: ReactNode;
   downloadView: ReactNode;
+  accountView: ReactNode;
 };
 
 export function DashboardShell({
@@ -20,6 +21,7 @@ export function DashboardShell({
   insightsView,
   forumView,
   downloadView,
+  accountView,
 }: DashboardShellProps) {
   if (activeView === "home") {
     return <>{homeView}</>;
@@ -39,6 +41,10 @@ export function DashboardShell({
 
   if (activeView === "download") {
     return <>{downloadView}</>;
+  }
+
+  if (activeView === "account") {
+    return <>{accountView}</>;
   }
 
   return <>{insightsView}</>;

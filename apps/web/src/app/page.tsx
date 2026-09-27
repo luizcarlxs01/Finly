@@ -6,7 +6,6 @@ import {
   AppFloatingHeader,
   type DashboardView,
 } from "@/components/layout/app-floating-header";
-import { AccountAccessCard } from "@/components/auth/account-access-card";
 import { TransactionForm } from "@/components/dashboard/transaction-form";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { DashboardHomeView } from "@/components/dashboard/views/dashboard-home-view";
@@ -15,6 +14,7 @@ import { DashboardGoalsView } from "@/components/dashboard/views/dashboard-goals
 import { DashboardInsightsView } from "@/components/dashboard/views/dashboard-insights-view";
 import { DashboardDownloadView } from "@/components/dashboard/views/dashboard-download-view";
 import { DashboardForumView } from "@/components/dashboard/views/dashboard-forum-view";
+import { DashboardAccountView } from "@/components/dashboard/views/dashboard-account-view";
 import { FinancialRulesManager } from "@/components/dashboard/financial-rules-manager";
 import { SpendingProfileCard } from "@/components/dashboard/insights/spending-profile-card";
 import { useFinanceSource } from "@/contexts/finance-source-context";
@@ -161,7 +161,6 @@ export default function HomePage() {
   const [writeModeMessage, setWriteModeMessage] = useState<string | null>(null);
   const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
   const [isStatementProjectionModalOpen, setIsStatementProjectionModalOpen] = useState(false);
-  const [isAccountCardOpen, setIsAccountCardOpen] = useState(false);
   const [isSpeedDialOpen, setIsSpeedDialOpen] = useState(false);
   const [isFabTransactionOpen, setIsFabTransactionOpen] = useState(false);
   const [isFabGoalOpen, setIsFabGoalOpen] = useState(false);
@@ -774,6 +773,8 @@ export default function HomePage() {
 
   const downloadView = <DashboardDownloadView />;
 
+  const accountView = <DashboardAccountView />;
+
   const isLandingHome = activeView === "home";
 
   return (
@@ -783,17 +784,7 @@ export default function HomePage() {
           <AppFloatingHeader
             activeView={activeView}
             onChangeView={setActiveView}
-            isAccountCardOpen={isAccountCardOpen}
-            onToggleAccountCard={() => setIsAccountCardOpen((prev) => !prev)}
           />
-
-          {isAccountCardOpen ? (
-            <section className="px-4">
-              <div className="mx-auto max-w-6xl">
-                <AccountAccessCard />
-              </div>
-            </section>
-          ) : null}
 
           {writeModeMessage ? (
             <section
@@ -832,11 +823,14 @@ export default function HomePage() {
             insightsView={insightsView}
             forumView={forumView}
             downloadView={downloadView}
+            accountView={accountView}
           />
         </div>
       </PageContainer>
 
-      {activeView !== "home" && activeView !== "download" ? (
+      {activeView !== "home" &&
+      activeView !== "download" &&
+      activeView !== "account" ? (
         <div className="fixed bottom-6 right-6 z-40 flex flex-col-reverse items-end gap-3">
           <button
             type="button"

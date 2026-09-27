@@ -19,7 +19,7 @@ import { AppFloatingHeader } from "@/components/layout/app-floating-header";
 
 describe("AppFloatingHeader", () => {
   it("deve renderizar os elementos principais e as opcoes de navegacao", () => {
-    render(<AppFloatingHeader activeView="home" onChangeView={vi.fn()} isAccountCardOpen={false} onToggleAccountCard={vi.fn()} />);
+    render(<AppFloatingHeader activeView="home" onChangeView={vi.fn()} />);
 
     expect(screen.getByRole("img", { name: "Finly" })).toBeInTheDocument();
     expect(screen.getByText("Finly")).toBeInTheDocument();
@@ -39,7 +39,7 @@ describe("AppFloatingHeader", () => {
     const user = userEvent.setup();
     const onChangeView = vi.fn();
 
-    render(<AppFloatingHeader activeView="home" onChangeView={onChangeView} isAccountCardOpen={false} onToggleAccountCard={vi.fn()} />);
+    render(<AppFloatingHeader activeView="home" onChangeView={onChangeView} />);
 
     await user.click(screen.getByRole("button", { name: /Início/i }));
     await user.click(screen.getByRole("button", { name: /Lançamentos/i }));
@@ -52,8 +52,24 @@ describe("AppFloatingHeader", () => {
     expect(onChangeView).toHaveBeenNthCalledWith(4, "insights");
   });
 
+  it("deve abrir a view de conta pelo icone de usuario", async () => {
+    const user = userEvent.setup();
+    const onChangeView = vi.fn();
+
+    render(
+      <AppFloatingHeader
+        activeView="home"
+        onChangeView={onChangeView}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Conta" }));
+
+    expect(onChangeView).toHaveBeenCalledWith("account");
+  });
+
   it("deve destacar visualmente a aba ativa de forma observavel", () => {
-    render(<AppFloatingHeader activeView="goals" onChangeView={vi.fn()} isAccountCardOpen={false} onToggleAccountCard={vi.fn()} />);
+    render(<AppFloatingHeader activeView="goals" onChangeView={vi.fn()} />);
 
     const goalsButton = screen.getByRole("button", { name: /Metas/i });
     const homeButton = screen.getByRole("button", { name: /Início/i });
@@ -67,8 +83,6 @@ describe("AppFloatingHeader", () => {
       <AppFloatingHeader
         activeView="goals"
         onChangeView={vi.fn()}
-        isAccountCardOpen={false}
-        onToggleAccountCard={vi.fn()}
       />,
     );
 

@@ -51,7 +51,6 @@ export function AccountAccessCard() {
     session,
   } = useAuthSession();
   const [activeIntent, setActiveIntent] = useState<AccessIntent>("login");
-  const [isFormOpen, setIsFormOpen] = useState(false);
   const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
 
   if (!isLoaded) {
@@ -117,64 +116,53 @@ export function AccountAccessCard() {
 
   return (
     <div className="space-y-4">
-      <Card className="border border-border/70 bg-card/80">
-        <CardHeader>
-          <CardTitle>Use o Finly com sua conta</CardTitle>
-          <CardDescription>
-            Entre ou crie uma conta para sincronizar seus dados e acessá-los em
-            outros dispositivos.
-          </CardDescription>
-        </CardHeader>
+      <div
+        role="tablist"
+        aria-label="Acesso da conta"
+        className="grid grid-cols-2 gap-1 rounded-xl border border-border/70 bg-muted/45 p-1"
+      >
+        <Button
+          type="button"
+          role="tab"
+          aria-selected={activeIntent === "login"}
+          variant={activeIntent === "login" ? "default" : "ghost"}
+          className="h-10 rounded-lg"
+          onClick={() => setActiveIntent("login")}
+        >
+          Entrar
+        </Button>
+        <Button
+          type="button"
+          role="tab"
+          aria-selected={activeIntent === "register"}
+          variant={activeIntent === "register" ? "default" : "ghost"}
+          className="h-10 rounded-lg"
+          onClick={() => setActiveIntent("register")}
+        >
+          Criar conta
+        </Button>
+      </div>
 
-        <CardContent className="flex flex-col gap-3 sm:flex-row">
-          <Button
-            type="button"
-            className="sm:min-w-44"
-            onClick={() => {
-              setActiveIntent("login");
-              setIsFormOpen(true);
-            }}
-          >
-            Entrar na conta
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            className="sm:min-w-44"
-            onClick={() => {
-              setActiveIntent("register");
-              setIsFormOpen(true);
-            }}
-          >
-            Criar conta
-          </Button>
-        </CardContent>
+      {activeIntent === "register" ? (
+        <RegisterForm
+          isSubmitting={isSubmitting}
+          onSubmit={register}
+          footerText="Sua sessão será criada automaticamente após o cadastro, e ficará salva neste navegador."
+        />
+      ) : (
+        <LoginForm
+          isSubmitting={isSubmitting}
+          onSubmit={login}
+          onForgotPassword={() => setIsForgotPasswordOpen(true)}
+          title="Entrar na sua conta"
+          description="Acesse sua conta para sincronizar transações, metas e resumo financeiro."
+          footerText="Seu acesso fica salvo neste navegador para facilitar os próximos acessos."
+        />
+      )}
 
-        <CardFooter className="border-t border-border/60 pt-4 text-xs text-muted-foreground">
-          Modo sem conta — dados salvos neste navegador
-        </CardFooter>
-      </Card>
-
-      {isFormOpen ? (
-        <div className="space-y-3">
-          {activeIntent === "register" ? (
-            <RegisterForm
-              isSubmitting={isSubmitting}
-              onSubmit={register}
-              footerText="Sua sessão será criada automaticamente após o cadastro, e ficará salva neste navegador."
-            />
-          ) : (
-            <LoginForm
-              isSubmitting={isSubmitting}
-              onSubmit={login}
-              onForgotPassword={() => setIsForgotPasswordOpen(true)}
-              title="Entrar na sua conta"
-              description="Acesse sua conta para sincronizar transações, metas e resumo financeiro."
-              footerText="Seu acesso fica salvo neste navegador para facilitar os próximos acessos."
-            />
-          )}
-        </div>
-      ) : null}
+      <p className="text-center text-xs text-muted-foreground">
+        Modo sem conta — dados salvos neste navegador
+      </p>
     </div>
   );
 }

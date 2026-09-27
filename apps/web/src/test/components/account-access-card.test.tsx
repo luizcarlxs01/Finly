@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
 const mockUseAuthSession = vi.fn();
 
@@ -28,6 +29,26 @@ describe("AccountAccessCard", () => {
     expect(
       screen.getByText("Modo sem conta — dados salvos neste navegador"),
     ).toBeInTheDocument();
+  });
+
+  it("exibe o formulario de login imediatamente no modo sem conta", () => {
+    render(<AccountAccessCard />);
+
+    expect(screen.getByText("Entrar na sua conta")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Entrar na conta" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("deve alternar do login para a criacao de conta", async () => {
+    const user = userEvent.setup();
+
+    render(<AccountAccessCard />);
+
+    await user.click(screen.getByRole("tab", { name: "Criar conta" }));
+
+    expect(screen.getByText("Criar conta no Finly")).toBeInTheDocument();
+    expect(screen.queryByText("Entrar na sua conta")).not.toBeInTheDocument();
   });
 
   it("exibe o modo sincronizado para uma sessão autenticada", () => {

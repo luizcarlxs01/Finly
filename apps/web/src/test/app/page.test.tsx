@@ -361,6 +361,33 @@ describe("HomePage", () => {
     expect(screen.getByText("HomeView")).toBeInTheDocument();
   });
 
+  it("deve abrir o login diretamente pela view de conta", async () => {
+    const user = userEvent.setup();
+
+    setupLoadedMocks();
+
+    render(<HomePage />);
+
+    await user.click(screen.getByRole("button", { name: "Conta" }));
+
+    expect(await screen.findByText("Entrar na sua conta")).toBeInTheDocument();
+    expect(screen.queryByText("HomeView")).not.toBeInTheDocument();
+  });
+
+  it("nao deve exibir o atalho de lancamento na view de conta", async () => {
+    const user = userEvent.setup();
+
+    setupLoadedMocks();
+
+    render(<HomePage />);
+
+    await user.click(screen.getByRole("button", { name: "Conta" }));
+
+    expect(
+      screen.queryByRole("button", { name: "Novo lançamento" }),
+    ).not.toBeInTheDocument();
+  });
+
   it("deve manter renderizacao estavel com dados minimos validos", async () => {
     const user = userEvent.setup();
 
