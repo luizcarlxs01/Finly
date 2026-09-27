@@ -46,6 +46,10 @@ vi.mock("@/components/dashboard/financial-forecast-card", () => ({
   ),
 }));
 
+vi.mock("@/components/dashboard/insights/spending-analysis-panel", () => ({
+  SpendingAnalysisPanel: () => <div>SpendingAnalysisPanel</div>,
+}));
+
 import { DashboardInsightsView } from "@/components/dashboard/views/dashboard-insights-view";
 import type { DashboardInsight } from "@/utils/dashboard-insights";
 
@@ -90,8 +94,7 @@ describe("DashboardInsightsView", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("DashboardInsights")).toBeInTheDocument();
     expect(screen.getByText("FinancialForecastCard")).toBeInTheDocument();
-    expect(screen.getByText("Mais contexto, no seu tempo")).toBeInTheDocument();
-    expect(screen.getByText("Mais análises em breve.")).toBeInTheDocument();
+    expect(screen.getByText("SpendingAnalysisPanel")).toBeInTheDocument();
   });
 
   it("deve exibir corretamente os insights recebidos por props com dados completos", () => {

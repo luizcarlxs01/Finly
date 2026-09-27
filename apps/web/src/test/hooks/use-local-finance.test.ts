@@ -129,7 +129,14 @@ describe("useLocalFinance", () => {
     await waitFor(() => {
       expect(setItemSpy).toHaveBeenCalledWith(
         LOCAL_STORAGE_KEY,
-        JSON.stringify({ initialBalance: 0, transactions: [], occurrences: [] }),
+        JSON.stringify({
+          initialBalance: 0,
+          transactions: [],
+          occurrences: [],
+          spendingProfile: "padrao",
+          customOkThreshold: null,
+          customGoodThreshold: null,
+        }),
       );
     });
   });
@@ -144,7 +151,14 @@ describe("useLocalFinance", () => {
 
     await waitFor(() => {
       expect(window.localStorage.getItem(LOCAL_STORAGE_KEY)).toBe(
-        JSON.stringify({ initialBalance: 0, transactions: [], occurrences: [] }),
+        JSON.stringify({
+          initialBalance: 0,
+          transactions: [],
+          occurrences: [],
+          spendingProfile: "padrao",
+          customOkThreshold: null,
+          customGoodThreshold: null,
+        }),
       );
     });
   });

@@ -16,6 +16,7 @@ import type {
 import { flattenApiTransactionToLineItems } from "@/utils/flatten-transaction";
 import { generateOccurrenceExtension, generateOccurrences } from "@/utils/occurrence-generation";
 import { formatDateValue, getTodayDateValue, parseDateValue } from "@/utils/recurring-transactions";
+import type { SpendingProfileSettings } from "@/utils/spending-profile";
 import {
   getBackendTransactionKind,
   inferContractRecurrenceMode,
@@ -64,6 +65,9 @@ const defaultProfile: LocalFinanceProfile = {
   initialBalance: 0,
   transactions: [],
   occurrences: [],
+  spendingProfile: "padrao",
+  customOkThreshold: null,
+  customGoodThreshold: null,
 };
 
 export function normalizeTransactionInput(input: LocalFinanceTransactionInput) {
@@ -264,6 +268,9 @@ function normalizeStoredProfile(profile: LocalFinanceProfile): LocalFinanceProfi
     initialBalance: profile.initialBalance ?? 0,
     transactions: profile.transactions ?? [],
     occurrences: profile.occurrences ?? [],
+    spendingProfile: profile.spendingProfile ?? "padrao",
+    customOkThreshold: profile.customOkThreshold ?? null,
+    customGoodThreshold: profile.customGoodThreshold ?? null,
   };
 }
 
@@ -423,6 +430,16 @@ export function useLocalFinance() {
     setProfile((currentProfile) => ({
       ...currentProfile,
       initialBalance: value,
+    }));
+  }
+
+  function updateSpendingProfile(settings: SpendingProfileSettings) {
+    setProfile((currentProfile) => ({
+      ...currentProfile,
+      spendingProfile: settings.id,
+      customOkThreshold: settings.id === "personalizado" ? settings.customOkThreshold ?? null : null,
+      customGoodThreshold:
+        settings.id === "personalizado" ? settings.customGoodThreshold ?? null : null,
     }));
   }
 
@@ -590,7 +607,11 @@ export function useLocalFinance() {
     totalExpense,
     currentBalance,
     isLoaded,
+    spendingProfile: profile.spendingProfile ?? "padrao",
+    customOkThreshold: profile.customOkThreshold ?? null,
+    customGoodThreshold: profile.customGoodThreshold ?? null,
     updateInitialBalance,
+    updateSpendingProfile,
     addTransaction,
     updateTransaction,
     removeTransaction,

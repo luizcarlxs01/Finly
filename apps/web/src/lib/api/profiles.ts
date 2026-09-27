@@ -5,6 +5,9 @@ export type UpdateProfileRequest = {
   name: string;
   description: string | null;
   initialBalance: number;
+  spendingProfile?: string;
+  customOkThreshold?: number;
+  customGoodThreshold?: number;
 };
 
 export const PROFILE_UPDATED_EVENT = "finly:profile-updated";

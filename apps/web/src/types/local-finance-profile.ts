@@ -1,4 +1,5 @@
 import type { ApiOccurrence } from "@/types/api-occurrence";
+import type { SpendingProfileId } from "@/utils/spending-profile";
 
 /**
  * Espelha ApiTransaction (types/api-transaction.ts), mas sem `financialProfileId`/
@@ -32,4 +33,8 @@ export type LocalFinanceProfile = {
   initialBalance: number;
   transactions: LocalTransactionContract[];
   occurrences: ApiOccurrence[];
+  /** Ausente em dados salvos antes desta feature — normalizado pra "padrao" na leitura. */
+  spendingProfile?: SpendingProfileId;
+  customOkThreshold?: number | null;
+  customGoodThreshold?: number | null;
 };

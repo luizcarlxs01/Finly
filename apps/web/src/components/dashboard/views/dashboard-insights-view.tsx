@@ -3,6 +3,8 @@ import type { ReactNode } from "react";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
 import { DashboardInsights } from "@/components/dashboard/dashboard-insights";
 import { FinancialForecastCard } from "@/components/dashboard/financial-forecast-card";
+import { SpendingAnalysisPanel } from "@/components/dashboard/insights/spending-analysis-panel";
+import type { Transaction } from "@/types/finance";
 import type { DashboardInsight } from "@/utils/dashboard-insights";
 
 export type DashboardInsightsViewProps = {
@@ -11,6 +13,8 @@ export type DashboardInsightsViewProps = {
   forecastTotalIncome: number;
   forecastTotalExpense: number;
   forecastProjectedBalance: number;
+  spendingProfileCard?: ReactNode;
+  analysisTransactions?: Transaction[];
 };
 
 export function DashboardInsightsView({
@@ -19,6 +23,8 @@ export function DashboardInsightsView({
   forecastTotalIncome,
   forecastTotalExpense,
   forecastProjectedBalance,
+  spendingProfileCard = null,
+  analysisTransactions = [],
 }: DashboardInsightsViewProps) {
   return (
     <div className="space-y-6 2xl:space-y-8">
@@ -26,6 +32,8 @@ export function DashboardInsightsView({
         title="Insights"
         description="Veja leituras rápidas sobre sua vida financeira."
       />
+
+      {spendingProfileCard}
 
       <section className="grid gap-6 2xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
         <div className="min-w-0">
@@ -41,16 +49,7 @@ export function DashboardInsightsView({
         </div>
       </section>
 
-      <section className="rounded-[1.75rem] border border-border/60 bg-card/70 p-5 shadow-sm sm:p-6">
-        <div className="space-y-2">
-          <h3 className="text-lg font-semibold tracking-tight text-foreground">
-            Mais contexto, no seu tempo
-          </h3>
-          <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-            Mais análises em breve.
-          </p>
-        </div>
-      </section>
+      <SpendingAnalysisPanel transactions={analysisTransactions} />
 
       {accountAutomationView}
     </div>

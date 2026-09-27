@@ -1,6 +1,7 @@
 import type { Transaction } from "@/types/finance";
 import type { Goal } from "@/types/goal";
 import { getTransactionCategoryLabel } from "@/types/transaction-category";
+import type { SpendingThresholds } from "@/utils/spending-profile";
 
 export type DashboardInsightTone = "neutral" | "positive" | "warning";
 
@@ -69,29 +70,43 @@ function getClosestGoal(goals: Goal[]) {
   return goalsWithProgress[0];
 }
 
-function getBalanceStatus(currentBalance: number, totalExpense: number) {
-  if (currentBalance > 0 && currentBalance >= totalExpense * 0.5) {
+/**
+ * Classifica o saldo atual conforme os limiares do perfil de gastos (seção 29
+ * do CLAUDE.md) — não é mais um corte único de 50% da despesa pra todo mundo.
+ * Negativo é sempre "ruim", independente do perfil.
+ */
+function getBalanceStatus(currentBalance: number, thresholds: SpendingThresholds) {
+  if (currentBalance < 0) {
     return {
-      label: "Saldo saudável",
+      label: "Saldo negativo",
       description:
-        "Seu saldo atual mantém uma folga confortável em relação ao ritmo das saídas.",
-      tone: "positive" as const,
-    };
-  }
-
-  if (currentBalance >= 0) {
-    return {
-      label: "Saldo em atenção",
-      description:
-        "Seu saldo segue positivo, mas já merece acompanhamento mais próximo.",
+        "Seu saldo atual está abaixo de zero e pede revisão das próximas movimentações.",
       tone: "warning" as const,
     };
   }
 
+  if (currentBalance >= thresholds.good) {
+    return {
+      label: "Saldo saudável",
+      description:
+        "Seu saldo atual mantém uma folga confortável para o seu perfil de gastos.",
+      tone: "positive" as const,
+    };
+  }
+
+  if (currentBalance >= thresholds.ok) {
+    return {
+      label: "Saldo em atenção",
+      description:
+        "Seu saldo está numa faixa intermediária para o seu perfil — dá pra melhorar.",
+      tone: "neutral" as const,
+    };
+  }
+
   return {
-    label: "Saldo negativo",
+    label: "Saldo baixo",
     description:
-      "Seu saldo atual está abaixo de zero e pede revisão das próximas movimentações.",
+      "Seu saldo está abaixo do esperado para o seu perfil de gastos.",
     tone: "warning" as const,
   };
 }
@@ -102,14 +117,16 @@ export function getDashboardInsights(input: {
   totalIncome: number;
   totalExpense: number;
   currentBalance: number;
+  spendingThresholds: SpendingThresholds;
 }) {
-  const { transactions, goals, totalIncome, totalExpense, currentBalance } = input;
+  const { transactions, goals, totalIncome, totalExpense, currentBalance, spendingThresholds } =
+    input;
 
   const topExpenseCategory = getTopExpenseCategory(transactions);
   const expenseRatio =
     totalIncome > 0 ? Math.round((totalExpense / totalIncome) * 100) : null;
   const closestGoal = getClosestGoal(goals);
-  const balanceStatus = getBalanceStatus(currentBalance, totalExpense);
+  const balanceStatus = getBalanceStatus(currentBalance, spendingThresholds);
 
   const insights: DashboardInsight[] = [
     {

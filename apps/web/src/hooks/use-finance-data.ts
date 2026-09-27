@@ -20,6 +20,11 @@ import type { DashboardSummary } from "@/types/dashboard";
 import type { Profile } from "@/types/profile";
 import type { Transaction } from "@/types/transaction";
 import { flattenApiTransactionToLineItems } from "@/utils/flatten-transaction";
+import {
+  DEFAULT_SPENDING_PROFILE_SETTINGS,
+  spendingProfileFromApi,
+  type SpendingProfileSettings,
+} from "@/utils/spending-profile";
 
 type FinanceDataState = {
   apiContractTransactions: ApiTransaction[];
@@ -31,6 +36,7 @@ type FinanceDataState = {
   isLoading: boolean;
   postedTransactions: Transaction[];
   selectedProfile: Profile | null;
+  spendingProfileSettings: SpendingProfileSettings;
   source: "local" | "api";
   totalExpense: number;
   totalIncome: number;
@@ -221,6 +227,11 @@ export function useFinanceData(
       errorMessage: null,
       postedTransactions: localFinance.postedTransactions,
       selectedProfile: null,
+      spendingProfileSettings: {
+        id: localFinance.spendingProfile,
+        customOkThreshold: localFinance.customOkThreshold,
+        customGoodThreshold: localFinance.customGoodThreshold,
+      },
       dashboard: localDashboard,
       totalExpense: localFinance.totalExpense,
       totalIncome: localFinance.totalIncome,
@@ -238,6 +249,13 @@ export function useFinanceData(
     errorMessage,
     postedTransactions: apiPostedTransactions,
     selectedProfile,
+    spendingProfileSettings: selectedProfile
+      ? {
+          id: spendingProfileFromApi(selectedProfile.spendingProfile),
+          customOkThreshold: selectedProfile.customOkThreshold,
+          customGoodThreshold: selectedProfile.customGoodThreshold,
+        }
+      : DEFAULT_SPENDING_PROFILE_SETTINGS,
     dashboard: apiDashboard,
     totalExpense: apiDashboard?.totalExpense ?? 0,
     totalIncome: apiDashboard?.totalIncome ?? 0,

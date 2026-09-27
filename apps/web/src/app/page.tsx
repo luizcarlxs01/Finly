@@ -15,6 +15,7 @@ import { DashboardGoalsView } from "@/components/dashboard/views/dashboard-goals
 import { DashboardInsightsView } from "@/components/dashboard/views/dashboard-insights-view";
 import { DashboardForumView } from "@/components/dashboard/views/dashboard-forum-view";
 import { FinancialRulesManager } from "@/components/dashboard/financial-rules-manager";
+import { SpendingProfileCard } from "@/components/dashboard/insights/spending-profile-card";
 import { useFinanceSource } from "@/contexts/finance-source-context";
 import { useCreateTransaction } from "@/hooks/use-create-transaction";
 import { useCreateGoal } from "@/hooks/use-create-goal";
@@ -31,6 +32,7 @@ import { useUpdateGoalProgress } from "@/hooks/use-update-goal-progress";
 import { useUpdateOccurrence } from "@/hooks/use-update-occurrence";
 import { useUpdateTransaction } from "@/hooks/use-update-transaction";
 import { useUpdateInitialBalance } from "@/hooks/use-update-initial-balance";
+import { useUpdateSpendingProfile } from "@/hooks/use-update-spending-profile";
 import { GoalForm } from "@/components/dashboard/goal-form";
 import { GoalProgressModal } from "@/components/dashboard/goal-progress-modal";
 import { FinancialCalendarModal } from "@/components/dashboard/overlays/financial-calendar-modal";
@@ -47,6 +49,7 @@ import type { Transaction, TransactionFilter } from "@/types/finance";
 import type { Goal } from "@/types/goal";
 import { getTransactionCategoryLabel } from "@/types/transaction-category";
 import { getDashboardInsights } from "@/utils/dashboard-insights";
+import { resolveSpendingThresholds } from "@/utils/spending-profile";
 import { getNextRecurringOccurrenceDate } from "@/utils/recurring-transactions";
 import { getNextMonthLabel } from "@/utils/financial-calendar";
 import type { TransactionSortOption } from "@/components/dashboard/transaction-advanced-filters";
@@ -122,6 +125,7 @@ export default function HomePage() {
   const goalsData = useGoalsData({ localGoals });
   const {
     updateInitialBalance,
+    updateSpendingProfile: updateLocalSpendingProfile,
     addTransaction,
     updateTransaction,
     removeTransaction,
@@ -211,6 +215,13 @@ export default function HomePage() {
     updateInitialBalance: updateInitialBalanceUnified,
   } = useUpdateInitialBalance({
     updateLocalInitialBalance: updateInitialBalance,
+    selectedProfile: financeData.selectedProfile,
+  });
+  const {
+    isSubmitting: isUpdatingSpendingProfile,
+    updateSpendingProfile: updateSpendingProfileUnified,
+  } = useUpdateSpendingProfile({
+    updateLocalSpendingProfile,
     selectedProfile: financeData.selectedProfile,
   });
   const {
@@ -315,6 +326,11 @@ export default function HomePage() {
     sortOption,
   ]);
 
+  const spendingThresholds = useMemo(
+    () => resolveSpendingThresholds(financeData.spendingProfileSettings),
+    [financeData.spendingProfileSettings],
+  );
+
   const insights = useMemo(
     () =>
       getDashboardInsights({
@@ -323,8 +339,9 @@ export default function HomePage() {
         totalIncome,
         totalExpense,
         currentBalance,
+        spendingThresholds,
       }),
-    [postedTransactions, goals, totalIncome, totalExpense, currentBalance],
+    [postedTransactions, goals, totalIncome, totalExpense, currentBalance, spendingThresholds],
   );
 
   const projectionTransactions = previewTransactions ?? transactions;
@@ -723,6 +740,14 @@ export default function HomePage() {
       forecastTotalIncome={forecast.totalIncome}
       forecastTotalExpense={forecast.totalExpense}
       forecastProjectedBalance={forecast.projectedBalance}
+      spendingProfileCard={
+        <SpendingProfileCard
+          settings={financeData.spendingProfileSettings}
+          isSubmitting={isUpdatingSpendingProfile}
+          onSave={updateSpendingProfileUnified}
+        />
+      }
+      analysisTransactions={postedTransactions}
       accountAutomationView={
         isApiMode && financeData.selectedProfile ? (
           <FinancialRulesManager

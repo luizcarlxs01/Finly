@@ -62,6 +62,8 @@ function getInsight(
   return insight!;
 }
 
+const PADRAO_THRESHOLDS = { ok: 500, good: 2000 };
+
 describe("getDashboardInsights", () => {
   it("deve montar os insights principais com dados preenchidos", () => {
     const insights = getDashboardInsights({
@@ -99,7 +101,8 @@ describe("getDashboardInsights", () => {
       ],
       totalIncome: 2500,
       totalExpense: 1200,
-      currentBalance: 1800,
+      currentBalance: 2500,
+      spendingThresholds: PADRAO_THRESHOLDS,
     });
 
     expect(insights).toHaveLength(5);
@@ -146,10 +149,11 @@ describe("getDashboardInsights", () => {
       totalIncome: 0,
       totalExpense: 0,
       currentBalance: 0,
+      spendingThresholds: PADRAO_THRESHOLDS,
     });
 
     expect(getInsight(insights, "balance-status")).toMatchObject({
-      title: "Saldo em atenção",
+      title: "Saldo baixo",
       tone: "warning",
     });
 
@@ -187,6 +191,7 @@ describe("getDashboardInsights", () => {
       totalIncome: 1000,
       totalExpense: 850,
       currentBalance: -10,
+      spendingThresholds: PADRAO_THRESHOLDS,
     });
 
     expect(getInsight(insights, "balance-status")).toMatchObject({
@@ -232,6 +237,7 @@ describe("getDashboardInsights", () => {
       totalIncome: 500,
       totalExpense: 100,
       currentBalance: 400,
+      spendingThresholds: PADRAO_THRESHOLDS,
     });
 
     expect(getInsight(insights, "closest-goal")).toMatchObject({
@@ -259,6 +265,7 @@ describe("getDashboardInsights", () => {
       totalIncome: 1000,
       totalExpense: 250,
       currentBalance: 400,
+      spendingThresholds: PADRAO_THRESHOLDS,
     });
 
     expect(getInsight(insights, "top-expense-category")).toMatchObject({
