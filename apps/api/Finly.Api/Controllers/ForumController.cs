@@ -21,16 +21,20 @@ public class ForumController : ApiControllerBase
         _adminSettings = adminOptions.Value;
     }
 
-    [AllowAnonymous]
+    [Authorize]
     [EnableRateLimiting("forum-post")]
     [HttpPost("topics")]
     public async Task<IActionResult> CreateTopic(
         [FromBody] CreateTopicRequestDto request,
         CancellationToken cancellationToken)
     {
+        var userId = GetAuthenticatedUserId();
+        if (userId is null)
+            return Unauthorized();
+
         try
         {
-            var topic = await _forumService.CreateTopicAsync(request, GetAuthenticatedUserId(), cancellationToken);
+            var topic = await _forumService.CreateTopicAsync(request, userId.Value, cancellationToken);
             return CreatedAtAction(nameof(GetTopic), new { id = topic.Id }, topic);
         }
         catch (InvalidOperationException ex)

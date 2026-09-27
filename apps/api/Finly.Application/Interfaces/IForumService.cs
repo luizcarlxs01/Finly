@@ -7,7 +7,7 @@ public interface IForumService
 {
     Task<TopicDetailDto> CreateTopicAsync(
         CreateTopicRequestDto request,
-        Guid? userId,
+        Guid userId,
         CancellationToken cancellationToken = default);
 
     Task<List<TopicSummaryDto>> GetPublishedTopicsAsync(CancellationToken cancellationToken = default);

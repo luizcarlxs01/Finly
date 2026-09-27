@@ -9,31 +9,26 @@ namespace Finly.Application.Services;
 public class ForumService : IForumService
 {
     private readonly IAppDbContext _context;
-    private readonly IEmailDomainValidationService _emailDomainValidationService;
     private readonly IContentModerationService _moderationService;
     private readonly IEmailSender _emailSender;
 
     public ForumService(
         IAppDbContext context,
-        IEmailDomainValidationService emailDomainValidationService,
         IContentModerationService moderationService,
         IEmailSender emailSender)
     {
         _context = context;
-        _emailDomainValidationService = emailDomainValidationService;
         _moderationService = moderationService;
         _emailSender = emailSender;
     }
 
     public async Task<TopicDetailDto> CreateTopicAsync(
         CreateTopicRequestDto request,
-        Guid? userId,
+        Guid userId,
         CancellationToken cancellationToken = default)
     {
         var title = request.Title.Trim();
         var body = request.Body.Trim();
-        var authorName = request.AuthorName.Trim();
-        var authorEmail = request.AuthorEmail.Trim().ToLowerInvariant();
 
         if (string.IsNullOrWhiteSpace(title))
             throw new InvalidOperationException("O título é obrigatório.");
@@ -41,12 +36,9 @@ public class ForumService : IForumService
         if (string.IsNullOrWhiteSpace(body))
             throw new InvalidOperationException("A descrição é obrigatória.");
 
-        if (string.IsNullOrWhiteSpace(authorName))
-            throw new InvalidOperationException("O nome é obrigatório.");
-
-        var hasValidDomain = await _emailDomainValidationService.HasValidMxRecordAsync(authorEmail, cancellationToken);
-        if (!hasValidDomain)
-            throw new InvalidOperationException("O domínio do e-mail informado não parece existir ou não pode receber e-mails.");
+        var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId, cancellationToken);
+        if (user is null)
+            throw new InvalidOperationException("Usuário não encontrado.");
 
         var moderation = _moderationService.Analyze(title, body);
 
@@ -54,8 +46,8 @@ public class ForumService : IForumService
         {
             Title = title,
             Body = body,
-            AuthorName = authorName,
-            AuthorEmail = authorEmail,
+            AuthorName = user.Name,
+            AuthorEmail = user.Email,
             UserId = userId,
             Status = moderation.IsFlagged ? TopicStatus.PendingReview : TopicStatus.Published,
             ModerationReason = moderation.Reason
