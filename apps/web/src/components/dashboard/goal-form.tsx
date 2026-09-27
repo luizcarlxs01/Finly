@@ -24,6 +24,8 @@ type GoalFormProps = {
 const fieldClassName =
   "w-full rounded-2xl border border-border/70 bg-background px-4 py-3 text-sm text-foreground outline-none transition placeholder:text-muted-foreground/80 focus:border-primary focus:ring-2 focus:ring-primary/15";
 
+const dateInputClassName = `${fieldClassName} cursor-pointer appearance-none pl-11 text-base sm:text-sm [&::-webkit-calendar-picker-indicator]:hidden`;
+
 function getTodayDateValue() {
   return new Date().toISOString().split("T")[0];
 }
@@ -217,7 +219,7 @@ export function GoalForm({
                     min={getTodayDateValue()}
                     value={deadline}
                     onChange={(event) => setDeadline(event.target.value)}
-                    className={`${fieldClassName} pl-11`}
+                    className={dateInputClassName}
                   />
                 </div>
               </div>
