@@ -1144,10 +1144,37 @@ Bundle id resultante: `com.finly.finlyMobile` (não precisa bater com o
 para o sideload funcionar). `flutter analyze` limpo e `flutter pub get` OK
 depois da correção.
 
-**Ainda não validado**: abrir o projeto no Xcode de verdade (precisa de um
-Mac, real ou alugado — nenhum disponível neste ambiente) e rodar
-`pod install`/build. O scaffold agora existe e é válido, mas nunca foi aberto
-num Xcode de fato.
+**Ainda não validado**: abrir o projeto no Xcode de verdade e instalar num
+iPhone real. O scaffold agora existe e é válido, mas nunca foi aberto num
+Xcode de fato.
+
+### iOS — build sem precisar de Mac, via GitHub Actions (27/09/2026)
+
+Repositório do Finly é **público** (`github.com/luizcarlxs01/Finly`) — runners
+macOS do GitHub Actions são **gratuitos e ilimitados** em repositório público
+(diferente de privado, que consome minutos do plano a 10x). Isso elimina por
+completo a necessidade de alugar um Mac (Scaleway/MacinCloud/AWS) só para
+compilar o `.ipa` uma vez.
+
+`.github/workflows/ios-build.yml` — `workflow_dispatch` (disparo manual pela
+aba Actions do GitHub), roda em `runs-on: macos-latest`:
+`flutter pub get` → `pod repo update` → `flutter build ios --release
+--no-codesign` → empacota `Runner.app` em `Payload/` → zip vira
+`FinlyMobile.ipa` → sobe como **artifact do run** (`actions/upload-artifact`,
+retenção 14 dias) — sem criar Release, sem secret nenhum (o build não é
+assinado, a assinatura de verdade acontece depois no Windows via Sideloadly,
+igual ao plano original com Mac alugado).
+
+Baseado no workflow público de referência de
+[AmirBayat0/iOS_iPA](https://github.com/AmirBayat0/iOS_iPA) (mesmo padrão
+usado no tutorial "Flutter iOS IPA Build: No Apple Developer Account or
+MacBook Needed!"), adaptado para a estrutura de monorepo do Finly
+(`working-directory: apps/mobile` em cada step, já que o app não fica na raiz
+do repo).
+
+**Ainda não disparado/validado** — falta rodar o workflow pela primeira vez,
+baixar o `.ipa` gerado como artifact do run e seguir com Sideloadly + AltServer
+para instalar no iPhone (ver o guia publicado para o usuário).
 
 ### Ambiente
 
