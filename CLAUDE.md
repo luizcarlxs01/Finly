@@ -1444,7 +1444,7 @@ deixam de ser digitáveis — são sempre os do cadastro, sem exceção.
 
 Validado localmente via Docker: `curl` sem token em `POST /api/forum/topics`
 → `401`; logado no browser, o formulário mostra "Publicando como Teste 2FA
-(luiz.barbosaf288@gmail.com)" sem campo editável, `POST` retorna `201` e o
+(usuario@exemplo.com)" sem campo editável, `POST` retorna `201` e o
 tópico aparece na lista com o nome da conta. Deslogado, o formulário some e
 aparece o card de login. `dotnet build` limpo, `npx tsc --noEmit` limpo,
 `npx vitest run` sem regressão (mesmas 4 falhas pré-existentes), `flutter
@@ -1648,7 +1648,7 @@ frontend estiver rodando na mesma máquina de quem abrir o link.
 
 Backend: `dotnet build` limpo. Testado via curl local (Docker) — e-mail
 existente e inexistente devolvem a mesma resposta `200`. Testado ponta a ponta
-no browser (local, `luiz.barbosaf288@gmail.com` real): "Esqueci minha senha" →
+no browser (local, `usuario@exemplo.com`): "Esqueci minha senha" →
 `forgot-password` 200 → e-mail chegou via Resend (sandbox, caiu no spam, mesmo
 padrão documentado na seção 26) → link abriu `/redefinir-senha?token=...` →
 nova senha → `reset-password` 200 → tela "Senha redefinida!" sem sessão criada

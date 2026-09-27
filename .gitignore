@@ -8,6 +8,24 @@ Thumbs.db
 .env.development.local
 .env.test.local
 .env.production.local
+.env.*
+!.env.example
+!**/.env.example
+
+# Secrets and signing material
+*.key
+*.pem
+*.p8
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.mobileprovision
+
+# Local archives
+*.zip
+*.tgz
+*.tar.gz
 
 # Node / Next
 node_modules/
