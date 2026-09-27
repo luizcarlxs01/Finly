@@ -2,7 +2,7 @@ name: finly_mobile
 description: "Finly Mobile — espelho do frontend web (apps/web), consumindo a mesma API .NET."
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 1.00.000+1
 
 environment:
   sdk: ^3.3.0
