@@ -209,7 +209,7 @@ export function GoalForm({
                   Prazo
                 </label>
 
-                <div className="relative">
+                <div className="relative min-w-0">
                   <CalendarDays className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                   <input
                     id="goal-deadline"
