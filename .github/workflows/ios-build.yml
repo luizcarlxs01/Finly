@@ -2,6 +2,10 @@ name: iOS IPA Build (Finly Mobile)
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/ios-build.yml"
 
 jobs:
   build-ios:
