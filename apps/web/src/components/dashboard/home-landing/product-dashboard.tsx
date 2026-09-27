@@ -72,7 +72,7 @@ export function ProductDashboard() {
           <div className={homeClass("dashboard-topbar")}>
             <div>
               <span className={homeClass("dashboard-kicker")}>Visão geral</span>
-              <strong>Olá, Luiz</strong>
+              <strong>Olá!</strong>
             </div>
             <div className={homeClass("dashboard-tools")} aria-hidden="true">
               <span className={homeClass("dashboard-period")}>
@@ -81,7 +81,7 @@ export function ProductDashboard() {
               <span className={homeClass("dashboard-bell")}>
                 <Bell />
               </span>
-              <span className={homeClass("dashboard-avatar")}>LC</span>
+              <span className={homeClass("dashboard-avatar")}>FN</span>
             </div>
           </div>
 
