@@ -1283,9 +1283,11 @@ foi validado no web e no backend, usando o mesmo contrato de API.
 
 ### O que é
 
-Qualquer pessoa (com ou sem conta) cria um tópico com título, descrição, nome e
-e-mail. Um filtro automático decide se publica na hora ou entra numa fila de
-aprovação manual. O admin (você) vê a fila numa seção que só aparece pra você,
+Quem está logado cria um tópico com título e descrição — nome e e-mail vêm da
+própria conta, não são digitados (ver "Restrição de autoria" abaixo; até
+27/09/2026 qualquer visitante podia postar digitando nome/e-mail livremente).
+Um filtro automático decide se publica na hora ou entra numa fila de aprovação
+manual. O admin (você) vê a fila numa seção que só aparece pra você,
 aprova/oculta e responde — a resposta fica pública no tópico **e** dispara
 e-mail pro autor original.
 
@@ -1325,13 +1327,57 @@ igual ao `GetAuthenticatedEmail()` novo em `ApiControllerBase`).
 
 ### Endpoints (`ForumController`)
 
-Públicos: `POST /api/forum/topics` (rate limit `forum-post`, 5/60min por IP —
-mesma lógica do `auth-register`), `GET /api/forum/topics` (só `Published`),
-`GET /api/forum/topics/{id}` (404 se não publicado, pra visitante anônimo).
+`POST /api/forum/topics` — **`[Authorize]` desde 27/09/2026** (era
+`[AllowAnonymous]`, ver "Restrição de autoria" abaixo), rate limit `forum-post`
+mantido (5/60min por IP — defesa em profundidade, mesma lógica do
+`auth-register`). Públicos de verdade: `GET /api/forum/topics` (só
+`Published`), `GET /api/forum/topics/{id}` (404 se não publicado, pra
+visitante anônimo).
 
 Admin (`[Authorize]` + checagem de `Admin:Email`, `Forbid()` se não bater):
 `GET /api/forum/admin/topics` (com filtro `?status=`), `PUT
 /api/forum/admin/topics/{id}/status`, `POST /api/forum/admin/topics/{id}/reply`.
+
+### Restrição de autoria — só logado, nome/e-mail vêm da conta (27/09/2026)
+
+A pedido do usuário: só quem está logado pode criar tópico, e nome/e-mail
+deixam de ser digitáveis — são sempre os do cadastro, sem exceção.
+
+- `CreateTopicRequestDto` perdeu `AuthorName`/`AuthorEmail` — só `Title` e
+  `Body` chegam no corpo da requisição.
+- `ForumController.CreateTopic` trocou `[AllowAnonymous]` por `[Authorize]`;
+  sem `GetAuthenticatedUserId()` válido, `401` antes mesmo de chamar o service.
+- `ForumService.CreateTopicAsync` agora recebe `Guid userId` (não mais
+  `Guid?`), busca o `User` no banco por esse id e usa `user.Name`/`user.Email`
+  como `Topic.AuthorName`/`AuthorEmail` — a UI nunca mais é a fonte desses dois
+  campos, então não tem como o cliente forjar um nome ou e-mail diferente do
+  cadastro.
+- A validação de domínio MX (`IEmailDomainValidationService`) saiu do
+  `ForumService` — só fazia sentido para um e-mail digitado livremente por
+  anônimo; o e-mail agora vem de uma conta que já passou pela verificação da
+  seção 26.
+- Web (`topic-form.tsx`): os inputs de nome/e-mail viraram um texto fixo
+  "Publicando como {nome} ({e-mail})"; `dashboard-forum-view.tsx` só renderiza
+  o `TopicForm` quando `isAuthenticated`, senão mostra um card "Entre para
+  publicar" apontando pra área Conta. `createTopic` passou a exigir
+  `session.token`.
+- Mobile (`topic_form_sheet.dart`): mesma troca — os dois `TextEditingController`
+  de nome/e-mail saíram, texto fixo lendo `authControllerProvider`.
+  `forum_screen.dart`: FAB some quando deslogado (`authenticated ? FAB : null`)
+  e um card "Entre para publicar" aparece no topo da lista.
+- `Topic.UserId` continua `Guid?` no schema (não houve nova migration) — o
+  código é que agora sempre preenche, nunca mais nulo para tópicos novos;
+  tópicos antigos de antes dessa mudança continuam com `UserId = null` e
+  `AuthorName`/`AuthorEmail` do que foi digitado na época, preservados como
+  histórico.
+
+Validado localmente via Docker: `curl` sem token em `POST /api/forum/topics`
+→ `401`; logado no browser, o formulário mostra "Publicando como Teste 2FA
+(luiz.barbosaf288@gmail.com)" sem campo editável, `POST` retorna `201` e o
+tópico aparece na lista com o nome da conta. Deslogado, o formulário some e
+aparece o card de login. `dotnet build` limpo, `npx tsc --noEmit` limpo,
+`npx vitest run` sem regressão (mesmas 4 falhas pré-existentes), `flutter
+analyze` limpo, `flutter build apk --debug` OK.
 
 ### Web (`apps/web`)
 
