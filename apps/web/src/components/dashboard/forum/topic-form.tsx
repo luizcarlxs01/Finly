@@ -1,7 +1,7 @@
 "use client";
 
 import { type FormEvent, useState } from "react";
-import { Mail, MessageSquareText, User as UserIcon } from "lucide-react";
+import { MessageSquareText } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,8 +9,8 @@ import type { CreateTopicRequest, TopicDetail } from "@/types/forum";
 
 type TopicFormProps = {
   isSubmitting?: boolean;
-  defaultName?: string;
-  defaultEmail?: string;
+  authorName: string;
+  authorEmail: string;
   onSubmit: (input: CreateTopicRequest) => Promise<TopicDetail>;
 };
 
@@ -27,14 +27,12 @@ function getErrorMessage(error: unknown) {
 
 export function TopicForm({
   isSubmitting = false,
-  defaultName = "",
-  defaultEmail = "",
+  authorName,
+  authorEmail,
   onSubmit,
 }: TopicFormProps) {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
-  const [authorName, setAuthorName] = useState(defaultName);
-  const [authorEmail, setAuthorEmail] = useState(defaultEmail);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -45,10 +43,8 @@ export function TopicForm({
 
     const normalizedTitle = title.trim();
     const normalizedBody = body.trim();
-    const normalizedName = authorName.trim();
-    const normalizedEmail = authorEmail.trim();
 
-    if (!normalizedTitle || !normalizedBody || !normalizedName || !normalizedEmail) {
+    if (!normalizedTitle || !normalizedBody) {
       setErrorMessage("Preencha todos os campos antes de publicar.");
       return;
     }
@@ -57,8 +53,6 @@ export function TopicForm({
       const created = await onSubmit({
         title: normalizedTitle,
         body: normalizedBody,
-        authorName: normalizedName,
-        authorEmail: normalizedEmail,
       });
 
       setTitle("");
@@ -120,48 +114,11 @@ export function TopicForm({
             </div>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="grid gap-1.5">
-              <label htmlFor="topic-author-name" className="text-sm font-medium text-foreground">
-                Seu nome
-              </label>
-              <div className="relative">
-                <UserIcon className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  id="topic-author-name"
-                  type="text"
-                  value={authorName}
-                  onChange={(event) => setAuthorName(event.target.value)}
-                  className={`${fieldClassName} pl-11`}
-                  placeholder="Seu nome"
-                  maxLength={150}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="grid gap-1.5">
-              <label htmlFor="topic-author-email" className="text-sm font-medium text-foreground">
-                Seu e-mail
-              </label>
-              <div className="relative">
-                <Mail className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  id="topic-author-email"
-                  type="email"
-                  value={authorEmail}
-                  onChange={(event) => setAuthorEmail(event.target.value)}
-                  className={`${fieldClassName} pl-11`}
-                  placeholder="voce@exemplo.com"
-                  required
-                />
-              </div>
-            </div>
+          <div className="rounded-2xl border border-border/60 bg-background/70 px-4 py-3 text-sm text-muted-foreground">
+            Publicando como <span className="font-medium text-foreground">{authorName}</span>{" "}
+            (<span className="font-medium text-foreground">{authorEmail}</span>) — os dados da
+            sua conta, usamos o e-mail só para avisar quando alguém responder.
           </div>
-
-          <p className="text-xs text-muted-foreground">
-            Usamos seu e-mail só para avisar quando alguém responder seu tópico.
-          </p>
 
           {errorMessage ? (
             <div className="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">

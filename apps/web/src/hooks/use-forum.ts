@@ -80,11 +80,15 @@ export function useForum() {
   }
 
   async function submitTopic(input: CreateTopicRequest) {
+    if (!session) {
+      throw new Error("Faça login para criar um tópico.");
+    }
+
     setIsSubmitting(true);
     setErrorMessage(null);
 
     try {
-      const created = await createTopicWithApi(input);
+      const created = await createTopicWithApi(input, session.token);
       await refreshTopics();
       return created;
     } finally {
@@ -129,6 +133,7 @@ export function useForum() {
     setAdminStatusFilter,
     setTopicStatus,
     replyAsAdmin,
+    isAuthenticated: Boolean(session),
     sessionName: session?.name ?? "",
     sessionEmail: session?.email ?? "",
   };

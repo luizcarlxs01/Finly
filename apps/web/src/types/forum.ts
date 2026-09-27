@@ -31,8 +31,6 @@ export type TopicDetail = {
 export type CreateTopicRequest = {
   title: string;
   body: string;
-  authorName: string;
-  authorEmail: string;
 };
 
 export type CreateReplyRequest = {

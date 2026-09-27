@@ -9,10 +9,14 @@ import type {
   UpdateTopicStatusRequest,
 } from "@/types/forum";
 
-export async function createTopic(payload: CreateTopicRequest): Promise<TopicDetail> {
+export async function createTopic(
+  payload: CreateTopicRequest,
+  token: string,
+): Promise<TopicDetail> {
   return apiFetch<TopicDetail>("/api/forum/topics", {
     method: "POST",
     body: JSON.stringify(payload),
+    token,
   });
 }
 
