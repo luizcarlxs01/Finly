@@ -1231,28 +1231,37 @@ de sessão vêm nulos. Web e mobile tratam isso da mesma forma: se
 logada — nenhuma duplicação de lógica entre as duas UIs além do necessário
 para cada framework.
 
-### ⚠️ Limitação conhecida — remetente ainda no domínio de teste do Resend
+### ✅ Resolvido em 27/09/2026 — domínio verificado, remetente trocado
 
-`Resend__FromEmail` está como `Finly <onboarding@resend.dev>` (domínio de
-teste do Resend) em produção. **Nesse modo, o Resend só entrega e-mail para o
-e-mail da própria conta Resend cadastrada** — qualquer outro destinatário
-recebe 403 (`validation_error`) e o cadastro falha com "Não foi possível
-enviar o e-mail". Ou seja, **hoje só quem é dono da conta Resend consegue se
-cadastrar/verificar** — isso não é utilizável para usuários reais ainda.
+Até 27/09/2026, `Resend__FromEmail` era `Finly <onboarding@resend.dev>`
+(domínio de teste do Resend). Nesse modo, o Resend só entregava e-mail pro
+e-mail da própria conta Resend cadastrada — qualquer outro destinatário
+recebia 403 (`validation_error`), então só o dono da conta Resend conseguia
+se cadastrar/verificar de verdade.
 
-Domínio `finly.systems` já foi adicionado no painel do Resend e os registros
-DNS (DKIM `resend._domainkey`, SPF via CNAME `send`/`rsend`, DMARC) já
-propagaram (confirmado via `nslookup` contra `8.8.8.8`), mas o Resend ainda não
-tinha marcado o domínio como verificado na última checagem (`POST /emails`
-retornou "The finly.systems domain is not verified"). Depois que o painel do
-Resend mostrar o domínio verificado:
+O domínio `finly.systems` já estava com DNS correto (DKIM `resend._domainkey`,
+SPF via CNAME `send`/`rsend`, DMARC) há um tempo, mas o Resend mostrava
+"Not Started" nos três registros — **não porque o DNS estivesse errado**
+(confirmado por `nslookup` contra `8.8.8.8` batendo exatamente com o que o
+Resend pedia), mas porque a verificação do lado do Resend nunca tinha sido
+disparada. A correção foi manual, direto no painel do Resend (`Verify DNS
+Records`), sem mexer em nenhum registro. Depois disso os três viraram
+"Verified" e um `POST /emails` de teste enviando de `naoresponda@finly.systems`
+voltou `200`.
 
-1. Trocar `Resend__FromEmail` para `Finly <naoresponda@finly.systems>` em
+Aplicado nos dois ambientes:
+
+1. `Resend__FromEmail` trocado para `Finly <naoresponda@finly.systems>` em
    `docker/.env` (local) e no `.env` da VPS.
-2. `docker compose --env-file .env up -d` na VPS (só recria o container `api`,
-   não precisa rebuild — é só variável de ambiente).
-3. Testar um cadastro com um e-mail que **não** seja o da conta Resend para
-   confirmar que a restrição de sandbox caiu.
+2. `docker compose --env-file .env up -d api` na VPS — só recriou o container
+   `api` (variável de ambiente, sem rebuild).
+
+⚠️ **Nota de operação**: a resposta do `POST /emails` trouxe os headers
+`x-resend-daily-quota: 0` e `x-resend-monthly-quota: 10` — sugere que o Resend
+aplica um warm-up de cota baixa pra domínio recém-verificado, que deve subir
+com o tempo/reputação de envio. Não bloqueia o volume atual do Finly
+(cadastro, redefinição de senha, resposta de fórum), mas vale checar a aba
+Configuration/billing do Resend antes de contar com volume maior.
 
 ### Validação
 
@@ -1268,8 +1277,9 @@ foi validado no web e no backend, usando o mesmo contrato de API.
 
 ### Pendente
 
-- Verificar o domínio no Resend e trocar o remetente (ver seção acima)
 - Validar o fluxo de verificação no emulador Android
+- Confirmar no painel do Resend se a cota de warm-up do domínio (ver nota
+  acima) já subiu, antes de contar com volume maior de e-mails
 
 ---
 
@@ -1463,7 +1473,6 @@ removido (oculto) de produção ao final da validação.
 
 ### Pendente
 
-- Verificar o domínio no Resend e trocar o remetente (seção 26)
 - Lista de termos ofensivos do `ContentModerationService` é propositalmente
   enxuta — expandir conforme casos reais aparecerem
 - Sem paginação na listagem de tópicos (não é problema em baixo volume, mas
@@ -1608,8 +1617,6 @@ em app mobile. Só o gatilho de "Esqueci minha senha":
 
 ### Pendente
 
-- Verificar o domínio no Resend e trocar o remetente (pendência já registrada
-  na seção 26, vale para todo e-mail transacional, incluindo este)
 - Validar o botão "Esqueci minha senha" no emulador Android (implementado e
   com `flutter analyze` limpo, mas sem teste manual no emulador nesta sessão)
 
