@@ -1797,11 +1797,76 @@ trocar de tipo de gráfico via `<select>` funciona. Modo local (deslogado):
 perfil Padrão por default, trocar pra Gastão persiste em
 `localStorage.finly:local-finance` e sobrevive a reload.
 
+### Mobile (`apps/mobile`)
+
+Implementado na sequência, mesmo dia, depois de backend/web validados em
+produção. Espelha 1:1 a lógica de `spending-profile.ts` e os dois novos
+componentes web.
+
+- `lib/shared/models/spending_profile.dart` (novo) — réplica exata de
+  `utils/spending-profile.ts`: `SpendingProfileId` enum, presets fixos,
+  `resolveSpendingThresholds`, `validateCustomThresholds`,
+  `deriveCustomOkThreshold` (ratio 25%, igual web/backend).
+  ⚠️ `SpendingProfileId.fromLocalName` parseia pelo **nome** do enum (`.name`,
+  ex. `"padrao"`), nunca pelo índice — reordenar o enum no futuro não pode
+  corromper dados já salvos em `shared_preferences`. Isso é diferente do
+  backend em C#, onde a ordem do enum importa pro valor default (ver nota do
+  `Padrao = 0` acima) — os dois lados resolvem o mesmo risco de formas
+  diferentes, cada um do jeito idiomático da própria linguagem/serialização.
+- `shared/models/profile.dart`: `Profile` ganhou `spendingProfile`/
+  `customOkThreshold`/`customGoodThreshold` (sempre vêm da API, não opcionais).
+- `features/transactions/data/local_finance_store.dart`: `LocalFinanceProfile`
+  ganhou os mesmos 3 campos, default `SpendingProfileId.padrao` — dados
+  salvos antes desta feature não têm a chave `spendingProfile` no JSON,
+  `fromJson` cai no default via `fromLocalName` (retorna Padrão se a chave
+  não existir ou não bater com nenhum valor do enum).
+  `LocalFinanceStore.updateSpendingProfile` **não reaproveita `copyWith` com
+  `??`** para os limiares — constrói o objeto novo direto, porque o padrão
+  `campo ?? this.campo` do `copyWith` não distingue "não veio" de "veio null
+  de propósito"; trocar de "Personalizar tudo" pra "Só o Bom" precisa
+  realmente zerar o "Mais ou menos" antigo, não preservá-lo por trás.
+- `features/transactions/data/finance_repository.dart`: `updateSpendingProfile`
+  reenvia nome/descrição/saldo atuais do perfil (igual `updateInitialBalance`
+  já fazia) + os 3 campos novos.
+- `features/transactions/state/finance_controller.dart`: `FinanceData` ganhou
+  `spendingProfileSettings` (computado em `_buildLocal`/`_load`);
+  `updateSpendingProfile` valida o Personalizado **antes** de decidir o
+  caminho local/API — mesma regra nos dois modos.
+- `features/insights/data/dashboard_insights.dart`: `_balanceStatus` trocou
+  `totalExpense`/corte de 50% por `({double ok, double good})` vindo do
+  perfil — mesma migração 1:1 do `getBalanceStatus` do web, incluindo o novo
+  tom `InsightTone.neutral` pra "Mais ou menos" (já existia no enum, só nunca
+  era produzido) e o rótulo "Saldo baixo" pra saldo baixo-mas-não-negativo.
+- `features/insights/ui/spending_profile_card.dart` (novo) — usa os
+  `SegmentedSelector`/`AppDropdown` já existentes no projeto (não precisou de
+  widget novo de base). Resincroniza do `settings` recebido via
+  `didUpdateWidget` com a mesma inferência auto-vs-manual do web (comparando
+  o `customOkThreshold` salvo com o valor que seria derivado — evita mostrar
+  uma prévia que não bate com o que está realmente persistido, mesmo bug que
+  foi pego e corrigido no web durante a validação da seção 29).
+- `features/insights/ui/spending_analysis_panel.dart` (novo) — dependência
+  nova **`fl_chart: ^0.69.0`** (nenhuma lib de gráfico existia no mobile antes
+  desta feature, igual o recharts no web). Mesmo seletor de tipo de gráfico +
+  filtros do web (entrada/saída, tipo de lançamento, categoria, período).
+  **Ranking de categorias não usa `BarChart` do fl_chart** — a lib não tem
+  modo de barra horizontal nativo, e rotacionar um `BarChart` vertical fica
+  pior em tela estreita; implementado como uma lista de barras proporcionais
+  feitas à mão (`Container` com largura calculada via `LayoutBuilder`), mais
+  legível no mobile do que forçar a lib a fazer algo fora do previsto.
+- `app/theme.dart`: `AppColors.chartLight`/`chartDark` (5 cores cada,
+  extraídas verbatim de `--chart-1..5` do `globals.css`, mesma filosofia
+  "nada aproximado" documentada no topo do arquivo) + `context.chartColors`.
+
+### Validação (mobile)
+
+`flutter analyze` limpo, `flutter build apk --debug` OK. **Não validado num
+emulador Android nesta sessão** (sem emulador disponível no ambiente) — a
+lógica espelha 1:1 o que já foi validado no browser (web) contra o mesmo
+contrato de API, mesmo padrão de risco aceito já registrado nas seções 26 e
+28 para este projeto.
+
 ### Pendente
 
-- Mobile: réplica completa (backend/web já validados) — `SpendingProfile` no
-  modelo local Dart, tela equivalente ao `spending-profile-card.tsx`, painel
-  de análise com alguma lib de gráfico Flutter (ex. `fl_chart`, ainda não
-  usada no projeto)
+- Validar perfil de gastos e painel de análise no emulador Android
 - Faixas de R$ dos perfis prontos são estimativas — revisar se surgir dado
   real de referência de renda/gasto do público brasileiro
