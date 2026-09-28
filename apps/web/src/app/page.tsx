@@ -14,7 +14,6 @@ import { DashboardGoalsView } from "@/components/dashboard/views/dashboard-goals
 import { DashboardInsightsView } from "@/components/dashboard/views/dashboard-insights-view";
 import { DashboardDownloadView } from "@/components/dashboard/views/dashboard-download-view";
 import { DashboardForumView } from "@/components/dashboard/views/dashboard-forum-view";
-import { DashboardAccountView } from "@/components/dashboard/views/dashboard-account-view";
 import { FinancialRulesManager } from "@/components/dashboard/financial-rules-manager";
 import { SpendingProfileCard } from "@/components/dashboard/insights/spending-profile-card";
 import { useFinanceSource } from "@/contexts/finance-source-context";
@@ -608,10 +607,6 @@ export default function HomePage() {
     }
   }
 
-  function handleGoToTransactionsSection() {
-    setActiveView("transactions");
-  }
-
   async function handleAddGoal(input: Parameters<typeof addGoal>[0]) {
     await createGoal(input);
     setWriteModeMessage(null);
@@ -670,9 +665,12 @@ export default function HomePage() {
 
   const homeView = (
     <DashboardHomeView
-      onGoToTransactions={handleGoToTransactionsSection}
-      onOpenCalendar={() => setIsCalendarModalOpen(true)}
-      onOpenStatementProjection={() => setIsStatementProjectionModalOpen(true)}
+      currentBalance={currentBalance}
+      postedTransactions={postedTransactions}
+      goals={goals}
+      errorMessage={financeData.errorMessage ?? goalsData.errorMessage}
+      onViewTransactions={() => setActiveView("transactions")}
+      onViewGoals={() => setActiveView("goals")}
     />
   );
 
@@ -773,41 +771,19 @@ export default function HomePage() {
 
   const downloadView = <DashboardDownloadView />;
 
-  const accountView = <DashboardAccountView />;
-
-  const isLandingHome = activeView === "home";
-
   return (
     <>
-      <PageContainer variant={isLandingHome ? "landing" : "default"}>
-        <div className={isLandingHome ? "space-y-6" : "space-y-8 2xl:space-y-10"}>
+      <PageContainer>
+        <div className="space-y-8 2xl:space-y-10">
           <AppFloatingHeader
             activeView={activeView}
             onChangeView={setActiveView}
           />
 
           {writeModeMessage ? (
-            <section
-              className={
-                isLandingHome
-                  ? "mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8"
-                  : "px-4"
-              }
-            >
-              <div
-                className={
-                  isLandingHome
-                    ? "flex max-w-6xl flex-wrap gap-3"
-                    : "mx-auto max-w-6xl space-y-3"
-                }
-              >
-                <div
-                  className={
-                    isLandingHome
-                      ? "w-fit max-w-full rounded-full border border-white/80 bg-white/58 px-5 py-2.5 text-sm text-muted-foreground shadow-[0_14px_42px_-30px_rgba(3,21,51,0.32)] backdrop-blur-xl dark:border-white/10 dark:bg-[#0b275e]/58"
-                      : "rounded-2xl border border-border/70 bg-card/70 px-4 py-3 text-sm text-muted-foreground"
-                  }
-                >
+            <section className="px-4">
+              <div className="mx-auto max-w-6xl space-y-3">
+                <div className="rounded-2xl border border-border/70 bg-card/70 px-4 py-3 text-sm text-muted-foreground">
                   {writeModeMessage}
                 </div>
               </div>
@@ -823,14 +799,11 @@ export default function HomePage() {
             insightsView={insightsView}
             forumView={forumView}
             downloadView={downloadView}
-            accountView={accountView}
           />
         </div>
       </PageContainer>
 
-      {activeView !== "home" &&
-      activeView !== "download" &&
-      activeView !== "account" ? (
+      {activeView !== "home" && activeView !== "download" ? (
         <div className="fixed bottom-6 right-6 z-40 flex flex-col-reverse items-end gap-3">
           <button
             type="button"

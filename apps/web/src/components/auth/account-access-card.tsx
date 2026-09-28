@@ -1,41 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { Popover } from "@base-ui/react/popover";
+import { Tabs } from "@base-ui/react/tabs";
+import { LockKeyhole, LogOut, User } from "lucide-react";
 import { EmailVerificationForm } from "@/components/auth/email-verification-form";
 import { ForgotPasswordForm } from "@/components/auth/forgot-password-form";
 import { LoginForm } from "@/components/auth/login-form";
 import { RegisterForm } from "@/components/auth/register-form";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { useAuthSession } from "@/hooks/use-auth-session";
 
 type AccessIntent = "login" | "register";
 
-function AccountIdentity({
-  label,
-  value,
+function AccountAccessContent({
+  auth,
 }: {
-  label: string;
-  value: string;
+  auth: ReturnType<typeof useAuthSession>;
 }) {
-  return (
-    <div className="space-y-1 rounded-xl border border-border/60 bg-background/70 p-3">
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-        {label}
-      </p>
-      <p className="break-all text-sm text-foreground">{value}</p>
-    </div>
-  );
-}
-
-export function AccountAccessCard() {
   const {
     authenticated,
     isLoaded,
@@ -49,46 +31,43 @@ export function AccountAccessCard() {
     forgotPassword,
     logout,
     session,
-  } = useAuthSession();
+  } = auth;
   const [activeIntent, setActiveIntent] = useState<AccessIntent>("login");
   const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
 
   if (!isLoaded) {
     return (
-      <Card className="border border-border/70 bg-card/80">
-        <CardContent className="py-6">
-          <p className="text-sm text-muted-foreground">
-            Carregando acesso da conta...
-          </p>
-        </CardContent>
-      </Card>
+      <p role="status" className="text-sm text-muted-foreground">
+        Carregando acesso da conta...
+      </p>
     );
   }
 
   if (authenticated && session) {
     return (
-      <Card className="border border-border/70 bg-card/80">
-        <CardHeader>
-          <CardTitle>Modo com conta ativo</CardTitle>
-          <CardDescription>
-            Seus dados estão sincronizados com a sua conta Finly.
-          </CardDescription>
-        </CardHeader>
-
-        <CardContent className="grid gap-3 md:grid-cols-2">
-          <AccountIdentity label="Nome" value={session.name} />
-          <AccountIdentity label="E-mail" value={session.email} />
-        </CardContent>
-
-        <CardFooter className="flex-col items-start gap-3 border-t border-border/60 pt-4 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-xs text-muted-foreground">
-            Modo com conta — dados sincronizados com sua conta
-          </p>
-          <Button type="button" variant="outline" onClick={logout}>
+      <div className="space-y-4">
+        <dl className="space-y-3 rounded-xl bg-muted/30 p-3">
+          <div>
+            <dt className="text-xs text-muted-foreground">Nome</dt>
+            <dd className="wrap-break-word text-sm font-medium">{session.name}</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-muted-foreground">E-mail</dt>
+            <dd className="break-all text-sm">{session.email}</dd>
+          </div>
+        </dl>
+        <div className="border-t border-border/60 pt-4">
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full rounded-xl"
+            onClick={logout}
+          >
+            <LogOut className="size-4" />
             Sair
           </Button>
-        </CardFooter>
-      </Card>
+        </div>
+      </div>
     );
   }
 
@@ -115,54 +94,103 @@ export function AccountAccessCard() {
   }
 
   return (
-    <div className="space-y-4">
-      <div
-        role="tablist"
+    <Tabs.Root
+      value={activeIntent}
+      onValueChange={(value: AccessIntent) => setActiveIntent(value)}
+      className="space-y-4"
+    >
+      <Tabs.List
         aria-label="Acesso da conta"
-        className="grid grid-cols-2 gap-1 rounded-xl border border-border/70 bg-muted/45 p-1"
+        className="grid grid-cols-2 gap-1 rounded-full bg-muted/40 p-1"
       >
-        <Button
-          type="button"
-          role="tab"
-          aria-selected={activeIntent === "login"}
-          variant={activeIntent === "login" ? "default" : "ghost"}
-          className="h-10 rounded-lg"
-          onClick={() => setActiveIntent("login")}
+        <Tabs.Tab
+          value="login"
+          className="rounded-full px-3 py-1.5 text-xs font-medium text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring data-active:bg-card data-active:text-primary data-active:shadow-sm"
         >
           Entrar
-        </Button>
-        <Button
-          type="button"
-          role="tab"
-          aria-selected={activeIntent === "register"}
-          variant={activeIntent === "register" ? "default" : "ghost"}
-          className="h-10 rounded-lg"
-          onClick={() => setActiveIntent("register")}
+        </Tabs.Tab>
+        <Tabs.Tab
+          value="register"
+          className="rounded-full px-3 py-1.5 text-xs font-medium text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring data-active:bg-card data-active:text-primary data-active:shadow-sm"
         >
-          Criar conta
-        </Button>
-      </div>
+          Cadastrar
+        </Tabs.Tab>
+      </Tabs.List>
 
-      {activeIntent === "register" ? (
-        <RegisterForm
-          isSubmitting={isSubmitting}
-          onSubmit={register}
-          footerText="Sua sessão será criada automaticamente após o cadastro, e ficará salva neste navegador."
-        />
-      ) : (
+      <Tabs.Panel value="login">
         <LoginForm
+          compact
           isSubmitting={isSubmitting}
           onSubmit={login}
           onForgotPassword={() => setIsForgotPasswordOpen(true)}
-          title="Entrar na sua conta"
-          description="Acesse sua conta para sincronizar transações, metas e resumo financeiro."
-          footerText="Seu acesso fica salvo neste navegador para facilitar os próximos acessos."
         />
-      )}
+      </Tabs.Panel>
+      <Tabs.Panel value="register">
+        <RegisterForm
+          isSubmitting={isSubmitting}
+          onSubmit={register}
+          footerText="Seu acesso ficará salvo neste navegador."
+        />
+      </Tabs.Panel>
 
-      <p className="text-center text-xs text-muted-foreground">
+      <p className="text-center text-xs leading-relaxed text-muted-foreground">
         Modo sem conta — dados salvos neste navegador
       </p>
-    </div>
+    </Tabs.Root>
+  );
+}
+
+export function AccountAccessCard() {
+  const auth = useAuthSession();
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const identity = auth.authenticated ? auth.session : null;
+
+  return (
+    <Popover.Root>
+      <Popover.Trigger
+        ref={triggerRef}
+        aria-label={identity ? `Conta de ${identity.name}` : "Conta"}
+        title={identity ? identity.name : "Acesse sua conta"}
+        render={
+          <Button
+            variant="outline"
+            size="icon-sm"
+            className="rounded-xl sm:rounded-2xl"
+          />
+        }
+      >
+        <User className="size-4" />
+      </Popover.Trigger>
+      <Popover.Portal keepMounted>
+        <Popover.Positioner
+          align="end"
+          sideOffset={12}
+          collisionPadding={12}
+          className="z-50"
+        >
+          <Popover.Popup
+            finalFocus={triggerRef}
+            className="w-80 max-w-[calc(100vw-1.5rem)] max-h-[var(--available-height)] overflow-y-auto overscroll-contain rounded-2xl border border-border/70 bg-popover p-4 text-popover-foreground shadow-xl outline-none"
+          >
+            <div className="mb-4 flex items-center justify-between gap-3 border-b border-border/60 pb-3">
+              <div>
+                <Popover.Title className="text-sm font-semibold">
+                  {identity ? "Sua conta" : "Acesse sua conta"}
+                </Popover.Title>
+                <Popover.Description className="mt-0.5 text-xs text-muted-foreground">
+                  {identity
+                    ? "Seus dados estão sincronizados com sua conta Finly."
+                    : "Entre ou crie seu perfil Finly."}
+                </Popover.Description>
+              </div>
+              <LockKeyhole className="size-4 shrink-0 text-primary" />
+            </div>
+            <div className="[&_[data-slot=card]]:gap-4 [&_[data-slot=card]]:overflow-visible [&_[data-slot=card]]:rounded-none [&_[data-slot=card]]:border-0 [&_[data-slot=card]]:bg-transparent [&_[data-slot=card]]:p-0 [&_[data-slot=card]]:shadow-none [&_[data-slot=card]]:ring-0 [&_[data-slot=card-header]]:px-0 [&_[data-slot=card-content]]:px-0 [&_[data-slot=card-footer]]:flex-col [&_[data-slot=card-footer]]:items-start [&_[data-slot=card-footer]]:px-0 [&_[data-slot=card-description]]:text-xs [&_button]:focus-visible:outline-2 [&_button]:focus-visible:outline-ring">
+              <AccountAccessContent auth={auth} />
+            </div>
+          </Popover.Popup>
+        </Popover.Positioner>
+      </Popover.Portal>
+    </Popover.Root>
   );
 }

@@ -22,21 +22,6 @@ vi.mock("@/utils/dashboard-insights", () => ({
   getDashboardInsights: (...args: unknown[]) => mockGetDashboardInsights(...args),
 }));
 
-vi.mock("@/components/dashboard/views/dashboard-home-view", () => ({
-  DashboardHomeView: ({
-    onGoToTransactions,
-  }: {
-    onGoToTransactions: () => void;
-  }) => (
-    <div>
-      <p>HomeView</p>
-      <button type="button" onClick={onGoToTransactions}>
-        Ir para lançamentos
-      </button>
-    </div>
-  ),
-}));
-
 vi.mock("@/components/dashboard/views/dashboard-transactions-view", () => ({
   DashboardTransactionsView: ({
     currentBalance,
@@ -332,7 +317,7 @@ describe("HomePage", () => {
     render(<HomePage />);
 
     expect(screen.getByText("Carregando dados...")).toBeInTheDocument();
-    expect(screen.queryByText("HomeView")).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Início" })).not.toBeInTheDocument();
   });
 
   it("deve renderizar a home por padrao e navegar entre as secoes principais", async () => {
@@ -342,7 +327,7 @@ describe("HomePage", () => {
 
     render(<HomePage />);
 
-    expect(screen.getByText("HomeView")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Início" })).toBeInTheDocument();
     expect(screen.queryByText("TransactionsView")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /^Lançamentos$/i }));
@@ -358,10 +343,23 @@ describe("HomePage", () => {
     expect(screen.getByText("Insights: 1")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /^Início$/i }));
-    expect(screen.getByText("HomeView")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Início" })).toBeInTheDocument();
   });
 
-  it("deve abrir o login diretamente pela view de conta", async () => {
+  it("abre lançamentos e metas pelas ações da Visão Geral", async () => {
+    const user = userEvent.setup();
+    setupLoadedMocks();
+    render(<HomePage />);
+
+    await user.click(screen.getByRole("button", { name: "Ver todas as transações" }));
+    expect(screen.getByText("TransactionsView")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /^Início$/i }));
+    await user.click(screen.getByRole("button", { name: "Ver metas" }));
+    expect(screen.getByText("GoalsView")).toBeInTheDocument();
+  });
+
+  it("deve abrir o login no painel preservando a home", async () => {
     const user = userEvent.setup();
 
     setupLoadedMocks();
@@ -370,22 +368,27 @@ describe("HomePage", () => {
 
     await user.click(screen.getByRole("button", { name: "Conta" }));
 
-    expect(await screen.findByText("Entrar na sua conta")).toBeInTheDocument();
-    expect(screen.queryByText("HomeView")).not.toBeInTheDocument();
+    expect(await screen.findByRole("dialog", { name: "Acesse sua conta" })).toBeVisible();
+    expect(screen.getByRole("region", { name: "Início" })).toBeInTheDocument();
   });
 
-  it("nao deve exibir o atalho de lancamento na view de conta", async () => {
+  it("deve preservar os lancamentos e seu atalho ao abrir e fechar a conta", async () => {
     const user = userEvent.setup();
 
     setupLoadedMocks();
 
     render(<HomePage />);
 
+    await user.click(screen.getByRole("button", { name: "Lançamentos" }));
     await user.click(screen.getByRole("button", { name: "Conta" }));
 
     expect(
       screen.queryByRole("button", { name: "Novo lançamento" }),
-    ).not.toBeInTheDocument();
+    ).toBeInTheDocument();
+    expect(screen.getByText("TransactionsView")).toBeInTheDocument();
+
+    await user.keyboard("{Escape}");
+    expect(screen.getByText("TransactionsView")).toBeInTheDocument();
   });
 
   it("deve manter renderizacao estavel com dados minimos validos", async () => {
@@ -410,7 +413,7 @@ describe("HomePage", () => {
 
     render(<HomePage />);
 
-    expect(screen.getByText("HomeView")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Início" })).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /^Lançamentos$/i }));
     expect(screen.getByText("TransactionsView")).toBeInTheDocument();
@@ -428,7 +431,7 @@ describe("HomePage", () => {
 
     render(<HomePage />);
 
-    await user.click(screen.getByRole("button", { name: "Ir para lançamentos" }));
+    await user.click(screen.getByRole("button", { name: /^Lançamentos$/i }));
     expect(screen.getByText("TransactionsView")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Editar primeira transação" }));
@@ -478,7 +481,7 @@ describe("HomePage", () => {
     render(<HomePage />);
 
     await user.click(
-      screen.getByRole("button", { name: /Ir para lan.*amentos/i }),
+      screen.getByRole("button", { name: /^Lançamentos$/i }),
     );
     expect(screen.getByText("TransactionsView")).toBeInTheDocument();
 

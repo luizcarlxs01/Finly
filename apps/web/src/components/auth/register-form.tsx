@@ -8,7 +8,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -39,7 +38,6 @@ export function RegisterForm({
   description = "Crie sua conta para sincronizar transações, metas e resumo financeiro.",
   submitLabel = "Criar conta",
   submittingLabel = "Criando conta...",
-  footerText = "Sua sessão será criada automaticamente após o cadastro.",
 }: RegisterFormProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -156,10 +154,6 @@ export function RegisterForm({
           </Button>
         </form>
       </CardContent>
-
-      <CardFooter className="border-t border-border/60 pt-4 text-xs text-muted-foreground">
-        {footerText}
-      </CardFooter>
     </Card>
   );
 }

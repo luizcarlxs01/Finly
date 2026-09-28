@@ -74,7 +74,7 @@ export function ForgotPasswordForm({
       <CardHeader>
         <CardTitle>Esqueci minha senha</CardTitle>
         <CardDescription>
-          Informe o e-mail da sua conta. Se ela existir, mandamos um link para
+          Informe o e-mail da sua conta. Mandaremos um link para
           redefinir a senha.
         </CardDescription>
       </CardHeader>
