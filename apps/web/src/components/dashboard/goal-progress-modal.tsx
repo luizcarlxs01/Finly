@@ -6,6 +6,8 @@ import type { Goal } from "@/types/goal";
 
 type GoalProgressModalProps = {
   goal: Goal | null;
+  mode?: "edit" | "add";
+  errorMessage?: string | null;
   open: boolean;
   isSubmitting?: boolean;
   onOpenChange: (open: boolean) => void;
@@ -17,22 +19,16 @@ const fieldClassName =
 
 export function GoalProgressModal({
   goal,
+  mode = "edit",
+  errorMessage,
   open,
   isSubmitting = false,
   onOpenChange,
   onSave,
 }: GoalProgressModalProps) {
   const [currentAmount, setCurrentAmount] = useState(
-    goal ? String(goal.currentAmount) : "",
+    goal && mode === "edit" ? String(goal.currentAmount) : "",
   );
-
-  useEffect(() => {
-    if (!open || !goal) {
-      return;
-    }
-
-    setCurrentAmount(String(goal.currentAmount));
-  }, [goal, open]);
 
   useEffect(() => {
     if (!open) {
@@ -69,7 +65,7 @@ export function GoalProgressModal({
 
     const parsedCurrentAmount = Number(currentAmount.replace(",", "."));
 
-    if (Number.isNaN(parsedCurrentAmount) || parsedCurrentAmount < 0) {
+    if (Number.isNaN(parsedCurrentAmount) || (mode === "add" ? parsedCurrentAmount <= 0 : parsedCurrentAmount < 0)) {
       return;
     }
 
@@ -90,10 +86,10 @@ export function GoalProgressModal({
         <div className="flex items-start justify-between border-b border-border/60 px-4 py-4 sm:px-6 sm:py-5">
           <div className="space-y-1">
             <h3 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
-              Atualizar progresso
+              {mode === "add" ? "Adicionar à meta" : "Atualizar progresso"}
             </h3>
             <p className="text-sm leading-6 text-muted-foreground">
-              Ajuste o valor que você já guardou nessa meta.
+              {mode === "add" ? "Informe quanto deseja adicionar a esta meta." : "Ajuste o valor que você já guardou nessa meta."}
             </p>
           </div>
 
@@ -123,7 +119,7 @@ export function GoalProgressModal({
               htmlFor="goal-current-progress"
               className="text-sm font-medium text-foreground"
             >
-              Valor atual
+              {mode === "add" ? "Valor do aporte" : "Valor atual"}
             </label>
 
             <input
@@ -136,6 +132,8 @@ export function GoalProgressModal({
               placeholder="Ex.: 2500"
             />
           </div>
+
+          {errorMessage && <p role="alert" className="text-sm text-destructive">{errorMessage}</p>}
 
           <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
             <Button

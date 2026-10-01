@@ -1,165 +1,64 @@
 "use client";
 
-import { CalendarDays, Pencil, Trash2 } from "lucide-react";
-
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { useState } from "react";
+import { Banknote, BriefcaseBusiness, Car, Gamepad2, GraduationCap, HeartPulse, House, MoreHorizontal, Pencil, ReceiptText, ShoppingBag, Target, Trash2, TrendingUp, Utensils } from "lucide-react";
 import type { Goal } from "@/types/goal";
 import { getTransactionCategoryLabel } from "@/types/transaction-category";
-import { formatBusinessDateBr } from "@/utils/date-format";
 
 type GoalListProps = {
   goals: Goal[];
+  lastContributions?: Record<string, number>;
+  onAddContribution?: (goal: Goal, amount: number) => Promise<void>;
   onUpdateProgress: (goal: Goal) => void;
+  onAddCustom?: (goal: Goal) => void;
   onRemoveGoal: (id: string) => void;
   actionsDisabled?: boolean;
+  noResults?: boolean;
 };
 
-const currencyFormatter = new Intl.NumberFormat("pt-BR", {
-  style: "currency",
-  currency: "BRL",
-});
+const formatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const icons = { alimentacao: Utensils, transporte: Car, moradia: House, saude: HeartPulse, educacao: GraduationCap, lazer: Gamepad2, salario: Banknote, freelance: BriefcaseBusiness, contas: ReceiptText, investimentos: TrendingUp, compras: ShoppingBag, geral: Target };
 
-function getGoalCategoryLabel(category: string) {
-  return category === "general" ? "Geral" : getTransactionCategoryLabel(category);
+function ProgressValues({ goal, progress, color }: { goal: Goal; progress: number; color: "black" | "white" }) {
+  return <div className={`absolute inset-0 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1 px-3 text-[clamp(0.6875rem,1vw,1rem)] ${color === "white" ? "text-white" : "text-muted-foreground"}`}>
+    <span className="justify-self-start whitespace-nowrap font-semibold">{formatter.format(goal.currentAmount)}</span>
+    <span className="justify-self-center whitespace-nowrap font-semibold">{progress.toFixed(0)}%</span>
+    <span className="justify-self-end whitespace-nowrap font-medium">{formatter.format(goal.targetAmount)}</span>
+  </div>;
 }
 
-function getGoalProgress(goal: Goal) {
-  if (goal.targetAmount <= 0) {
-    return 0;
-  }
+export function GoalList({ goals, lastContributions = {}, onAddContribution = async () => {}, onUpdateProgress, onAddCustom = onUpdateProgress, onRemoveGoal, actionsDisabled = false, noResults = false }: GoalListProps) {
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [pendingGoal, setPendingGoal] = useState<string | null>(null);
 
-  return Math.min((goal.currentAmount / goal.targetAmount) * 100, 100);
-}
+  if (!goals.length) return noResults ? <p className="px-4 pt-10 text-center text-sm text-muted-foreground">Nenhuma meta corresponde à busca ou aos filtros.</p> : null;
 
-function getRemainingAmount(goal: Goal) {
-  return Math.max(goal.targetAmount - goal.currentAmount, 0);
-}
-
-export function GoalList({
-  goals,
-  onUpdateProgress,
-  onRemoveGoal,
-  actionsDisabled = false,
-}: GoalListProps) {
-  if (goals.length === 0) {
-    return (
-      <Card className="rounded-[1.75rem] border border-dashed border-border/70 bg-card/80 shadow-sm">
-        <CardContent className="p-8 text-center">
-          <p className="text-base font-medium text-foreground">
-            Nenhuma meta por aqui ainda
-          </p>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Crie uma meta para começar a acompanhar sua evolução.
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return (
-    <div className="space-y-3">
-      {goals.map((goal) => {
-        const progress = getGoalProgress(goal);
-        const remainingAmount = getRemainingAmount(goal);
-
-        return (
-          <Card
-            key={goal.id}
-            className="rounded-[1.5rem] border border-border/60 bg-card/95 shadow-sm transition-colors hover:bg-card"
-          >
-            <CardContent className="space-y-4 p-5 sm:p-6">
-              <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                <div className="min-w-0 flex-1 space-y-3">
-                  <div className="space-y-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="text-lg font-semibold text-foreground">
-                        {goal.title}
-                      </h3>
-
-                      <span className="inline-flex rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
-                        {getGoalCategoryLabel(goal.category)}
-                      </span>
-
-                      {goal.deadline ? (
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
-                          <CalendarDays className="size-3.5" />
-                          {formatBusinessDateBr(goal.deadline) ?? goal.deadline}
-                        </span>
-                      ) : null}
-                    </div>
-
-                    <div className="space-y-2 rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="text-sm font-medium text-foreground">
-                          Progresso
-                        </p>
-                        <p className="text-sm font-semibold text-foreground">
-                          {progress.toFixed(0)}%
-                        </p>
-                      </div>
-
-                      <div className="h-2.5 overflow-hidden rounded-full bg-muted">
-                        <div
-                          className="h-full rounded-full bg-primary transition-[width]"
-                          style={{ width: `${progress}%` }}
-                        />
-                      </div>
-
-                      <div className="grid gap-3 sm:grid-cols-3">
-                        <div className="rounded-[1rem] border border-border/60 bg-card/75 p-3">
-                          <p className="text-xs text-muted-foreground">Meta</p>
-                          <p className="mt-1 text-sm font-semibold text-foreground">
-                            {currencyFormatter.format(goal.targetAmount)}
-                          </p>
-                        </div>
-
-                        <div className="rounded-[1rem] border border-border/60 bg-card/75 p-3">
-                          <p className="text-xs text-muted-foreground">Guardado</p>
-                          <p className="mt-1 text-sm font-semibold text-foreground">
-                            {currencyFormatter.format(goal.currentAmount)}
-                          </p>
-                        </div>
-
-                        <div className="rounded-[1rem] border border-border/60 bg-card/75 p-3">
-                          <p className="text-xs text-muted-foreground">Falta</p>
-                          <p className="mt-1 text-sm font-semibold text-foreground">
-                            {currencyFormatter.format(remainingAmount)}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex shrink-0 flex-col gap-2 sm:flex-row xl:flex-col">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="rounded-2xl"
-                    disabled={actionsDisabled}
-                    onClick={() => onUpdateProgress(goal)}
-                  >
-                    <Pencil className="size-4" />
-                    Atualizar progresso
-                  </Button>
-
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    className="rounded-2xl"
-                    disabled={actionsDisabled}
-                    onClick={() => onRemoveGoal(goal.id)}
-                  >
-                    <Trash2 className="size-4" />
-                    Remover
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })}
-    </div>
-  );
+  return <div className="divide-y divide-border/60 rounded-t-2xl border border-b-0 border-border/70 bg-card">
+    {goals.map((goal) => {
+      const Icon = icons[goal.category as keyof typeof icons] ?? Target;
+      const progress = goal.targetAmount > 0 ? Math.min(goal.currentAmount / goal.targetAmount * 100, 100) : 0;
+      const quickAmount = lastContributions[goal.id] > 0 ? lastContributions[goal.id] : goal.currentAmount > 0 ? goal.currentAmount : 1;
+      return <div key={goal.id} className="grid gap-4 p-4 sm:p-5 lg:grid-cols-[minmax(0,1fr)_minmax(260px,1.2fr)_minmax(0,1fr)] lg:items-center">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground"><Icon size={24} strokeWidth={1.5} /></span>
+          <div className="min-w-0"><h3 className="truncate font-medium text-foreground">{goal.title}</h3><p className="text-sm text-muted-foreground">{goal.category === "general" ? "Geral" : getTransactionCategoryLabel(goal.category)}{goal.deadline ? ` · Até ${new Intl.DateTimeFormat("pt-BR", { month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(`${goal.deadline}T12:00:00Z`))}` : ""}</p></div>
+        </div>
+        <div className="relative h-11 overflow-hidden rounded-full bg-muted dark:bg-slate-200" aria-label={`Progresso: ${progress.toFixed(0)}%`}>
+          <span className="absolute inset-y-0 left-0 rounded-full bg-primary transition-[width] dark:bg-[#1A75FF]" style={{ width: `${progress}%` }} />
+          <ProgressValues goal={goal} progress={progress} color="black" />
+          <div aria-hidden="true" className="absolute inset-0 transition-[clip-path]" style={{ clipPath: `inset(0 ${100 - progress}% 0 0)` }}>
+            <ProgressValues goal={goal} progress={progress} color="white" />
+          </div>
+        </div>
+        <div className="flex items-center justify-end gap-1 sm:gap-2">
+          {progress < 100 && <><button type="button" disabled={actionsDisabled || pendingGoal === goal.id} onClick={async () => { if (pendingGoal) return; setPendingGoal(goal.id); try { await onAddContribution(goal, quickAmount); } catch { /* Error appears in the page message. */ } finally { setPendingGoal(null); } }} className="h-11 min-w-24 whitespace-nowrap rounded-xl bg-primary/10 px-3 text-sm font-medium text-primary hover:bg-primary/20 disabled:opacity-50 sm:min-w-28">+ {formatter.format(quickAmount)}</button><span aria-hidden="true" className="mx-0.5 h-9 w-px shrink-0 bg-border/80" /></>}
+          {progress < 100 && <button type="button" disabled={actionsDisabled || pendingGoal === goal.id} onClick={() => onAddCustom(goal)} className="whitespace-nowrap rounded-xl px-2 py-2 text-sm font-medium text-primary hover:bg-primary/10 disabled:opacity-50">+ Adicionar</button>}
+          <div className="relative">
+            <button type="button" aria-label={`Opções de ${goal.title}`} aria-expanded={openMenu === goal.id} onClick={() => setOpenMenu(openMenu === goal.id ? null : goal.id)} className="flex size-10 items-center justify-center rounded-xl text-foreground hover:bg-muted"><MoreHorizontal size={20} /></button>
+            {openMenu === goal.id && <><button type="button" aria-label="Fechar opções" className="fixed inset-0 z-10 cursor-default" onClick={() => setOpenMenu(null)} /><div className="absolute right-0 top-full z-20 w-36 rounded-xl border border-border bg-card p-1 shadow-lg"><button type="button" className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm hover:bg-muted" onClick={() => { setOpenMenu(null); onUpdateProgress(goal); }}><Pencil size={16} />Editar valor</button><button type="button" className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-destructive hover:bg-muted" onClick={() => { setOpenMenu(null); onRemoveGoal(goal.id); }}><Trash2 size={16} />Deletar</button></div></>}
+          </div>
+        </div>
+      </div>;
+    })}
+  </div>;
 }

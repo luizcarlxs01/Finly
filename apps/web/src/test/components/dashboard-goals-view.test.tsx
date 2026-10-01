@@ -1,257 +1,114 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-
+import { DashboardGoalsView } from "@/components/dashboard/views/dashboard-goals-view";
 import type { Goal } from "@/types/goal";
 
-vi.mock("@/components/dashboard/goal-form", () => ({
-  GoalForm: ({
-    onAddGoal,
-  }: {
-    onAddGoal: (input: {
-      title: string;
-      targetAmount: number;
-      currentAmount: number;
-      category: string;
-      deadline?: string;
-    }) => void;
-  }) => (
-    <div>
-      <p>GoalForm</p>
-      <button
-        type="button"
-        onClick={() =>
-          onAddGoal({
-            title: "Nova meta",
-            targetAmount: 5000,
-            currentAmount: 500,
-            category: "general",
-            deadline: "2026-12-31",
-          })
-        }
-      >
-        Trigger add goal
-      </button>
-    </div>
-  ),
-}));
-
-vi.mock("@/components/dashboard/goal-list", () => ({
-  GoalList: ({
-    goals,
-    onUpdateProgress,
-    onRemoveGoal,
-  }: {
-    goals: Goal[];
-    onUpdateProgress: (goal: Goal) => void;
-    onRemoveGoal: (id: string) => void;
-  }) => (
-    <div>
-      <p>GoalList</p>
-      <p>Quantidade metas list: {goals.length}</p>
-      {goals.length === 0 ? <p>Nenhuma meta por aqui ainda</p> : null}
-      {goals.map((goal) => (
-        <div key={goal.id}>
-          <p>{goal.title}</p>
-          <p>
-            {goal.currentAmount >= goal.targetAmount ? "Concluída" : "Em andamento"}
-          </p>
-          <button type="button" onClick={() => onUpdateProgress(goal)}>
-            Trigger update progress {goal.id}
-          </button>
-          <button type="button" onClick={() => onRemoveGoal(goal.id)}>
-            Trigger remove goal {goal.id}
-          </button>
-        </div>
-      ))}
-    </div>
-  ),
-}));
-
-import { DashboardGoalsView } from "@/components/dashboard/views/dashboard-goals-view";
-
-const currencyFormatter = new Intl.NumberFormat("pt-BR", {
-  style: "currency",
-  currency: "BRL",
-});
-
-function getByExactText(value: string) {
-  return screen.getByText(
-    (_, element) =>
-      element?.textContent === value && (element.children.length ?? 0) === 0,
-  );
-}
-
-function getAllByExactText(value: string) {
-  return screen.getAllByText(
-    (_, element) =>
-      element?.textContent === value && (element.children.length ?? 0) === 0,
-  );
-}
-
-function createGoal(overrides: Partial<Goal> = {}): Goal {
-  return {
-    id: "goal-1",
-    title: "Reserva de emergencia",
-    targetAmount: 10000,
-    currentAmount: 2500,
-    category: "general",
-    deadline: "2026-12-31",
-    createdAt: "2026-04-01T12:00:00.000Z",
-    ...overrides,
-  };
-}
-
-function renderDashboardGoalsView(
-  overrides: Partial<React.ComponentProps<typeof DashboardGoalsView>> = {},
-) {
-  const goals = [createGoal()];
-
-  const props: React.ComponentProps<typeof DashboardGoalsView> = {
-    goals,
-    totalGoalProgress: 2500,
-    remainingGoalAmount: 7500,
-    currencyFormatter,
-    onAddGoal: vi.fn(),
-    onUpdateProgress: vi.fn(),
-    onRemoveGoal: vi.fn(),
-    ...overrides,
-  };
-
-  return {
-    ...render(<DashboardGoalsView {...props} />),
-    props,
-  };
-}
+const goal = (id: number, overrides: Partial<Goal> = {}): Goal => ({ id: String(id), title: `Meta ${id}`, targetAmount: 1000, currentAmount: 100, category: id % 2 ? "geral" : "alimentacao", deadline: `2027-01-0${id}`, createdAt: `2026-09-0${id}T12:00:00Z`, ...overrides });
+const goals = [goal(1), goal(2), goal(3), goal(4), goal(5, { currentAmount: 1000 })];
+const props = { goals, onAddGoal: vi.fn(async () => {}), onUpdateProgress: vi.fn(), onRemoveGoal: vi.fn(), onAddContribution: vi.fn(async () => {}), lastContributions: {} };
 
 describe("DashboardGoalsView", () => {
-  it("deve renderizar os blocos principais da view com dados completos", () => {
-    renderDashboardGoalsView({
-      goals: [
-        createGoal(),
-        createGoal({
-          id: "goal-2",
-          title: "Viagem",
-          targetAmount: 3000,
-          currentAmount: 3000,
-          category: "lazer",
-        }),
-      ],
-      totalGoalProgress: 5500,
-      remainingGoalAmount: 7500,
-    });
-
-    expect(
-      screen.getByRole("heading", { level: 1, name: "Metas" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText("Organize seus objetivos e acompanhe o quanto falta para chegar lá."),
-    ).toBeInTheDocument();
-    expect(screen.getByText("Metas ativas")).toBeInTheDocument();
-    expect(screen.getByText("Acumulado")).toBeInTheDocument();
-    expect(screen.getByText("Falta")).toBeInTheDocument();
-    expect(screen.getByText("2")).toBeInTheDocument();
-    expect(getByExactText(currencyFormatter.format(5500))).toBeInTheDocument();
-    expect(getByExactText(currencyFormatter.format(7500))).toBeInTheDocument();
-    expect(screen.getByText("GoalForm")).toBeInTheDocument();
-    expect(screen.getByText("GoalList")).toBeInTheDocument();
-    expect(screen.getByText("Reserva de emergencia")).toBeInTheDocument();
-    expect(screen.getByText("Viagem")).toBeInTheDocument();
-  });
-
-  it("deve renderizar de forma estavel com dados minimos validos", () => {
-    renderDashboardGoalsView({
-      goals: [
-        createGoal({
-          id: "goal-minimal",
-          title: "Meta simples",
-          targetAmount: 1,
-          currentAmount: 0,
-          deadline: undefined,
-        }),
-      ],
-      totalGoalProgress: 0,
-      remainingGoalAmount: 1,
-    });
-
-    expect(screen.getByText("1")).toBeInTheDocument();
-    expect(getByExactText(currencyFormatter.format(0))).toBeInTheDocument();
-    expect(getByExactText(currencyFormatter.format(1))).toBeInTheDocument();
-    expect(screen.getByText("Meta simples")).toBeInTheDocument();
-    expect(screen.getByText("Em andamento")).toBeInTheDocument();
-  });
-
-  it("deve exibir o comportamento condicional de ausencia de metas quando a lista estiver vazia", () => {
-    renderDashboardGoalsView({
-      goals: [],
-      totalGoalProgress: 0,
-      remainingGoalAmount: 0,
-    });
-
-    expect(screen.getByText("0")).toBeInTheDocument();
-    expect(getAllByExactText(currencyFormatter.format(0))).toHaveLength(2);
-    expect(screen.getByText("Quantidade metas list: 0")).toBeInTheDocument();
-    expect(screen.getByText("Nenhuma meta por aqui ainda")).toBeInTheDocument();
-  });
-
-  it("deve disparar os callbacks expostos pela view a partir das acoes dos filhos", async () => {
+  it("shows the no-match message only while searching or filtering existing goals", async () => {
     const user = userEvent.setup();
-    const onAddGoal = vi.fn();
-    const onUpdateProgress = vi.fn();
-    const onRemoveGoal = vi.fn();
-    const goal = createGoal({ id: "goal-action", title: "Casa" });
-
-    renderDashboardGoalsView({
-      goals: [goal],
-      totalGoalProgress: 2500,
-      remainingGoalAmount: 7500,
-      onAddGoal,
-      onUpdateProgress,
-      onRemoveGoal,
-    });
-
-    await user.click(screen.getByRole("button", { name: "Trigger add goal" }));
-    await user.click(
-      screen.getByRole("button", { name: "Trigger update progress goal-action" }),
-    );
-    await user.click(
-      screen.getByRole("button", { name: "Trigger remove goal goal-action" }),
-    );
-
-    expect(onAddGoal).toHaveBeenCalledWith({
-      title: "Nova meta",
-      targetAmount: 5000,
-      currentAmount: 500,
-      category: "general",
-      deadline: "2026-12-31",
-    });
-    expect(onUpdateProgress).toHaveBeenCalledWith(goal);
-    expect(onRemoveGoal).toHaveBeenCalledWith("goal-action");
+    const { rerender } = render(<DashboardGoalsView {...props} goals={[]} />);
+    expect(screen.queryByText(/Nenhuma meta/)).not.toBeInTheDocument();
+    await user.type(screen.getByRole("searchbox", { name: "Buscar metas" }), "inexistente");
+    expect(screen.queryByText(/Nenhuma meta/)).not.toBeInTheDocument();
+    rerender(<DashboardGoalsView {...props} goals={[goal(1)]} />);
+    expect(screen.getByText("Nenhuma meta corresponde à busca ou aos filtros.")).toBeInTheDocument();
+    await user.clear(screen.getByRole("searchbox", { name: "Buscar metas" }));
+    await user.click(screen.getByRole("button", { name: "Concluídas" }));
+    expect(screen.queryByText(/Nenhuma meta/)).not.toBeInTheDocument();
   });
 
-  it("deve refletir diferencas visuais observaveis entre metas concluidas e nao concluidas quando os filhos as exibem", () => {
-    renderDashboardGoalsView({
-      goals: [
-        createGoal({
-          id: "goal-open",
-          title: "Reserva",
-          targetAmount: 1000,
-          currentAmount: 200,
-        }),
-        createGoal({
-          id: "goal-done",
-          title: "Notebook",
-          targetAmount: 3000,
-          currentAmount: 3000,
-        }),
-      ],
-      totalGoalProgress: 3200,
-      remainingGoalAmount: 800,
-    });
+  it("paginates after selecting the active tab and resets on page size change", async () => {
+    const user = userEvent.setup();
+    render(<DashboardGoalsView {...props} />);
+    expect(screen.getByText("1–3")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Próxima página" }).parentElement).toHaveTextContent(/^1$/);
+    expect(screen.queryByText("Meta 5")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Próxima página" }));
+    expect(screen.getByRole("button", { name: "Próxima página" }).parentElement).toHaveTextContent(/^2$/);
+    expect(screen.getByText("Meta 1")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Metas por página" }));
+    await user.click(screen.getByRole("option", { name: "6 por página" }));
+    expect(screen.getByText("Meta 4")).toBeInTheDocument();
+    expect(screen.getByText("1–4")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Concluídas" }));
+    expect(screen.getByText("Meta 5")).toBeInTheDocument();
+    expect(screen.queryByText("Meta 4")).not.toBeInTheDocument();
+  });
 
-    expect(screen.getByText("Reserva")).toBeInTheDocument();
-    expect(screen.getByText("Notebook")).toBeInTheDocument();
-    expect(screen.getByText("Em andamento")).toBeInTheDocument();
-    expect(screen.getByText("Concluída")).toBeInTheDocument();
+  it("combines category and date filters, validates range, and clears the applied indicator", async () => {
+    const user = userEvent.setup();
+    render(<DashboardGoalsView {...props} />);
+    const filterButton = screen.getByRole("button", { name: "Filtros" });
+    await user.click(filterButton);
+    expect(filterButton.querySelector("span")).toBeNull();
+    await user.selectOptions(screen.getByLabelText("Categoria"), "alimentacao");
+    await user.click(screen.getByRole("button", { name: "Período específico" }));
+    await user.click(screen.getByRole("button", { name: "Aplicar filtros" }));
+    expect(screen.getByText(/Informe um período válido/)).toBeInTheDocument();
+    await user.type(screen.getByLabelText("De"), "2027-01-02");
+    await user.type(screen.getByLabelText("Até"), "2027-01-02");
+    await user.click(screen.getByRole("button", { name: "Aplicar filtros" }));
+    expect(screen.getByText("Meta 2")).toBeInTheDocument();
+    expect(screen.queryByText("Meta 4")).not.toBeInTheDocument();
+    expect(filterButton.querySelector("span")).not.toBeNull();
+    await user.click(screen.getByRole("button", { name: /Remover filtro Prazo:/ }));
+    expect(screen.getByText("Meta 4")).toBeInTheDocument();
+    await user.click(filterButton);
+    expect(screen.getByLabelText("Categoria")).toHaveValue("alimentacao");
+    expect(screen.getByRole("button", { name: "Período específico" })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.queryByLabelText("De")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Fechar filtros" }));
+    await user.click(screen.getByRole("button", { name: "Remover filtro Alimentação" }));
+    await user.click(filterButton);
+    expect(screen.getByLabelText("Categoria")).toHaveValue("");
+    await user.click(screen.getByRole("button", { name: "Fechar filtros" }));
+    expect(filterButton.querySelector("span")).toBeNull();
+  });
+
+  it("removes progress and value filters independently", async () => {
+    const user = userEvent.setup();
+    render(<DashboardGoalsView {...props} />);
+    const filterButton = screen.getByRole("button", { name: "Filtros" });
+    await user.click(filterButton);
+    await user.click(screen.getByRole("button", { name: "Mais distante de atingir" }));
+    await user.click(screen.getByRole("button", { name: "Maior valor alvo" }));
+    await user.click(screen.getByRole("button", { name: "Aplicar filtros" }));
+    await user.click(screen.getByRole("button", { name: "Remover filtro Progresso: mais distante" }));
+    expect(screen.getByRole("button", { name: "Remover filtro Valor: maior alvo" })).toBeInTheDocument();
+    await user.click(filterButton);
+    expect(screen.getByRole("button", { name: "Mais distante de atingir" })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("button", { name: "Maior valor alvo" })).toHaveAttribute("aria-pressed", "true");
+    await user.click(screen.getByRole("button", { name: "Fechar filtros" }));
+    await user.click(screen.getByRole("button", { name: "Remover filtro Valor: maior alvo" }));
+    expect(filterButton.querySelector("span")).toBeNull();
+  });
+
+  it("clears all filters together", async () => {
+    const user = userEvent.setup();
+    render(<DashboardGoalsView {...props} />);
+    const filterButton = screen.getByRole("button", { name: "Filtros" });
+    await user.click(filterButton);
+    await user.selectOptions(screen.getByLabelText("Categoria"), "alimentacao");
+    await user.click(screen.getByRole("button", { name: "Aplicar filtros" }));
+    await user.click(screen.getByRole("button", { name: "Limpar filtros" }));
+    expect(filterButton.querySelector("span")).toBeNull();
+  });
+
+  it("opens and closes creation without moving the list, and submits through the existing callback", async () => {
+    const user = userEvent.setup(); const onAddGoal = vi.fn(async () => {});
+    render(<DashboardGoalsView {...props} onAddGoal={onAddGoal} />);
+    await user.click(screen.getByRole("button", { name: "Nova meta" }));
+    const dialog = screen.getByRole("dialog", { name: "Nova meta" });
+    await user.type(within(dialog).getByLabelText("Título"), "Reserva");
+    await user.type(within(dialog).getByLabelText("Valor alvo"), "500");
+    fireEvent.change(within(dialog).getByLabelText("Prazo"), { target: { value: "2099-12-31" } });
+    await user.click(within(dialog).getByRole("button", { name: "Criar meta" }));
+    expect(onAddGoal).toHaveBeenCalledWith(expect.objectContaining({ title: "Reserva", targetAmount: 500 }));
+    expect(screen.queryByRole("dialog", { name: "Nova meta" })).not.toBeInTheDocument();
   });
 });

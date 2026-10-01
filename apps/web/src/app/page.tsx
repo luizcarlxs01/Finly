@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowUpDown, Plus, Target, X } from "lucide-react";
 import {
   AppFloatingHeader,
@@ -17,6 +17,7 @@ import { DashboardForumView } from "@/components/dashboard/views/dashboard-forum
 import { FinancialRulesManager } from "@/components/dashboard/financial-rules-manager";
 import { SpendingProfileCard } from "@/components/dashboard/insights/spending-profile-card";
 import { useFinanceSource } from "@/contexts/finance-source-context";
+import { useAuthSession } from "@/hooks/use-auth-session";
 import { useCreateTransaction } from "@/hooks/use-create-transaction";
 import { useCreateGoal } from "@/hooks/use-create-goal";
 import { useCancelOccurrence } from "@/hooks/use-cancel-occurrence";
@@ -111,14 +112,13 @@ function getProjectionSnapshot(
   };
 }
 
-const currencyFormatter = new Intl.NumberFormat("pt-BR", {
-  style: "currency",
-  currency: "BRL",
-});
-
 export default function HomePage() {
   const [hasMounted, setHasMounted] = useState(false);
   const { source } = useFinanceSource();
+  const { session } = useAuthSession();
+  const [lastContributions, setLastContributions] = useState<Record<string, number>>({});
+  const [contributionScope, setContributionScope] = useState("");
+  const contributionPending = useRef(false);
   const localFinance = useLocalFinance();
   const localGoals = useLocalGoals();
   const financeData = useFinanceData({ localFinance });
@@ -151,6 +151,7 @@ export default function HomePage() {
   const [editingTransaction, setEditingTransaction] =
     useState<Transaction | null>(null);
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
+  const [goalProgressMode, setGoalProgressMode] = useState<"edit" | "add">("edit");
   const [pendingRemovalTransactionId, setPendingRemovalTransactionId] =
     useState<string | null>(null);
   const [pendingContractDeletionId, setPendingContractDeletionId] =
@@ -175,9 +176,37 @@ export default function HomePage() {
   } = financeData;
   const {
     goals,
-    remainingGoalAmount,
-    totalGoalProgress,
   } = goalsData;
+  const nextContributionScope = source === "local" ? "local" : session?.userId && financeData.selectedProfile?.id ? `${session.userId}:${financeData.selectedProfile.id}` : "";
+  useEffect(() => {
+    if (!nextContributionScope) { setContributionScope(""); setLastContributions({}); return; }
+    try {
+      const parsed = JSON.parse(window.localStorage.getItem(`finly:goal-last-contributions:${nextContributionScope}`) ?? "{}");
+      setLastContributions(typeof parsed === "object" && parsed !== null && !Array.isArray(parsed) ? parsed : {});
+    } catch { setLastContributions({}); }
+    setContributionScope(nextContributionScope);
+  }, [nextContributionScope]);
+
+  useEffect(() => {
+    if (!contributionScope || contributionScope !== nextContributionScope || !goals.length) return;
+    setLastContributions(previous => {
+      const missing = goals.filter(goal => !(goal.id in previous));
+      if (!missing.length) return previous;
+      const next = { ...previous };
+      for (const goal of missing) next[goal.id] = goal.currentAmount > 0 ? goal.currentAmount : 1;
+      window.localStorage.setItem(`finly:goal-last-contributions:${contributionScope}`, JSON.stringify(next));
+      return next;
+    });
+  }, [goals, contributionScope, nextContributionScope]);
+
+  function rememberContribution(id: string, amount: number) {
+    if (!contributionScope || amount <= 0) return;
+    setLastContributions(previous => {
+      const next = { ...previous, [id]: amount };
+      window.localStorage.setItem(`finly:goal-last-contributions:${contributionScope}`, JSON.stringify(next));
+      return next;
+    });
+  }
   const {
     deleteGoal: deleteGoalUnified,
     errorMessage: deleteGoalErrorMessage,
@@ -613,12 +642,33 @@ export default function HomePage() {
   }
 
   function handleOpenGoalProgress(goal: Goal) {
+    setGoalProgressMode("edit");
+    setSelectedGoal(goal);
+  }
+
+  function handleOpenGoalContribution(goal: Goal) {
+    setGoalProgressMode("add");
     setSelectedGoal(goal);
   }
 
   async function handleSaveGoalProgress(input: { id: string; currentAmount: number }) {
-    await updateGoalProgressUnified(input);
+    const oldAmount = goals.find(goal => goal.id === input.id)?.currentAmount ?? selectedGoal?.currentAmount ?? input.currentAmount;
+    const nextAmount = goalProgressMode === "add" ? oldAmount + input.currentAmount : input.currentAmount;
+    await updateGoalProgressUnified({ id: input.id, currentAmount: nextAmount });
+    rememberContribution(input.id, nextAmount - oldAmount);
     setWriteModeMessage(null);
+  }
+
+  async function handleAddGoalContribution(goal: Goal, amount: number) {
+    if (contributionPending.current || !Number.isFinite(amount) || amount <= 0) return;
+    contributionPending.current = true;
+    try {
+      const latest = goals.find(item => item.id === goal.id);
+      if (!latest) throw new Error("Meta indisponível.");
+      await updateGoalProgressUnified({ id: goal.id, currentAmount: latest.currentAmount + amount });
+      rememberContribution(goal.id, amount);
+      setWriteModeMessage(null);
+    } finally { contributionPending.current = false; }
   }
 
   function handleRemoveGoal(id: string) {
@@ -721,13 +771,14 @@ export default function HomePage() {
   const goalsView = (
     <DashboardGoalsView
       isSubmitting={isCreatingGoal}
+      createErrorMessage={createGoalErrorMessage}
       areActionsDisabled={isCreatingGoal || isUpdatingGoalProgress || isDeletingGoal}
       goals={goals}
-      totalGoalProgress={totalGoalProgress}
-      remainingGoalAmount={remainingGoalAmount}
-      currencyFormatter={currencyFormatter}
       onAddGoal={handleAddGoal}
       onUpdateProgress={handleOpenGoalProgress}
+      onAddCustom={handleOpenGoalContribution}
+      onAddContribution={handleAddGoalContribution}
+      lastContributions={contributionScope === nextContributionScope ? lastContributions : {}}
       onRemoveGoal={handleRemoveGoal}
     />
   );
@@ -955,8 +1006,10 @@ export default function HomePage() {
       />
 
       <GoalProgressModal
-        key={selectedGoal?.id ?? "goal-progress-modal"}
+        key={`${selectedGoal?.id ?? "goal-progress-modal"}:${goalProgressMode}`}
         goal={selectedGoal}
+        mode={goalProgressMode}
+        errorMessage={updateGoalProgressErrorMessage}
         open={Boolean(selectedGoal)}
         onOpenChange={handleGoalModalChange}
         isSubmitting={isUpdatingGoalProgress}

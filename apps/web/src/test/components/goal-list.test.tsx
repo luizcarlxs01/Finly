@@ -1,195 +1,55 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-
 import { GoalList } from "@/components/dashboard/goal-list";
 import type { Goal } from "@/types/goal";
 
-const currencyFormatter = new Intl.NumberFormat("pt-BR", {
-  style: "currency",
-  currency: "BRL",
-});
-
-const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
-  day: "2-digit",
-  month: "2-digit",
-  year: "numeric",
-});
-
-function createGoal(overrides: Partial<Goal> = {}): Goal {
-  return {
-    id: "goal-1",
-    title: "Reserva de emergencia",
-    targetAmount: 10000,
-    currentAmount: 2500,
-    category: "general",
-    deadline: "2026-12-31",
-    createdAt: "2026-04-01T12:00:00.000Z",
-    ...overrides,
-  };
-}
-
-function getGoalCard(title: string) {
-  return screen.getByText(title).closest('[data-slot="card"]');
-}
-
-function getByExactText(scope: ReturnType<typeof within>, value: string) {
-  return scope.getByText((_: string, element: Element | null) => element?.textContent === value);
-}
-
-function getAllByExactText(scope: ReturnType<typeof within>, value: string) {
-  return scope.getAllByText((_: string, element: Element | null) => element?.textContent === value);
-}
-
-function renderGoalList(
-  overrides: Partial<React.ComponentProps<typeof GoalList>> = {},
-) {
-  const props: React.ComponentProps<typeof GoalList> = {
-    goals: [createGoal()],
-    onUpdateProgress: vi.fn(),
-    onRemoveGoal: vi.fn(),
-    ...overrides,
-  };
-
-  return {
-    ...render(<GoalList {...props} />),
-    props,
-  };
-}
+const goal: Goal = { id: "one", title: "Reserva", targetAmount: 1000, currentAmount: 250, category: "geral", createdAt: "2026-09-01T12:00:00Z" };
 
 describe("GoalList", () => {
-  it("deve renderizar estado vazio quando nao houver metas", () => {
-    renderGoalList({ goals: [] });
-
-    expect(screen.getByText("Nenhuma meta por aqui ainda")).toBeInTheDocument();
-    expect(
-      screen.getByText("Crie uma meta para começar a acompanhar sua evolução."),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: "Atualizar progresso" }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: "Remover" }),
-    ).not.toBeInTheDocument();
+  it("shows no message without goals and suggests the current amount for an active goal", () => {
+    const onUpdateProgress = vi.fn(); const onRemoveGoal = vi.fn();
+    const { rerender } = render(<GoalList goals={[]} onUpdateProgress={onUpdateProgress} onRemoveGoal={onRemoveGoal} />);
+    expect(screen.queryByText(/Nenhuma meta/)).not.toBeInTheDocument();
+    rerender(<GoalList goals={[]} noResults onUpdateProgress={onUpdateProgress} onRemoveGoal={onRemoveGoal} />);
+    expect(screen.getByText("Nenhuma meta corresponde à busca ou aos filtros.")).toBeInTheDocument();
+    rerender(<GoalList goals={[goal]} onUpdateProgress={onUpdateProgress} onRemoveGoal={onRemoveGoal} />);
+    expect(screen.getByText("Reserva")).toBeInTheDocument();
+    expect(screen.getByLabelText("Progresso: 25%")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /\+ R\$\s*250,00/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "+ Adicionar" })).toBeInTheDocument();
   });
 
-  it("deve renderizar uma ou mais metas com suas informacoes principais", () => {
-    const goals = [
-      createGoal(),
-      createGoal({
-        id: "goal-2",
-        title: "Viagem",
-        targetAmount: 3000,
-        currentAmount: 300,
-        category: "lazer",
-        deadline: undefined,
-      }),
-    ];
-
-    renderGoalList({ goals });
-
-    expect(screen.getByText("Reserva de emergencia")).toBeInTheDocument();
-    expect(screen.getByText("Viagem")).toBeInTheDocument();
-    expect(screen.getByText("Geral")).toBeInTheDocument();
-    expect(screen.getByText("Lazer")).toBeInTheDocument();
-    expect(screen.getByText("31/12/2026")).toBeInTheDocument();
-    expect(screen.getAllByText("Progresso")).toHaveLength(2);
-    expect(screen.getAllByRole("button", { name: "Atualizar progresso" })).toHaveLength(2);
-    expect(screen.getAllByRole("button", { name: "Remover" })).toHaveLength(2);
+  it("suggests R$ 1,00 for a goal created with zero and hides quick add for completed goals", async () => {
+    const user = userEvent.setup(); const onAddContribution = vi.fn(async () => {});
+    const { rerender } = render(<GoalList goals={[{ ...goal, currentAmount: 0 }]} onAddContribution={onAddContribution} onUpdateProgress={vi.fn()} onRemoveGoal={vi.fn()} />);
+    await user.click(screen.getByRole("button", { name: /\+ R\$\s*1,00/ }));
+    expect(onAddContribution).toHaveBeenCalledWith(expect.objectContaining({ currentAmount: 0 }), 1);
+    rerender(<GoalList goals={[{ ...goal, currentAmount: 1000 }]} lastContributions={{ one: 50 }} onUpdateProgress={vi.fn()} onRemoveGoal={vi.fn()} />);
+    expect(screen.queryByRole("button", { name: /\+ R\$/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "+ Adicionar" })).not.toBeInTheDocument();
   });
 
-  it("deve exibir progresso, valores monetarios e falta de forma consistente para metas nao concluidas e concluidas", () => {
-    renderGoalList({
-      goals: [
-        createGoal({
-          id: "goal-in-progress",
-          title: "Casa",
-          targetAmount: 8000,
-          currentAmount: 2000,
-        }),
-        createGoal({
-          id: "goal-complete",
-          title: "Viagem concluida",
-          targetAmount: 5000,
-          currentAmount: 6000,
-          category: "lazer",
-        }),
-      ],
-    });
-
-    const inProgressCard = getGoalCard("Casa");
-    const completeCard = getGoalCard("Viagem concluida");
-
-    expect(inProgressCard).not.toBeNull();
-    expect(completeCard).not.toBeNull();
-
-    const inProgressScope = within(inProgressCard as HTMLElement);
-    const completeScope = within(completeCard as HTMLElement);
-
-    expect(getByExactText(inProgressScope, "25%")).toBeInTheDocument();
-    expect(
-      getByExactText(inProgressScope, currencyFormatter.format(8000)),
-    ).toBeInTheDocument();
-    expect(
-      getByExactText(inProgressScope, currencyFormatter.format(2000)),
-    ).toBeInTheDocument();
-    expect(
-      getByExactText(inProgressScope, currencyFormatter.format(6000)),
-    ).toBeInTheDocument();
-
-    expect(getByExactText(completeScope, "100%")).toBeInTheDocument();
-    expect(
-      getByExactText(completeScope, currencyFormatter.format(5000)),
-    ).toBeInTheDocument();
-    expect(
-      getByExactText(completeScope, currencyFormatter.format(6000)),
-    ).toBeInTheDocument();
-    expect(
-      getByExactText(completeScope, currencyFormatter.format(0)),
-    ).toBeInTheDocument();
-  });
-
-  it("deve disparar os callbacks de atualizar progresso e remover com os dados corretos", async () => {
-    const user = userEvent.setup();
-    const goal = createGoal({ id: "goal-action", title: "Notebook" });
-    const onUpdateProgress = vi.fn();
-    const onRemoveGoal = vi.fn();
-
-    renderGoalList({
-      goals: [goal],
-      onUpdateProgress,
-      onRemoveGoal,
-    });
-
-    await user.click(screen.getByRole("button", { name: "Atualizar progresso" }));
-    await user.click(screen.getByRole("button", { name: "Remover" }));
-
+  it("uses the contribution callback and preserves the edit/delete actions", async () => {
+    const user = userEvent.setup(); const onAddContribution = vi.fn(async () => {}); const onUpdateProgress = vi.fn(); const onRemoveGoal = vi.fn();
+    render(<GoalList goals={[goal]} lastContributions={{ one: 50 }} onAddContribution={onAddContribution} onUpdateProgress={onUpdateProgress} onRemoveGoal={onRemoveGoal} />);
+    await user.click(screen.getByRole("button", { name: /\+ R\$/ }));
+    expect(onAddContribution).toHaveBeenCalledWith(goal, 50);
+    await user.click(screen.getByRole("button", { name: "Opções de Reserva" }));
+    await user.click(screen.getByRole("button", { name: "Editar valor" }));
     expect(onUpdateProgress).toHaveBeenCalledWith(goal);
-    expect(onRemoveGoal).toHaveBeenCalledWith("goal-action");
+    await user.click(screen.getByRole("button", { name: "Opções de Reserva" }));
+    await user.click(screen.getByRole("button", { name: "Deletar" }));
+    expect(onRemoveGoal).toHaveBeenCalledWith("one");
   });
 
-  it("deve renderizar de forma consistente com dados minimos validos", () => {
-    renderGoalList({
-      goals: [
-        createGoal({
-          id: "goal-minimal",
-          title: "Meta simples",
-          targetAmount: 1,
-          currentAmount: 0,
-          category: "general",
-          deadline: undefined,
-        }),
-      ],
-    });
-
-    expect(screen.getByText("Meta simples")).toBeInTheDocument();
-    expect(screen.getByText("Geral")).toBeInTheDocument();
-    const minimalScope = within(getGoalCard("Meta simples") as HTMLElement);
-
-    expect(getByExactText(minimalScope, "0%")).toBeInTheDocument();
-    expect(getAllByExactText(minimalScope, currencyFormatter.format(1))).toHaveLength(2);
-    expect(
-      getByExactText(minimalScope, currencyFormatter.format(0)),
-    ).toBeInTheDocument();
+  it("reenables quick contribution after a failed write without changing the displayed amount", async () => {
+    const user = userEvent.setup(); const onAddContribution = vi.fn(async () => { throw new Error("Falha"); });
+    render(<GoalList goals={[goal]} lastContributions={{ one: 50 }} onAddContribution={onAddContribution} onUpdateProgress={vi.fn()} onRemoveGoal={vi.fn()} />);
+    const quick = screen.getByRole("button", { name: /\+ R\$/ });
+    await user.click(quick);
+    expect(onAddContribution).toHaveBeenCalledOnce();
+    expect(quick).toBeEnabled();
+    expect(screen.getByLabelText("Progresso: 25%")).toBeInTheDocument();
   });
 });
