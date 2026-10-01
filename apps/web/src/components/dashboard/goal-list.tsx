@@ -33,7 +33,7 @@ export function GoalList({ goals, lastContributions = {}, onAddContribution = as
 
   if (!goals.length) return noResults ? <p className="px-4 pt-10 text-center text-sm text-muted-foreground">Nenhuma meta corresponde à busca ou aos filtros.</p> : null;
 
-  return <div className="divide-y divide-border/60 rounded-t-2xl border border-b-0 border-border/70 bg-card">
+  return <div className="divide-y divide-border/60 rounded-t-[inherit] bg-card">
     {goals.map((goal) => {
       const Icon = icons[goal.category as keyof typeof icons] ?? Target;
       const progress = goal.targetAmount > 0 ? Math.min(goal.currentAmount / goal.targetAmount * 100, 100) : 0;

@@ -24,20 +24,42 @@ describe("DashboardGoalsView", () => {
 
   it("paginates after selecting the active tab and resets on page size change", async () => {
     const user = userEvent.setup();
-    render(<DashboardGoalsView {...props} />);
-    expect(screen.getByText("1–3")).toBeInTheDocument();
+    render(<DashboardGoalsView {...props} goals={[...goals, goal(6), goal(7)]} />);
+    expect(screen.getByText("1–5")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Próxima página" }).parentElement).toHaveTextContent(/^1$/);
     expect(screen.queryByText("Meta 5")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Próxima página" }));
     expect(screen.getByRole("button", { name: "Próxima página" }).parentElement).toHaveTextContent(/^2$/);
     expect(screen.getByText("Meta 1")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Metas por página" }));
-    await user.click(screen.getByRole("option", { name: "6 por página" }));
+    await user.click(screen.getByRole("option", { name: "10 por página" }));
     expect(screen.getByText("Meta 4")).toBeInTheDocument();
-    expect(screen.getByText("1–4")).toBeInTheDocument();
+    expect(screen.getByText("1–6")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Concluídas" }));
     expect(screen.getByText("Meta 5")).toBeInTheDocument();
     expect(screen.queryByText("Meta 4")).not.toBeInTheDocument();
+  });
+
+  it("shows all current results without page controls and keeps search and tabs applied", async () => {
+    const user = userEvent.setup();
+    const rows = Array.from({ length: 17 }, (_, index) => goal(index + 1, { deadline: "2027-01-01", createdAt: "2026-09-01T12:00:00Z" }));
+    render(<DashboardGoalsView {...props} goals={rows} />);
+    expect(screen.getAllByRole("heading", { level: 3 })).toHaveLength(5);
+    for (const size of [10, 15]) {
+      await user.click(screen.getByRole("button", { name: "Metas por página" }));
+      await user.click(screen.getByRole("option", { name: `${size} por página` }));
+      expect(screen.getAllByRole("heading", { level: 3 })).toHaveLength(size);
+    }
+    await user.click(screen.getByRole("button", { name: "Metas por página" }));
+    await user.click(screen.getByRole("option", { name: "Todas", exact: true }));
+    expect(screen.getAllByRole("heading", { level: 3 })).toHaveLength(17);
+    expect(screen.getByText("1–17")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Próxima página" })).not.toBeInTheDocument();
+    await user.type(screen.getByRole("searchbox", { name: "Buscar metas" }), "Meta 17");
+    expect(screen.getAllByRole("heading", { level: 3 })).toHaveLength(1);
+    expect(screen.getByText("1–1")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Concluídas" }));
+    expect(screen.queryByRole("heading", { level: 3 })).not.toBeInTheDocument();
   });
 
   it("combines category and date filters, validates range, and clears the applied indicator", async () => {
