@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useSyncExternalStore } from "react";
-import { ArrowDownRight, ArrowRight, ArrowUpRight, Eye, EyeOff, Wallet } from "lucide-react";
+import { ArrowRight, Eye, EyeOff } from "lucide-react";
 import { Area, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { Goal } from "@/types/goal";
 import type { Transaction } from "@/types/transaction";
@@ -63,15 +63,12 @@ function months(period: Period, today: Date) {
   });
 }
 
-function Indicator({ title, value, hidden, icon }: {
-  title: string; value: number; hidden: boolean; icon: React.ReactNode;
+function Indicator({ title, value, hidden, prominent = false }: {
+  title: string; value: number; hidden: boolean; prominent?: boolean;
 }) {
-  return <div className="rounded-[1.25rem] border border-border/60 bg-card/70 p-4 shadow-sm sm:p-5">
-    <div className="flex items-start justify-between gap-3">
-      <p className="text-sm text-muted-foreground">{title}</p>
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">{icon}</span>
-    </div>
-    <p className="mt-3 text-xl font-semibold tracking-tight text-foreground sm:text-2xl">{hidden ? "••••••" : money.format(value)}</p>
+  return <div className="min-w-0 px-3 text-center sm:px-5">
+    <p className="text-sm text-muted-foreground">{title}</p>
+    <p className={`mt-2 flex flex-wrap items-center justify-center gap-3 break-words font-semibold tracking-tight tabular-nums ${prominent ? "text-3xl text-primary sm:text-4xl" : "text-xl text-foreground sm:text-2xl"}`}>{hidden ? "••••••" : money.format(value)}</p>
   </div>;
 }
 
@@ -119,27 +116,26 @@ export function DashboardHomeView({ currentBalance, postedTransactions, goals, o
     window.dispatchEvent(new Event(PRIVACY_PREFERENCE_EVENT));
   }
 
-  return <section aria-label="Início" className="space-y-6 2xl:space-y-8">
-    <div className="flex flex-wrap items-start justify-between gap-4">
-      <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">Visão Geral</h1>
-      <button type="button" onClick={toggleHiddenValues} aria-pressed={hidden}
-        className="inline-flex items-center gap-2 rounded-2xl border border-border/70 bg-card px-4 py-2.5 text-sm font-medium text-foreground shadow-sm transition hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-        {hidden ? <EyeOff className="size-4" /> : <Eye className="size-4" />}{hidden ? "Mostrar valores" : "Ocultar valores"}
-      </button>
-    </div>
+  return <section aria-label="Início" className="w-full min-w-0">
+    <h1 className="sr-only">Visão Geral</h1>
 
     {errorMessage ? <p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">{errorMessage}</p> : null}
 
     {!errorMessage ? <>
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-      <Indicator title="Saldo atual" value={currentBalance + futureAdjustment} icon={<Wallet className="size-4" />} hidden={hidden} />
-      <Indicator title="Receitas do mês" value={income} icon={<ArrowUpRight className="size-4" />} hidden={hidden} />
-      <Indicator title="Despesas do mês" value={expense} icon={<ArrowDownRight className="size-4" />} hidden={hidden} />
-      <Indicator title="Resultado do mês" value={income - expense} icon={<Wallet className="size-4" />} hidden={hidden} />
+    <div className="mb-12 flex items-start gap-3 sm:mb-18">
+    <div className="grid min-w-0 flex-1 grid-cols-1 items-start gap-y-6 min-[420px]:grid-cols-2 lg:grid-cols-4 min-[420px]:[&>div:nth-child(even)]:border-l min-[420px]:[&>div:nth-child(even)]:border-border/70 lg:[&>div:not(:first-child)]:border-l lg:[&>div:not(:first-child)]:border-border/70">
+      <Indicator title="Saldo atual" value={currentBalance + futureAdjustment} hidden={hidden} prominent />
+      <Indicator title="Receitas do mês" value={income} hidden={hidden} />
+      <Indicator title="Despesas do mês" value={expense} hidden={hidden} />
+      <Indicator title="Resultado do mês" value={income - expense} hidden={hidden} />
+    </div>
+      <button type="button" onClick={toggleHiddenValues} aria-pressed={hidden} aria-label={hidden ? "Mostrar valores" : "Ocultar valores"} className="flex size-10 shrink-0 items-center justify-center rounded-full border border-border/70 text-foreground transition hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        {hidden ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+      </button>
     </div>
 
-    <div className="grid items-start gap-6 2xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,1fr)]">
-      <section aria-label="Fluxo de Caixa" className="min-w-0 rounded-[1.75rem] border border-border/60 bg-card/95 p-5 shadow-sm sm:p-6">
+    <div className="grid items-stretch border-t border-border/70 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)]">
+      <section aria-label="Fluxo de Caixa" className="min-w-0 py-6 lg:pr-6 xl:pr-8">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="text-xl font-semibold tracking-tight text-foreground">Fluxo de Caixa</h2>
@@ -151,7 +147,7 @@ export function DashboardHomeView({ currentBalance, postedTransactions, goals, o
               aria-pressed={period === option} className={`rounded-full px-3 py-1 text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${period === option ? "bg-card text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>{option}</button>)}
           </div>
         </div>
-        <div className="mt-5 h-64 w-full" role="img" aria-label={hidden ? "Gráfico com valores ocultos" : `Fluxo mensal de receitas e despesas de ${range}`}>
+        <div className="mt-5 h-64 w-full sm:h-80 lg:h-[360px]" role="img" aria-label={hidden ? "Gráfico com valores ocultos" : `Fluxo mensal de receitas e despesas de ${range}`}>
           {hidden ? <div className="flex h-full items-center justify-center rounded-xl bg-muted/40 text-sm text-muted-foreground">Valores ocultos</div>
             : hasChartValues ? <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={chart} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
@@ -166,17 +162,17 @@ export function DashboardHomeView({ currentBalance, postedTransactions, goals, o
             </ResponsiveContainer>
             : <div className="flex h-full items-center justify-center rounded-xl bg-muted/40 text-center text-sm text-muted-foreground">Sem movimentações pagas neste período.</div>}
         </div>
-        <div className="mt-3 flex justify-end gap-5 border-t border-border/70 pt-3 text-xs text-muted-foreground">
+        <div className="mt-4 flex justify-end gap-5 text-xs text-muted-foreground">
           <span className="flex items-center gap-2"><span className="size-2.5 rounded-full bg-[var(--chart-1)]" />Receitas</span>
           <span className="flex items-center gap-2"><span className="size-2.5 rounded-full bg-[var(--chart-2)]" />Despesas</span>
         </div>
       </section>
 
-      <div className="grid gap-6">
-        <section aria-label="Transações Recentes" className="rounded-[1.75rem] border border-border/60 bg-card/95 p-5 shadow-sm sm:p-6">
+      <div className="min-w-0 border-t border-border/70 lg:border-l lg:border-t-0">
+        <section aria-label="Transações Recentes" className="min-w-0 border-b border-border/70 py-6 lg:pl-6 xl:pl-8">
           <h2 className="text-xl font-semibold tracking-tight text-foreground">Transações Recentes</h2>
-          {recent.length ? <ul className="mt-4 space-y-1">{recent.slice(0, 4).map(({ transaction, date }) =>
-            <li key={transaction.id} className="flex items-center justify-between gap-3 rounded-xl px-2 py-2.5 hover:bg-muted/50">
+          {recent.length ? <ul className="mt-3 divide-y divide-border/70 border-y border-border/70">{recent.slice(0, 2).map(({ transaction, date }) =>
+            <li key={transaction.id} className="flex items-center justify-between gap-3 py-3">
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium text-foreground">{transaction.title}</p>
                 <p className="text-xs text-muted-foreground">{getTransactionCategoryLabel(transaction.category)} · {formatBusinessDateBr(date)}</p>
@@ -186,18 +182,15 @@ export function DashboardHomeView({ currentBalance, postedTransactions, goals, o
               </span>
             </li>)}</ul>
             : <p className="my-8 text-center text-sm text-muted-foreground">Nenhuma transação paga até hoje.</p>}
-          <button type="button" onClick={onViewTransactions} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-primary/10 px-4 py-2.5 text-sm font-medium text-primary transition hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-            Ver todas as transações <ArrowRight className="size-4" />
+          <button type="button" onClick={onViewTransactions} className="mt-3 inline-flex items-center gap-2 py-1 text-sm font-medium text-primary transition hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            Ver transações <ArrowRight className="size-4" />
           </button>
         </section>
-        <section aria-label="Resumo de metas" className="rounded-[1.75rem] border border-border/60 bg-card/95 p-5 shadow-sm sm:p-6">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-xl font-semibold tracking-tight text-foreground">Metas</h2>
-            <button type="button" onClick={onViewGoals} className="text-sm font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Ver metas</button>
-          </div>
-          {goals.length ? <ul className="mt-4 space-y-3">{goals.slice(0, 2).map((goal) => {
+        <section aria-label="Resumo de metas" className="min-w-0 py-6 lg:pl-6 xl:pl-8">
+          <h2 className="text-xl font-semibold tracking-tight text-foreground">Metas</h2>
+          {goals.length ? <ul className="mt-3 divide-y divide-border/70">{goals.slice(0, 2).map((goal) => {
             const progress = goal.targetAmount > 0 ? Math.min(100, Math.max(0, goal.currentAmount / goal.targetAmount * 100)) : 0;
-            return <li key={goal.id} className="rounded-xl bg-primary/5 p-3">
+            return <li key={goal.id} className="py-3 first:pt-0">
               <div className="flex items-center justify-between gap-3 text-sm">
                 <span className="min-w-0 truncate font-medium text-foreground">{goal.title}</span>
                 <span className="shrink-0 text-xs font-semibold text-primary">{hidden ? "••••" : `${Math.round(progress)}%`}</span>
@@ -212,6 +205,7 @@ export function DashboardHomeView({ currentBalance, postedTransactions, goals, o
               </div>
             </li>;
           })}</ul> : <p className="my-8 text-center text-sm text-muted-foreground">Nenhuma meta cadastrada.</p>}
+          <button type="button" onClick={onViewGoals} className="mt-3 inline-flex items-center gap-2 py-1 text-sm font-medium text-primary transition hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Ver metas <ArrowRight className="size-4" /></button>
         </section>
       </div>
     </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarDays, Goal, WalletCards, X } from "lucide-react";
+import { CalendarDays, Goal, WalletCards } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -82,16 +82,15 @@ export function GoalForm({
   }
 
   return (
-    <Card className="rounded-[1.5rem] border-border/60 bg-card shadow-xl">
-      <CardHeader className="flex flex-row items-center justify-between pb-4">
-        <CardTitle className="text-xl font-semibold tracking-tight">
+    <Card className="overflow-visible rounded-2xl border-0 bg-transparent pt-6 pb-10 shadow-none ring-0">
+      <CardHeader className="flex flex-row items-center justify-center pb-4 text-center">
+        <CardTitle className="border-b border-border px-4 pb-2 text-xl font-semibold tracking-tight">
           Nova meta
         </CardTitle>
-        {onCancel && <Button type="button" variant="ghost" aria-label="Fechar formulário" onClick={onCancel}><X className="size-5" /></Button>}
       </CardHeader>
 
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+      <CardContent className="sm:px-10">
+        <form onSubmit={handleSubmit} className="mx-auto w-full max-w-xl space-y-8">
           <section className="space-y-4">
             <div className="space-y-1">
               <h3 className="sr-only">Sua meta</h3>
@@ -100,7 +99,7 @@ export function GoalForm({
             <div className="grid gap-1.5">
               <label
                 htmlFor="goal-title"
-                className="text-sm font-medium text-foreground"
+                className="pl-4 text-sm font-medium text-foreground"
               >
                 Título
               </label>
@@ -114,7 +113,7 @@ export function GoalForm({
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
                   className={`${fieldClassName} pl-11`}
-                  placeholder="Ex.: Reserva de emergência"
+                  placeholder="Ex: Reserva de emergência"
                 />
               </div>
             </div>
@@ -129,7 +128,7 @@ export function GoalForm({
               <div className="grid gap-1.5">
                 <label
                   htmlFor="goal-target-amount"
-                  className="text-sm font-medium text-foreground"
+                  className="pl-4 text-sm font-medium text-foreground"
                 >
                   Valor alvo
                 </label>
@@ -143,7 +142,7 @@ export function GoalForm({
                     value={targetAmount}
                     onChange={(event) => setTargetAmount(event.target.value)}
                     className={`${fieldClassName} pl-11`}
-                    placeholder="Ex.: 10000"
+                    placeholder="Ex: 10000"
                   />
                 </div>
               </div>
@@ -151,7 +150,7 @@ export function GoalForm({
               <div className="grid gap-1.5">
                 <label
                   htmlFor="goal-current-amount"
-                  className="text-sm font-medium text-foreground"
+                  className="pl-4 text-sm font-medium text-foreground"
                 >
                   Valor atual
                 </label>
@@ -165,7 +164,7 @@ export function GoalForm({
                     value={currentAmount}
                     onChange={(event) => setCurrentAmount(event.target.value)}
                     className={`${fieldClassName} pl-11`}
-                    placeholder="Ex.: 1500"
+                    placeholder="Ex: 1500"
                   />
                 </div>
               </div>
@@ -181,7 +180,7 @@ export function GoalForm({
               <div className="grid gap-1.5">
                 <label
                   htmlFor="goal-category"
-                  className="text-sm font-medium text-foreground"
+                  className="pl-4 text-sm font-medium text-foreground"
                 >
                   Categoria
                 </label>
@@ -204,7 +203,7 @@ export function GoalForm({
               <div className="grid gap-1.5">
                 <label
                   htmlFor="goal-deadline"
-                  className="text-sm font-medium text-foreground"
+                  className="pl-4 text-sm font-medium text-foreground"
                 >
                   Prazo
                 </label>
@@ -226,7 +225,7 @@ export function GoalForm({
           </section>
 
           {errorMessage && <p role="alert" className="text-sm text-destructive">{errorMessage}</p>}
-          <section className="flex flex-col-reverse gap-3 border-t border-border pt-4 sm:flex-row sm:justify-between">
+          <section className="flex flex-col-reverse gap-3 pt-6 sm:flex-row sm:justify-between">
             {onCancel && <Button type="button" variant="outline" className="h-11 rounded-xl sm:min-w-32" onClick={onCancel}>Cancelar</Button>}
             <Button
               type="submit"

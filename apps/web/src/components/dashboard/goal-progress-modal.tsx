@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { GoalContributionDialog } from "./goal-contribution-dialog";
 import type { Goal } from "@/types/goal";
 
-type GoalProgressModalProps = {
+export type GoalProgressModalProps = {
   goal: Goal | null;
   mode?: "edit" | "add";
   errorMessage?: string | null;
@@ -17,7 +18,7 @@ type GoalProgressModalProps = {
 const fieldClassName =
   "w-full rounded-xl border border-border/70 bg-background px-4 py-3 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15";
 
-export function GoalProgressModal({
+function EditGoalProgressModal({
   goal,
   mode = "edit",
   errorMessage,
@@ -154,4 +155,9 @@ export function GoalProgressModal({
       </div>
     </div>
   );
+}
+
+export function GoalProgressModal(props: GoalProgressModalProps) {
+  if (props.mode === "add") return props.open && props.goal ? <GoalContributionDialog key={props.goal.id} {...props} goal={props.goal} /> : null;
+  return <EditGoalProgressModal {...props} />;
 }

@@ -65,7 +65,7 @@ describe("DashboardHomeView", () => {
     expect(screen.queryByText("Últimas movimentações pagas até hoje")).not.toBeInTheDocument();
 
     for (const title of ["Saldo atual", "Receitas do mês", "Despesas do mês", "Resultado do mês"]) {
-      const card = screen.getByText(title).parentElement?.parentElement;
+      const card = screen.getByText(title).parentElement;
       const value = card?.querySelectorAll("p")[1];
       expect(value).toBeInTheDocument();
       expect(value).not.toHaveClass("text-center");
@@ -85,7 +85,6 @@ describe("DashboardHomeView", () => {
     expect(within(recent).getAllByRole("listitem").map((item) => item.textContent)).toEqual([
       expect.stringContaining("Salário"),
       expect.stringContaining("Mercado"),
-      expect.stringContaining("Receita antiga"),
     ]);
   });
 
@@ -112,7 +111,7 @@ describe("DashboardHomeView", () => {
     expect(screen.getByRole("region", { name: "Início" }).textContent).not.toContain("R$ 570,00");
     expect(screen.queryByText("25%")).not.toBeInTheDocument();
     expect(screen.getByRole("progressbar", { name: "Progresso de Reserva" })).not.toHaveAttribute("aria-valuenow");
-    await user.click(screen.getByRole("button", { name: "Ver todas as transações" }));
+    await user.click(screen.getByRole("button", { name: "Ver transações" }));
     await user.click(screen.getByRole("button", { name: "Ver metas" }));
     expect(callbacks.onViewTransactions).toHaveBeenCalledOnce();
     expect(callbacks.onViewGoals).toHaveBeenCalledOnce();

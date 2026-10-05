@@ -1,0 +1,20 @@
+﻿.wave {
+  position: absolute;
+  top: -3px;
+  width: 8px;
+  height: 30px;
+  pointer-events: none;
+  border-radius: 45% 55% 55% 45%;
+  background: #69b4fe;
+  transform-origin: center;
+  animation: ripple 0.45s ease-in-out infinite alternate;
+}
+
+@keyframes ripple {
+  from { transform: translateX(-1px) rotate(-4deg); }
+  to { transform: translateX(1px) rotate(4deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wave { display: none; }
+}

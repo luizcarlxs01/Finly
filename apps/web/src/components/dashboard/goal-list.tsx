@@ -19,11 +19,16 @@ type GoalListProps = {
 const formatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const icons = { alimentacao: Utensils, transporte: Car, moradia: House, saude: HeartPulse, educacao: GraduationCap, lazer: Gamepad2, salario: Banknote, freelance: BriefcaseBusiness, contas: ReceiptText, investimentos: TrendingUp, compras: ShoppingBag, geral: Target };
 
-function ProgressValues({ goal, progress, color }: { goal: Goal; progress: number; color: "black" | "white" }) {
-  return <div className={`absolute inset-0 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1 px-3 text-[clamp(0.6875rem,1vw,1rem)] ${color === "white" ? "text-white" : "text-muted-foreground"}`}>
-    <span className="justify-self-start whitespace-nowrap font-semibold">{formatter.format(goal.currentAmount)}</span>
-    <span className="justify-self-center whitespace-nowrap font-semibold">{progress.toFixed(0)}%</span>
-    <span className="justify-self-end whitespace-nowrap font-medium">{formatter.format(goal.targetAmount)}</span>
+function ProgressValues({ goal, progress, white = false }: { goal: Goal; progress: number; white?: boolean }) {
+  const current = formatter.format(goal.currentAmount);
+  const target = formatter.format(goal.targetAmount);
+  const percentage = `${progress.toFixed(0)}%`;
+  const characterCount = current.length + target.length + percentage.length;
+
+  return <div className={`absolute inset-0 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 px-4 tabular-nums ${white ? "text-white" : "text-black"}`} style={{ fontSize: `clamp(0.625rem, calc((100cqw - 48px) / ${characterCount * 0.6}), 1rem)` }}>
+    <span className="justify-self-start whitespace-nowrap font-medium">{current}</span>
+    <span className="justify-self-center whitespace-nowrap font-semibold">{percentage}</span>
+    <span className="justify-self-end whitespace-nowrap font-medium">{target}</span>
   </div>;
 }
 
@@ -43,11 +48,11 @@ export function GoalList({ goals, lastContributions = {}, onAddContribution = as
           <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground"><Icon size={24} strokeWidth={1.5} /></span>
           <div className="min-w-0"><h3 className="truncate font-medium text-foreground">{goal.title}</h3><p className="text-sm text-muted-foreground">{goal.category === "general" ? "Geral" : getTransactionCategoryLabel(goal.category)}{goal.deadline ? ` · Até ${new Intl.DateTimeFormat("pt-BR", { month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(`${goal.deadline}T12:00:00Z`))}` : ""}</p></div>
         </div>
-        <div className="relative h-11 overflow-hidden rounded-full bg-muted dark:bg-slate-200" aria-label={`Progresso: ${progress.toFixed(0)}%`}>
+        <div className="@container relative h-11 overflow-hidden rounded-full bg-muted dark:bg-slate-200" aria-label={`Progresso: ${progress.toFixed(0)}%`}>
           <span className="absolute inset-y-0 left-0 rounded-full bg-primary transition-[width] dark:bg-[#1A75FF]" style={{ width: `${progress}%` }} />
-          <ProgressValues goal={goal} progress={progress} color="black" />
-          <div aria-hidden="true" className="absolute inset-0 transition-[clip-path]" style={{ clipPath: `inset(0 ${100 - progress}% 0 0)` }}>
-            <ProgressValues goal={goal} progress={progress} color="white" />
+          <ProgressValues goal={goal} progress={progress} />
+          <div aria-hidden="true" className="absolute inset-0 transition-[clip-path]" style={{ clipPath: `inset(0 ${100 - progress}% 0 0 round 999px)` }}>
+            <ProgressValues goal={goal} progress={progress} white />
           </div>
         </div>
         <div className="flex items-center justify-end gap-1 sm:gap-2">

@@ -351,7 +351,7 @@ describe("HomePage", () => {
     setupLoadedMocks();
     render(<HomePage />);
 
-    await user.click(screen.getByRole("button", { name: "Ver todas as transações" }));
+    await user.click(screen.getByRole("button", { name: "Ver transações" }));
     expect(screen.getByText("TransactionsView")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /^Início$/i }));
