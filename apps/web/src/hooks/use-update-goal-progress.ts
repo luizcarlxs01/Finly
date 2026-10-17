@@ -41,6 +41,11 @@ export function useUpdateGoalProgress({
 
   async function updateGoalProgress(input: GoalProgressInput) {
     setErrorMessage(null);
+    if (!Number.isFinite(input.currentAmount) || input.currentAmount < 0) {
+      const message = "Informe um valor atual válido, maior ou igual a zero.";
+      setErrorMessage(message);
+      throw new Error(message);
+    }
 
     if (source === "local") {
       updateLocalGoalProgress(input);
@@ -48,7 +53,7 @@ export function useUpdateGoalProgress({
     }
 
     if (isSubmitting) {
-      return;
+      throw new Error("Aguarde a atualização da meta em andamento.");
     }
 
     if (!session?.token) {

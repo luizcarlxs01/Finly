@@ -1,11 +1,25 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+import { Download } from "lucide-react";
 import { createPortal } from "react-dom";
 import { gsap } from "gsap";
 import type { DashboardView } from "@/components/layout/app-floating-header";
 import { JellyIndicator } from "@/components/layout/jelly-indicator";
 import jellyStyles from "@/components/layout/jelly-navigation.module.css";
+import styles from "./staggered-menu.module.css";
+import { AccountAccessCard } from "@/components/auth/account-access-card";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { Button } from "@/components/ui/button";
+
+function subscribeCompact(onChange: () => void) {
+  const media = window.matchMedia("(max-width: 1099px)");
+  media.addEventListener("change", onChange);
+  return () => media.removeEventListener("change", onChange);
+}
+
+function getCompact() { return window.matchMedia("(max-width: 1099px)").matches; }
+function getServerCompact() { return false; }
 
 export type StaggeredMenuItem = {
   label: string;
@@ -19,6 +33,7 @@ type StaggeredMenuProps = {
   onSelect: (view: DashboardView) => void;
   desktopNavigation: React.ReactNode;
   controls: React.ReactNode;
+  className?: string;
 };
 
 export function StaggeredMenu({
@@ -28,8 +43,10 @@ export function StaggeredMenu({
   onSelect,
   desktopNavigation,
   controls,
+  className = "",
 }: StaggeredMenuProps) {
   const [open, setOpen] = useState(false);
+  const compact = useSyncExternalStore(subscribeCompact, getCompact, getServerCompact);
   const [panelVisible, setPanelVisible] = useState(false);
   const openRef = useRef(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -38,8 +55,7 @@ export function StaggeredMenu({
   const overlayRef = useRef<HTMLButtonElement>(null);
   const layersRef = useRef<HTMLDivElement>(null);
   const toggleRef = useRef<HTMLButtonElement>(null);
-  const horizontalLineRef = useRef<HTMLSpanElement>(null);
-  const verticalLineRef = useRef<HTMLSpanElement>(null);
+  const toggleSlotRef = useRef<HTMLSpanElement>(null);
   const timelineRef = useRef<gsap.core.Timeline | null>(null);
   const selectionCloseTimerRef = useRef<number | null>(null);
 
@@ -71,19 +87,29 @@ export function StaggeredMenu({
   }, []);
 
   useLayoutEffect(() => {
-    gsap.set(horizontalLineRef.current, {
-      xPercent: -50,
-      yPercent: -50,
-      rotation: 0,
-      transformOrigin: "50% 50%",
-    });
-    gsap.set(verticalLineRef.current, {
-      xPercent: -50,
-      yPercent: -50,
-      rotation: 90,
-      transformOrigin: "50% 50%",
-    });
+    if (!compact) return;
+    const positionToggle = () => {
+      const slot = toggleSlotRef.current;
+      const toggle = toggleRef.current;
+      if (!slot || !toggle) return;
+      const bounds = slot.getBoundingClientRect();
+      toggle.style.left = `${bounds.left}px`;
+      toggle.style.top = `${bounds.top}px`;
+    };
+    positionToggle();
+    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(positionToggle) : null;
+    const header = document.querySelector<HTMLElement>("[data-finly-header-surface]");
+    if (header) observer?.observe(header);
+    window.addEventListener("resize", positionToggle);
+    window.addEventListener("scroll", positionToggle, { passive: true });
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", positionToggle);
+      window.removeEventListener("scroll", positionToggle);
+    };
+  }, [compact]);
 
+  useLayoutEffect(() => {
     const panel = panelRef.current;
     const layers = layersRef.current?.querySelectorAll<HTMLElement>(".sm-prelayer");
     if (!panel || !layers) return;
@@ -138,12 +164,6 @@ export function StaggeredMenu({
     }
 
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const horizontalLine = horizontalLineRef.current;
-    const verticalLine = verticalLineRef.current;
-    if (horizontalLine && verticalLine) {
-      gsap.to(horizontalLine, { rotation: open ? 45 : 0, duration: reduceMotion ? 0 : 0.3, ease: "power2.out" });
-      gsap.to(verticalLine, { rotation: open ? 135 : 90, duration: reduceMotion ? 0 : 0.3, ease: "power2.out" });
-    }
     const targets = [...layers, panel];
     if (reduceMotion) {
       gsap.set(targets, { xPercent: open ? 0 : 100, autoAlpha: open ? 1 : 0 });
@@ -187,8 +207,10 @@ export function StaggeredMenu({
 
     const handlePointerDown = (event: PointerEvent) => {
       const target = event.target as Node;
+      if (target instanceof Element && target.closest("[data-finly-account-popup], [data-finly-account-backdrop]")) return;
       if (
         !rootRef.current?.contains(target) &&
+        !toggleRef.current?.contains(target) &&
         !panelRef.current?.contains(target) &&
         !overlayRef.current?.contains(target)
       ) {
@@ -196,7 +218,15 @@ export function StaggeredMenu({
       }
     };
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (document.querySelector("[data-finly-account-popup][data-open]")) return;
       if (event.key === "Escape") closeMenu(true);
+      if (event.key === "Tab" && panelRef.current && (panelRef.current.contains(document.activeElement) || document.activeElement === toggleRef.current)) {
+        const buttons = Array.from(panelRef.current.querySelectorAll<HTMLButtonElement>('button:not([disabled])')).filter(button => button.getClientRects().length > 0);
+        if (toggleRef.current) buttons.unshift(toggleRef.current);
+        const index = buttons.indexOf(document.activeElement as HTMLButtonElement);
+        event.preventDefault();
+        buttons[(index + (event.shiftKey ? -1 : 1) + buttons.length) % buttons.length]?.focus();
+      }
     };
     const compactBreakpoint = window.matchMedia("(max-width: 1099px)");
     const handleBreakpointChange = (event: MediaQueryListEvent) => {
@@ -231,7 +261,7 @@ export function StaggeredMenu({
     );
   }
 
-  const menuPanel = panelVisible && typeof document !== "undefined"
+  const menuPanel = panelVisible && compact && typeof document !== "undefined"
     ? createPortal(
         <>
           <button
@@ -240,13 +270,13 @@ export function StaggeredMenu({
             tabIndex={-1}
             aria-hidden="true"
             onClick={() => closeMenu()}
-            className="fixed inset-0 z-[30] cursor-default bg-background/45 backdrop-blur-sm min-[1100px]:hidden"
+            className={`${styles.overlay} fixed inset-0 z-[30] cursor-default bg-background/45 backdrop-blur-sm min-[1100px]:hidden`}
           />
 
           <div
             ref={layersRef}
             aria-hidden="true"
-            className="pointer-events-none fixed inset-y-0 right-0 z-[31] h-dvh w-full min-[640px]:w-[min(28rem,calc(100vw-2rem))] min-[1100px]:hidden"
+            className={`${styles.layers} pointer-events-none fixed inset-y-0 right-0 z-[31] h-dvh w-full min-[640px]:w-[min(28rem,calc(100vw-2rem))] min-[1100px]:hidden`}
           >
             <div className="sm-prelayer absolute inset-0 rounded-l-[1.75rem] bg-secondary shadow-2xl" />
             <div className="sm-prelayer absolute inset-0 rounded-l-[1.75rem] bg-primary shadow-2xl" />
@@ -258,7 +288,7 @@ export function StaggeredMenu({
             aria-label="Navegação do aplicativo"
             aria-hidden={!open}
             inert={!open}
-            className={`fixed inset-y-0 right-0 z-[32] flex h-dvh max-h-dvh w-full flex-col overflow-hidden border-l border-border bg-card px-6 text-card-foreground shadow-2xl transition-[visibility] duration-300 min-[640px]:w-[min(28rem,calc(100vw-2rem))] min-[640px]:px-8 min-[1100px]:hidden ${open ? "pointer-events-auto" : "pointer-events-none"}`}
+            className={`${styles.panel} fixed inset-y-0 right-0 z-[32] flex h-dvh max-h-dvh w-full flex-col overflow-hidden border-l border-border bg-card px-6 text-card-foreground shadow-2xl transition-[visibility] duration-300 min-[640px]:w-[min(28rem,calc(100vw-2rem))] min-[640px]:px-8 min-[1100px]:hidden ${open ? "pointer-events-auto" : "pointer-events-none"}`}
             style={{ visibility: panelVisible ? "visible" : "hidden" }}
           >
             <div id="finly-staggered-menu-content" ref={contentScrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-8">
@@ -270,6 +300,13 @@ export function StaggeredMenu({
                 </ul>
               </nav>
             </div>
+            <div aria-label="Ações do menu" role="group" className="grid shrink-0 grid-cols-3 gap-2 border-t border-border/60 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+              <AccountAccessCard showLabel centered />
+              <Button type="button" variant="outline" className="h-11 w-full min-w-0 gap-2 rounded-xl px-2 text-xs sm:text-sm" onClick={() => selectItem("download")} aria-current={activeView === "download" ? "page" : undefined}>
+                <Download className="size-4" /><span>Baixar</span>
+              </Button>
+              <ThemeToggle showLabel />
+            </div>
           </aside>
         </>,
         document.body,
@@ -277,10 +314,11 @@ export function StaggeredMenu({
     : null;
 
   return (
-    <div ref={rootRef} className="relative z-50 flex items-center gap-2">
+    <div ref={rootRef} className={`relative z-50 flex items-center gap-2 ${className}`}>
       <div className="hidden min-[1100px]:flex items-center gap-2">{desktopNavigation}</div>
-      <div className="relative z-[4] flex shrink-0 items-center gap-2">{controls}</div>
-      <button
+      <div className="relative z-[4] hidden shrink-0 items-center gap-2 min-[1100px]:flex">{!compact && controls}</div>
+      <span ref={toggleSlotRef} className="block size-11 shrink-0 min-[1100px]:hidden" />
+      {compact && createPortal(<button
         ref={toggleRef}
         type="button"
         aria-label={open ? "Fechar menu" : "Abrir menu"}
@@ -297,13 +335,14 @@ export function StaggeredMenu({
           else if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) setPanelVisible(false);
           setOpen(next);
         }}
-        className="relative z-[4] inline-flex size-11 items-center justify-center rounded-2xl border border-border/70 bg-card p-0 text-foreground shadow-sm transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring min-[1100px]:hidden"
+        className={`fixed ${panelVisible ? "z-[65]" : "z-40"} inline-flex size-11 items-center justify-center rounded-md bg-transparent p-0 text-foreground transition-colors hover:text-primary aria-expanded:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none`}
       >
-        <span aria-hidden="true" className="relative size-5">
-          <span ref={horizontalLineRef} className="absolute left-1/2 top-1/2 h-0.5 w-4 rounded-full bg-current" />
-          <span ref={verticalLineRef} className="absolute left-1/2 top-1/2 h-0.5 w-4 rounded-full bg-current" />
+        <span aria-hidden="true" className="flex size-5 flex-col items-end justify-between py-0.5">
+          <span className={`h-0.5 rounded-full bg-current transition-[width] duration-200 motion-reduce:transition-none ${open ? "w-4" : "w-5"}`} />
+          <span className="h-0.5 w-5 rounded-full bg-current" />
+          <span className={`h-0.5 rounded-full bg-current transition-[width] duration-200 motion-reduce:transition-none ${open ? "w-3" : "w-5"}`} />
         </span>
-      </button>
+      </button>, document.body)}
 
       {menuPanel}
     </div>

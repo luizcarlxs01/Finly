@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import gsap from "gsap";
+import styles from "./dashboard-goals-view.module.css";
 import { ChevronDown, ChevronLeft, ChevronRight, Filter, Ghost, Plus, Search, X } from "lucide-react";
 import { GoalCreateDialog } from "@/components/dashboard/goal-create-dialog";
 import { GoalList } from "@/components/dashboard/goal-list";
@@ -57,7 +58,7 @@ export function DashboardGoalsView({ isSubmitting = false, createErrorMessage, a
   const createButtonRef = useRef<HTMLButtonElement>(null);
   const pageSizeRef = useRef<HTMLDivElement>(null);
   const pageSizeButtonRef = useRef<HTMLButtonElement>(null);
-  const hasFilters = Object.values(applied).some(Boolean);
+  const hasFilters = Boolean(applied.category || applied.deadline || applied.progress || applied.value);
 
   useLayoutEffect(() => {
     if (!filterOpen) return;
@@ -74,20 +75,30 @@ export function DashboardGoalsView({ isSubmitting = false, createErrorMessage, a
     return () => { window.removeEventListener("resize", updatePosition); window.removeEventListener("scroll", updatePosition, true); };
   }, [filterOpen, draft.deadline, filterError]);
 
+  useLayoutEffect(() => {
+    const panel = filterPanelRef.current;
+    if (!filterOpen || !panel || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const animation = gsap.fromTo(panel, { opacity: 0, y: -6, scale: 0.98 }, { opacity: 1, y: 0, scale: 1, duration: 0.18, ease: "power2.out", clearProps: "opacity,transform" });
+    return () => { animation.kill(); };
+  }, [filterOpen]);
+
   useEffect(() => { if (!filterOpen) return; const onPointer = (event: PointerEvent) => { if (filterRef.current && !filterRef.current.contains(event.target as Node)) setFilterOpen(false); }; const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") setFilterOpen(false); }; document.addEventListener("pointerdown", onPointer); document.addEventListener("keydown", onKey); return () => { document.removeEventListener("pointerdown", onPointer); document.removeEventListener("keydown", onKey); }; }, [filterOpen]);
   useEffect(() => { if (!pageSizeOpen) return; pageSizeRef.current?.querySelector<HTMLButtonElement>('[aria-selected="true"]')?.focus(); const onPointer = (event: PointerEvent) => { if (pageSizeRef.current && !pageSizeRef.current.contains(event.target as Node)) setPageSizeOpen(false); }; const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") { setPageSizeOpen(false); pageSizeButtonRef.current?.focus(); } }; document.addEventListener("pointerdown", onPointer); document.addEventListener("keydown", onKey); return () => { document.removeEventListener("pointerdown", onPointer); document.removeEventListener("keydown", onKey); }; }, [pageSizeOpen]);
 
-  const counts = useMemo(() => { const active = goals.filter(g => progressOf(g) < 1); const date = today(); const limit = new Date(`${date}T12:00:00Z`); limit.setUTCDate(limit.getUTCDate() + 30); const until = limit.toISOString().slice(0, 10); return { active: active.length, completed: goals.length - active.length, approaching: active.filter(g => g.deadline && g.deadline >= date && g.deadline <= until).length }; }, [goals]);
-  const filtered = useMemo(() => {
+  const matching = useMemo(() => {
     const query = search.trim().toLocaleLowerCase("pt-BR");
-    const rows = goals.filter(g => (tab === "all" || (tab === "completed" ? progressOf(g) >= 1 : progressOf(g) < 1)) && (!query || `${g.title} ${g.category === "general" ? "Geral" : getTransactionCategoryLabel(g.category)}`.toLocaleLowerCase("pt-BR").includes(query)) && (!applied.category || (applied.category === "general" ? g.category === "general" || g.category === "geral" : g.category === applied.category)) && (applied.deadline !== "range" || (g.deadline && (!applied.from || g.deadline >= applied.from) && (!applied.to || g.deadline <= applied.to))));
+    return goals.filter(g => (!query || `${g.title} ${g.category === "general" ? "Geral" : getTransactionCategoryLabel(g.category)}`.toLocaleLowerCase("pt-BR").includes(query)) && (!applied.category || (applied.category === "general" ? g.category === "general" || g.category === "geral" : g.category === applied.category)) && (applied.deadline !== "range" || (g.deadline && g.deadline >= applied.from && g.deadline <= applied.to)));
+  }, [goals, search, applied]);
+  const counts = useMemo(() => { const active = matching.filter(g => progressOf(g) < 1); const date = today(); const limit = new Date(`${date}T12:00:00Z`); limit.setUTCDate(limit.getUTCDate() + 30); const until = limit.toISOString().slice(0, 10); return { active: active.length, completed: matching.length - active.length, approaching: active.filter(g => g.deadline && g.deadline >= date && g.deadline <= until).length }; }, [matching]);
+  const filtered = useMemo(() => {
+    const rows = matching.filter(g => tab === "all" || (tab === "completed" ? progressOf(g) >= 1 : progressOf(g) < 1));
     return rows.sort((a, b) => {
       if (applied.deadline === "nearest") { const diff = (a.deadline ?? "9999").localeCompare(b.deadline ?? "9999"); if (diff) return diff; }
       if (applied.progress) { const diff = (progressOf(b) - progressOf(a)) * (applied.progress === "closest" ? 1 : -1); if (diff) return diff; }
       if (applied.value) { const diff = applied.value === "current" ? b.currentAmount - a.currentAmount : b.targetAmount - a.targetAmount; if (diff) return diff; }
       return b.createdAt.localeCompare(a.createdAt) || a.id.localeCompare(b.id);
     });
-  }, [goals, tab, search, applied]);
+  }, [matching, tab, applied]);
   const pages = pageSize === "all" ? 1 : Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, pages);
   const visible = pageSize === "all" ? filtered : filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
@@ -186,30 +197,37 @@ export function DashboardGoalsView({ isSubmitting = false, createErrorMessage, a
     options[next]?.focus();
   };
   const patchDraft = (patch: Partial<Filters>) => setDraft(current => ({ ...current, ...patch }));
+  const selectFilterOption = <K extends "deadline" | "progress" | "value">(group: K, option: Filters[K]) => {
+    setDraft(current => ({ ...current, deadline: "", progress: "", value: "", from: "", to: "", [group]: current[group] === option ? "" : option }));
+    setFilterError("");
+  };
   const clearFilters = () => { setApplied(emptyFilters); setDraft(emptyFilters); setFilterError(""); resetPage(); };
   const applyFilters = () => { if (draft.deadline === "range" && (!draft.from || !draft.to || draft.from > draft.to)) { setFilterError("Informe um período válido: De deve ser anterior ou igual a Até."); return; } setApplied(draft); setFilterError(""); setFilterOpen(false); resetPage(); };
 
-  return <div className="flex flex-col gap-4">
-    <section aria-label="Resumo das metas" className="mx-auto mb-18 grid w-full max-w-4xl grid-cols-3 items-center gap-3">
+  return <div className={styles.goals}>
+    <section data-shared-indicators aria-label="Resumo das metas" data-eclipse-anchor="goals" className={`${styles.summary} mx-auto grid w-full max-w-5xl grid-cols-3 items-center gap-3`}>
       {[[counts.active, "Em andamento"], [counts.completed, "Metas batidas"], [counts.approaching, "Próximas do prazo"]].map(([value, label], index) => <div key={label} className={`min-w-0 text-center ${index < 2 ? "border-r border-border/70" : ""}`}><p className="text-3xl font-semibold text-foreground sm:text-4xl">{value}</p><p className="text-xs text-muted-foreground sm:text-sm">{label}</p></div>)}
     </section>
-        <div className="grid gap-3 sm:grid-cols-[360px_auto] sm:items-center sm:justify-center min-[1140px]:w-full min-[1140px]:!grid-cols-[1fr_360px_1fr] min-[1140px]:!justify-normal min-[1140px]:gap-0">
+    <section aria-label="Painel de metas" className={styles.panel}>
+        <div className={`${styles.controls} grid gap-3 sm:grid-cols-[360px_auto] sm:items-center sm:justify-center min-[1140px]:w-full min-[1140px]:!grid-cols-[1fr_360px_1fr] min-[1140px]:!justify-normal min-[1140px]:gap-3`}>
       <div role="group" aria-label="Estado das metas" className="flex w-full rounded-xl bg-muted p-1 sm:col-span-2 sm:w-auto sm:justify-self-center min-[1140px]:!col-span-1 min-[1140px]:!justify-self-start">{[["active", "Em andamento"], ["completed", "Concluídas"], ["all", "Todas"]].map(([key, label]) => <button key={key} type="button" aria-pressed={tab === key} onClick={() => selectTab(key as typeof tab)} className={`flex-1 whitespace-nowrap rounded-lg px-3 py-2 text-sm sm:flex-none sm:px-5 ${tab === key ? "bg-card font-medium text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>{label}</button>)}</div>
       <div className="flex min-w-0 w-full gap-2 min-[1140px]:w-[360px] min-[1140px]:justify-self-center"><label className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-xl bg-muted px-3"><Search size={18} className="shrink-0 text-muted-foreground" /><input type="search" aria-label="Buscar metas" placeholder="Buscar em todas as metas" value={search} onChange={e => { setSearch(e.target.value); resetPage(); }} className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground" /></label>
-        <div ref={filterRef} className="relative"><button type="button" aria-label="Filtros" aria-expanded={filterOpen} onClick={() => { setDraft(applied); setFilterError(""); setFilterOpen(!filterOpen); }} className="relative flex size-11 items-center justify-center rounded-xl bg-muted text-foreground hover:bg-primary/10"><Filter size={19} />{hasFilters && <span className="absolute right-0 top-0 size-2.5 rounded-full bg-primary" />}</button>
-          {filterOpen && <div ref={filterPanelRef} className="fixed inset-x-4 top-4 z-50 space-y-4 rounded-2xl border border-border bg-card p-4 text-sm shadow-xl lg:absolute lg:inset-x-auto lg:right-0 lg:top-12 lg:w-[min(90vw,390px)] lg:translate-y-[var(--filter-offset)]">
-            <div className="relative flex h-8 items-center justify-center"><h2 className="text-lg font-semibold">Filtros</h2><button type="button" aria-label="Fechar filtros" onClick={() => setFilterOpen(false)} className="absolute right-0 flex size-8 items-center justify-center rounded-lg transition-colors hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"><X size={18} /></button></div>
-            <label className="block space-y-2 font-medium"><span className="block">Categoria</span><select value={draft.category} onChange={e => patchDraft({ category: e.target.value })} className="h-10 w-full rounded-lg border border-border bg-background px-3 font-normal"><option value="">Todas as categorias</option><option value="general">Geral</option>{TRANSACTION_CATEGORIES.filter(c => c !== "geral").map(c => <option key={c} value={c}>{getTransactionCategoryLabel(c)}</option>)}</select></label>
-            <fieldset className="border-t border-border pt-3"><legend className="pr-2 font-medium">Prazo</legend><div className="grid grid-cols-2 gap-2"><button type="button" aria-pressed={draft.deadline === "nearest"} onClick={() => patchDraft({ deadline: draft.deadline === "nearest" ? "" : "nearest", from: "", to: "" })} className={`rounded-lg border p-2 transition-colors hover:border-primary/60 hover:bg-primary/15 ${draft.deadline === "nearest" ? "border-primary bg-primary/10 text-primary" : "border-border"}`}>Mais próximo</button><button type="button" aria-pressed={draft.deadline === "range"} onClick={() => patchDraft({ deadline: draft.deadline === "range" ? "" : "range" })} className={`rounded-lg border p-2 transition-colors hover:border-primary/60 hover:bg-primary/15 ${draft.deadline === "range" ? "border-primary bg-primary/10 text-primary" : "border-border"}`}>Período específico</button></div>{draft.deadline === "range" && <div className="mt-2 grid grid-cols-2 gap-2"><label>De<input type="date" value={draft.from} onChange={e => patchDraft({ from: e.target.value })} className="h-10 w-full rounded-lg border border-border bg-background px-1" /></label><label>Até<input type="date" value={draft.to} onChange={e => patchDraft({ to: e.target.value })} className="h-10 w-full rounded-lg border border-border bg-background px-1" /></label></div>}</fieldset>
-            <fieldset className="border-t border-border pt-3"><legend className="pr-2 font-medium">Progresso</legend><div className="grid grid-cols-2 gap-2">{[["closest", "Mais próxima de atingir"], ["furthest", "Mais distante de atingir"]].map(([key, label]) => <button key={key} type="button" aria-pressed={draft.progress === key} onClick={() => patchDraft({ progress: draft.progress === key ? "" : key as Filters["progress"] })} className={`rounded-lg border p-2 transition-colors hover:border-primary/60 hover:bg-primary/15 ${draft.progress === key ? "border-primary bg-primary/10 text-primary" : "border-border"}`}>{label}</button>)}</div></fieldset>
-            <fieldset className="border-t border-border pt-3"><legend className="pr-2 font-medium">Valor</legend><div className="grid grid-cols-2 gap-2">{[["current", "Maior valor adicionado"], ["target", "Maior valor alvo"]].map(([key, label]) => <button key={key} type="button" aria-pressed={draft.value === key} onClick={() => patchDraft({ value: draft.value === key ? "" : key as Filters["value"] })} className={`rounded-lg border p-2 transition-colors hover:border-primary/60 hover:bg-primary/15 ${draft.value === key ? "border-primary bg-primary/10 text-primary" : "border-border"}`}>{label}</button>)}</div></fieldset>
-            {filterError && <p role="alert" className="text-destructive">{filterError}</p>}
-            <div className="flex items-center justify-between"><button type="button" onClick={clearFilters} className="text-primary transition-colors hover:text-primary/75 hover:underline">Limpar</button><button type="button" onClick={applyFilters} className="rounded-lg bg-primary px-4 py-2 text-primary-foreground transition-colors hover:bg-primary/90">Aplicar filtros</button></div>
+        <div ref={filterRef} className="relative"><button type="button" aria-label="Filtros" aria-expanded={filterOpen} onClick={() => { setDraft(applied); setFilterError(""); setFilterOpen(!filterOpen); }} className="relative flex size-11 items-center justify-center rounded-xl bg-muted text-foreground transition-colors duration-200 hover:bg-primary/20 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary motion-reduce:transition-none"><Filter size={19} />{hasFilters && <span className="absolute right-0 top-0 size-2.5 rounded-full bg-primary" />}</button>
+          {filterOpen && <div ref={filterPanelRef} className="fixed inset-x-4 top-4 z-50 flex max-h-[calc(100dvh-2rem)] flex-col gap-4 rounded-2xl border border-border bg-card p-4 text-sm shadow-xl lg:absolute lg:inset-x-auto lg:right-0 lg:top-12 lg:w-[min(90vw,390px)] lg:translate-y-[var(--filter-offset)]">
+            <div className="relative flex h-8 shrink-0 items-center justify-center"><h2 className="text-lg font-semibold">Filtros</h2><button type="button" aria-label="Fechar filtros" onClick={() => setFilterOpen(false)} className="absolute right-0 flex size-8 items-center justify-center rounded-lg transition-colors hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"><X size={18} /></button></div>
+            <label className="block shrink-0 space-y-2 font-medium"><span className="block">Categoria</span><select value={draft.category} onChange={e => patchDraft({ category: e.target.value })} className="h-10 w-full rounded-lg border border-border bg-background px-3 font-normal"><option value="">Todas as categorias</option><option value="general">Geral</option>{TRANSACTION_CATEGORIES.filter(c => c !== "geral").map(c => <option key={c} value={c}>{getTransactionCategoryLabel(c)}</option>)}</select></label>
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto">
+            <fieldset className="border-t border-border pt-3"><legend className="pr-2 font-medium">Prazo</legend><div className="grid grid-cols-2 gap-2"><button type="button" aria-pressed={draft.deadline === "nearest"} onClick={() => selectFilterOption("deadline", "nearest")} className={`rounded-lg border p-2 transition-colors hover:border-primary/60 hover:bg-primary/15 ${draft.deadline === "nearest" ? "border-primary bg-primary/10 text-primary" : "border-border"}`}>Mais próximo</button><button type="button" aria-pressed={draft.deadline === "range"} onClick={() => selectFilterOption("deadline", "range")} className={`rounded-lg border p-2 transition-colors hover:border-primary/60 hover:bg-primary/15 ${draft.deadline === "range" ? "border-primary bg-primary/10 text-primary" : "border-border"}`}>Período específico</button></div>{draft.deadline === "range" && <div data-filter-dates className="mt-2 grid grid-cols-2 gap-2"><label>De<input type="date" value={draft.from} onChange={e => patchDraft({ from: e.target.value })} className="h-10 w-full rounded-lg border border-border bg-background px-1" /></label><label>Até<input type="date" value={draft.to} onChange={e => patchDraft({ to: e.target.value })} className="h-10 w-full rounded-lg border border-border bg-background px-1" /></label></div>}</fieldset>
+            <fieldset className="border-t border-border pt-3"><legend className="pr-2 font-medium">Progresso</legend><div className="grid grid-cols-2 gap-2">{[["closest", "Mais próxima de atingir"], ["furthest", "Mais distante de atingir"]].map(([key, label]) => <button key={key} type="button" aria-pressed={draft.progress === key} onClick={() => selectFilterOption("progress", key as Filters["progress"])} className={`rounded-lg border p-2 transition-colors hover:border-primary/60 hover:bg-primary/15 ${draft.progress === key ? "border-primary bg-primary/10 text-primary" : "border-border"}`}>{label}</button>)}</div></fieldset>
+            <fieldset className="border-t border-border pt-3"><legend className="pr-2 font-medium">Valor</legend><div className="grid grid-cols-2 gap-2">{[["current", "Maior valor adicionado"], ["target", "Maior valor alvo"]].map(([key, label]) => <button key={key} type="button" aria-pressed={draft.value === key} onClick={() => selectFilterOption("value", key as Filters["value"])} className={`rounded-lg border p-2 transition-colors hover:border-primary/60 hover:bg-primary/15 ${draft.value === key ? "border-primary bg-primary/10 text-primary" : "border-border"}`}>{label}</button>)}</div></fieldset>
+            </div>
+            {filterError && <p role="alert" className="shrink-0 text-destructive">{filterError}</p>}
+            <div className="flex shrink-0 items-center justify-between"><button type="button" onClick={clearFilters} className="text-primary transition-colors hover:text-primary/75 hover:underline">Limpar</button><button type="button" onClick={applyFilters} className="rounded-lg bg-primary px-4 py-2 text-primary-foreground transition-colors hover:bg-primary/90">Aplicar filtros</button></div>
           </div>}
         </div></div>
       <button ref={createButtonRef} type="button" onClick={() => setCreateOpen(true)} className="flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-primary px-5 font-medium text-primary-foreground hover:bg-primary/90 min-[1140px]:!justify-self-end"><Plus size={18} /> Nova meta</button>
     </div>
-    <div className={`isolate rounded-2xl border border-border/70 bg-card shadow-sm [--goal-footer-height:60px] ${filtered.length === 0 ? "pb-[var(--goal-footer-height)]" : ""}`}><div ref={cubeViewportRef} className="relative rounded-t-[inherit]"><div ref={pageAreaRef} className="relative flex min-h-[1005px] bg-card flex-col rounded-t-[inherit] sm:min-h-[1045px] lg:min-h-[445px]">
+    <div className={`isolate [--goal-footer-height:60px] ${filtered.length === 0 ? "pb-[var(--goal-footer-height)]" : ""}`}><div ref={cubeViewportRef} className="relative rounded-t-[inherit]"><div ref={pageAreaRef} className="relative flex min-h-[1005px] bg-card flex-col rounded-t-[inherit] sm:min-h-[1045px] lg:min-h-[445px]">
       {filtered.length === 0 && <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 z-0 flex h-[1005px] items-center justify-center sm:h-[1045px] lg:h-[445px]"><Ghost className="size-64 text-slate-300/80 dark:text-slate-500/60 sm:size-72 lg:size-32 [&_path]:[vector-effect:non-scaling-stroke]" strokeWidth={2} focusable="false" /></div>}
       <div ref={pageContentRef} className="relative z-10 rounded-t-[inherit]" aria-busy={paging || cubeBusy}><GoalList goals={visible} lastContributions={lastContributions} onAddContribution={onAddContribution} onUpdateProgress={onUpdateProgress} onAddCustom={onAddCustom} onRemoveGoal={onRemoveGoal} actionsDisabled={areActionsDisabled || paging || cubeBusy} noResults={goals.length > 0 && Boolean(search.trim() || hasFilters)} /></div>
       <div className="min-h-0 flex-1" />
@@ -229,6 +247,7 @@ export function DashboardGoalsView({ isSubmitting = false, createErrorMessage, a
         <div className="relative z-0 ml-auto flex min-h-[34px] min-w-[84px] shrink-0 items-center justify-end gap-1 sm:min-w-[92px] sm:gap-2">{pageSize !== "all" && <><button type="button" aria-label="Página anterior" disabled={paging || cubeBusy || currentPage === 1} onClick={() => navigatePage(currentPage - 1)} className="rounded-lg p-2 hover:bg-muted disabled:opacity-40"><ChevronLeft size={18} /></button><span>{currentPage}</span><button type="button" aria-label="Próxima página" disabled={paging || cubeBusy || currentPage === pages} onClick={() => navigatePage(currentPage + 1)} className="rounded-lg p-2 hover:bg-muted disabled:opacity-40"><ChevronRight size={18} /></button></>}</div>
       </div>}
     </div>
+    </section>
     {createOpen && <GoalCreateDialog triggerRef={createButtonRef} isSubmitting={isSubmitting} errorMessage={createErrorMessage} onAddGoal={onAddGoal} onClose={() => setCreateOpen(false)} />}
   </div>;
 }

@@ -10,6 +10,7 @@ import { LoginForm } from "@/components/auth/login-form";
 import { RegisterForm } from "@/components/auth/register-form";
 import { Button } from "@/components/ui/button";
 import { useAuthSession } from "@/hooks/use-auth-session";
+import styles from "./account-access-card.module.css";
 
 type AccessIntent = "login" | "register";
 
@@ -140,13 +141,13 @@ function AccountAccessContent({
   );
 }
 
-export function AccountAccessCard() {
+export function AccountAccessCard({ showLabel = false, centered = false }: { showLabel?: boolean; centered?: boolean }) {
   const auth = useAuthSession();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const identity = auth.authenticated ? auth.session : null;
 
   return (
-    <Popover.Root>
+    <Popover.Root modal={centered ? "trap-focus" : false}>
       <Popover.Trigger
         ref={triggerRef}
         aria-label={identity ? `Conta de ${identity.name}` : "Conta"}
@@ -154,23 +155,26 @@ export function AccountAccessCard() {
         render={
           <Button
             variant="outline"
-            size="icon-sm"
-            className="rounded-xl sm:rounded-2xl"
+            size={showLabel ? "default" : "icon-sm"}
+            className={showLabel ? "h-11 w-full min-w-0 gap-2 rounded-xl px-2 text-xs sm:text-sm" : "rounded-xl sm:rounded-2xl"}
           />
         }
       >
         <User className="size-4" />
+        {showLabel && <span>Conta</span>}
       </Popover.Trigger>
       <Popover.Portal keepMounted>
+        {centered && <Popover.Backdrop data-finly-account-backdrop className="fixed inset-0 z-[70] bg-background/45 backdrop-blur-sm" />}
         <Popover.Positioner
           align="end"
           sideOffset={12}
           collisionPadding={12}
-          className="z-50"
+          className={centered ? styles.centered : "z-50"}
         >
           <Popover.Popup
+            data-finly-account-popup
             finalFocus={triggerRef}
-            className="w-80 max-w-[calc(100vw-1.5rem)] max-h-[var(--available-height)] overflow-y-auto overscroll-contain rounded-2xl border border-border/70 bg-popover p-4 text-popover-foreground shadow-xl outline-none"
+            className={`w-80 max-w-[calc(100vw-1.5rem)] overflow-y-auto overscroll-contain rounded-2xl border border-border/70 bg-popover p-4 text-popover-foreground shadow-xl outline-none ${centered ? "pointer-events-auto max-h-[calc(100dvh-1.5rem)]" : "max-h-[var(--available-height)]"}`}
           >
             <div className="mb-4 flex items-center justify-between gap-3 border-b border-border/60 pb-3">
               <div>

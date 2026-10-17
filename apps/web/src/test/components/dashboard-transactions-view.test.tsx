@@ -1,229 +1,17 @@
-import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+﻿import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-
-import type { TransactionSortOption } from "@/components/dashboard/transaction-advanced-filters";
-import type { LocalFinanceTransactionInput } from "@/hooks/use-local-finance";
-import type { Transaction, TransactionFilter } from "@/types/finance";
-
-vi.mock("@/components/dashboard/transaction-form", () => ({
-  TransactionForm: ({
-    onAddTransaction,
-    onPreviewTransaction,
-    onClearPreview,
-    isPreviewActive,
-    showPreviewNotice,
-  }: {
-    onAddTransaction: (input: LocalFinanceTransactionInput) => void;
-    onPreviewTransaction: (input: LocalFinanceTransactionInput) => void;
-    onClearPreview: () => void;
-    isPreviewActive: boolean;
-    showPreviewNotice?: boolean;
-  }) => {
-    const sampleInput: LocalFinanceTransactionInput = {
-      title: "Teste",
-      amount: 10,
-      type: "expense",
-      category: "geral",
-      transactionKind: "single",
-      transactionDate: "2026-04-10",
-      isRecurring: false,
-      recurrenceType: null,
-      recurrenceDay: null,
-      recurrenceStartDate: null,
-    };
-
-    return (
-      <div>
-        <p>TransactionForm</p>
-        <p>Preview ativo form: {String(isPreviewActive)}</p>
-        <p>Preview notice form: {String(showPreviewNotice)}</p>
-        <button type="button" onClick={() => onAddTransaction(sampleInput)}>
-          Trigger add transaction
-        </button>
-        <button type="button" onClick={() => onPreviewTransaction(sampleInput)}>
-          Trigger preview transaction
-        </button>
-        <button type="button" onClick={onClearPreview}>
-          Trigger clear preview form
-        </button>
-      </div>
-    );
-  },
-}));
-
-vi.mock("@/components/dashboard/finance-summary-card", () => ({
-  FinanceSummaryCard: ({
-    initialBalance,
-    totalIncome,
-    totalExpense,
-    currentBalance,
-    forecastTotalIncome,
-    forecastTotalExpense,
-    forecastProjectedBalance,
-    isPreviewActive,
-    onClearPreview,
-    onUpdateInitialBalance,
-    nextUpcomingMonthLabel,
-  }: {
-    initialBalance: number;
-    totalIncome: number;
-    totalExpense: number;
-    currentBalance: number;
-    forecastTotalIncome: number;
-    forecastTotalExpense: number;
-    forecastProjectedBalance: number;
-    isPreviewActive: boolean;
-    onClearPreview: () => void;
-    onUpdateInitialBalance: (value: number) => void;
-    nextUpcomingMonthLabel?: string | null;
-  }) => {
-    const fmt = new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    });
-    return (
-      <div>
-        <p>Resumo rápido</p>
-        <p>FinanceSummaryCard</p>
-        <p>Inicial: {initialBalance}</p>
-        <p>Entradas: {totalIncome}</p>
-        <p>Saídas: {totalExpense}</p>
-        <p>Saldo: {currentBalance}</p>
-        <p>{fmt.format(forecastProjectedBalance)}</p>
-        <p>{fmt.format(forecastTotalIncome)}</p>
-        <p>{fmt.format(forecastTotalExpense)}</p>
-        {isPreviewActive ? (
-          <>
-            <p>Simulação ativa</p>
-            <p>Os valores abaixo já mostram esse impacto.</p>
-            <button type="button" onClick={onClearPreview}>
-              Limpar simulação
-            </button>
-          </>
-        ) : (
-          <>
-            <p>Simule antes de salvar</p>
-            <p>
-              Use &quot;Simular impacto&quot; para ver como esse lançamento
-              pode ficar.
-            </p>
-          </>
-        )}
-        <p>{nextUpcomingMonthLabel ?? "Sem lançamentos previstos"}</p>
-        {!nextUpcomingMonthLabel ? (
-          <p>Quando houver parcelas ou recorrências, elas aparecem aqui.</p>
-        ) : null}
-        <button type="button" onClick={() => onUpdateInitialBalance(123)}>
-          Trigger update balance
-        </button>
-      </div>
-    );
-  },
-}));
-
-vi.mock("@/components/dashboard/overlays/statement-projection-modal", () => ({
-  StatementProjectionModal: ({
-    open,
-    onClose,
-    transactionFilter,
-    onTransactionFilterChange,
-    searchTerm,
-    onSearchTermChange,
-    categoryFilter,
-    onCategoryFilterChange,
-    sortOption,
-    onSortOptionChange,
-    filteredTransactions,
-    statementTransactions,
-    hasActiveAdvancedFilters,
-    onClearAdvancedFilters,
-    onEditTransaction,
-    onRemoveTransaction,
-    emptyStateTitle,
-    emptyStateDescription,
-  }: {
-    open: boolean;
-    onClose: () => void;
-    transactionFilter: string;
-    onTransactionFilterChange: (value: TransactionFilter) => void;
-    searchTerm: string;
-    onSearchTermChange: (value: string) => void;
-    categoryFilter: string;
-    onCategoryFilterChange: (value: string) => void;
-    sortOption: string;
-    onSortOptionChange: (value: TransactionSortOption) => void;
-    filteredTransactions: Transaction[];
-    statementTransactions: Transaction[];
-    hasActiveAdvancedFilters: boolean;
-    onClearAdvancedFilters: () => void;
-    onEditTransaction: (transaction: Transaction) => void;
-    onRemoveTransaction: (id: string) => void;
-    emptyStateTitle: string;
-    emptyStateDescription: string;
-  }) =>
-    open ? (
-      <div>
-        <p>StatementProjectionModal</p>
-        <p>Filtro modal: {transactionFilter}</p>
-        <p>Busca modal: {searchTerm}</p>
-        <p>Categoria modal: {categoryFilter}</p>
-        <p>Ordenação modal: {sortOption}</p>
-        <p>Filtros ativos modal: {String(hasActiveAdvancedFilters)}</p>
-        <p>{emptyStateTitle}</p>
-        <p>{emptyStateDescription}</p>
-        <p>Filtradas: {filteredTransactions.length}</p>
-        <p>Extrato: {statementTransactions.length}</p>
-        <button type="button" onClick={onClose}>
-          Close statement modal
-        </button>
-        <button type="button" onClick={() => onTransactionFilterChange("income")}>
-          Change filter
-        </button>
-        <button type="button" onClick={() => onSearchTermChange("mercado")}>
-          Change search
-        </button>
-        <button type="button" onClick={() => onCategoryFilterChange("moradia")}>
-          Change category
-        </button>
-        <button type="button" onClick={() => onSortOptionChange("highest")}>
-          Change sort
-        </button>
-        <button type="button" onClick={onClearAdvancedFilters}>
-          Clear advanced filters
-        </button>
-        <button
-          type="button"
-          onClick={() => filteredTransactions[0] && onEditTransaction(filteredTransactions[0])}
-        >
-          Edit first filtered
-        </button>
-        <button
-          type="button"
-          onClick={() =>
-            filteredTransactions[0] && onRemoveTransaction(filteredTransactions[0].id)
-          }
-        >
-          Remove first filtered
-        </button>
-      </div>
-    ) : null,
-}));
-
+import type { Transaction } from "@/types/finance";
+import { getTodayDateValue } from "@/utils/recurring-transactions";
 import { DashboardTransactionsView } from "@/components/dashboard/views/dashboard-transactions-view";
 
-const currencyFormatter = new Intl.NumberFormat("pt-BR", {
-  style: "currency",
-  currency: "BRL",
+beforeEach(() => {
+  window.localStorage.clear();
+  vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
+  HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
+  HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };
 });
-
-function getByExactText(value: string) {
-  return screen.getByText(
-    (_, element) =>
-      element?.textContent === value && (element.children.length ?? 0) === 0,
-  );
-}
-
+afterEach(() => vi.unstubAllGlobals());
 function createTransaction(overrides: Partial<Transaction> = {}): Transaction {
   return {
     id: "tx-1",
@@ -233,7 +21,7 @@ function createTransaction(overrides: Partial<Transaction> = {}): Transaction {
     category: "alimentacao",
     transactionKind: "single",
     sourceId: null,
-    occurrenceDate: null,
+    occurrenceDate: getTodayDateValue(),
     installmentIndex: null,
     installmentCount: null,
     installmentStartDate: null,
@@ -307,110 +95,106 @@ function renderDashboardTransactionsView(
   };
 }
 
-describe("DashboardTransactionsView", () => {
-  it("deve renderizar os blocos principais da view com dados completos", () => {
-    renderDashboardTransactionsView();
 
-    expect(
-      screen.getByRole("heading", { level: 1, name: "Lançamentos" }),
-    ).toBeInTheDocument();
-    expect(screen.getByText("Resumo rápido")).toBeInTheDocument();
-    expect(screen.getAllByText("Extrato").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Calendário").length).toBeGreaterThan(0);
-    expect(screen.getByText("FinanceSummaryCard")).toBeInTheDocument();
-    expect(screen.getByText("TransactionForm")).toBeInTheDocument();
-    expect(screen.getByText("Inicial: 1000")).toBeInTheDocument();
-    expect(screen.getByText("Entradas: 3000")).toBeInTheDocument();
-    expect(screen.getByText("Saídas: 200")).toBeInTheDocument();
-    expect(getByExactText(currencyFormatter.format(3750))).toBeInTheDocument();
-    expect(getByExactText(currencyFormatter.format(3200))).toBeInTheDocument();
-    expect(getByExactText(currencyFormatter.format(450))).toBeInTheDocument();
-    expect(screen.getByText("Sem lançamentos previstos")).toBeInTheDocument();
+describe("Lançamentos redesenhado", () => {
+  it("mostra indicadores reais do mês e oculta todos os valores da tela", async () => {
+    const date = getTodayDateValue();
+    const items = [createTransaction({ id: "income", amount: 100, type: "income", occurrenceDate: date, occurrenceStatus: "paid" }), createTransaction({ id: "expense", amount: 30, occurrenceDate: date, occurrenceStatus: "paid" }), createTransaction({ id: "future", amount: 80, occurrenceDate: date, occurrenceStatus: "pending" })];
+    renderDashboardTransactionsView({ statementTransactions: items, filteredTransactions: items });
+    const summary = screen.getByRole("region", { name: "Indicadores financeiros" });
+    expect(screen.queryByRole("button", { name: "Abrir resumo financeiro" })).not.toBeInTheDocument();
+    expect(within(summary).getByText(/100,00/)).toBeInTheDocument();
+    expect(within(summary).getByText(/30,00/)).toBeInTheDocument();
+    expect(within(summary).getByText(/70,00/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Ocultar valores" }));
+    expect(within(summary).queryByText(/100,00/)).not.toBeInTheDocument();
+    expect(within(screen.getByRole("table")).getAllByText("••••••")).toHaveLength(3);
+    expect(localStorage.getItem("finly:dashboard-values-hidden")).toBe("true");
   });
-
-  it("deve renderizar de forma estavel com dados minimos validos e fallback sem proximos lancamentos", () => {
-    renderDashboardTransactionsView({
-      filteredTransactions: [],
-      statementTransactions: [],
-      isPreviewActive: false,
-    });
-
-    expect(screen.getByText("Simule antes de salvar")).toBeInTheDocument();
-    expect(
-      screen.getByText('Use "Simular impacto" para ver como esse lançamento pode ficar.'),
-    ).toBeInTheDocument();
-    expect(screen.getByText("Sem lançamentos previstos")).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "Quando houver parcelas ou recorrências, elas aparecem aqui.",
-      ),
-    ).toBeInTheDocument();
-    expect(screen.queryByText("Limpar simulação")).not.toBeInTheDocument();
-  });
-
-  it("deve refletir o estado condicional de simulacao ativa e permitir limpá-la", async () => {
+  it("preserva busca, filtros, projeção e alterna a ordenação pelos cabeçalhos", async () => {
     const user = userEvent.setup();
-    const onClearPreview = vi.fn();
-
-    renderDashboardTransactionsView({
-      isPreviewActive: true,
-      onClearPreview,
-    });
-
-    expect(screen.getByText("Simulação ativa")).toBeInTheDocument();
-    expect(
-      screen.getByText("Os valores abaixo já mostram esse impacto."),
-    ).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: "Limpar simulação" }));
-
-    expect(onClearPreview).toHaveBeenCalledTimes(1);
+    const { props, rerender } = renderDashboardTransactionsView();
+    expect(screen.getByRole("columnheader", { name: "Data" })).toHaveAttribute("aria-sort", "descending");
+    await user.click(screen.getByRole("button", { name: "Data" }));
+    expect(props.onSortOptionChange).toHaveBeenLastCalledWith("oldest");
+    await user.click(screen.getByRole("button", { name: "Valor" }));
+    expect(props.onSortOptionChange).toHaveBeenLastCalledWith("highest");
+    rerender(<DashboardTransactionsView {...props} sortOption="highest" />);
+    expect(screen.getByRole("columnheader", { name: "Data" })).toHaveAttribute("aria-sort", "none");
+    expect(screen.getByRole("columnheader", { name: "Valor" })).toHaveAttribute("aria-sort", "descending");
+    await user.click(screen.getByRole("button", { name: "Valor" }));
+    expect(props.onSortOptionChange).toHaveBeenLastCalledWith("lowest");
+    await user.type(screen.getByRole("searchbox"), "a");
+    expect(props.onSearchTermChange).toHaveBeenCalledWith("a");
+    await user.click(screen.getByRole("button", { name: "Entradas" }));
+    expect(props.onTransactionFilterChange).toHaveBeenCalledWith("income");
+    await user.click(screen.getByRole("button", { name: "Filtros do extrato" }));
+    await user.selectOptions(screen.getByLabelText("Categoria"), "educacao");
+    expect(props.onCategoryFilterChange).toHaveBeenCalledWith("educacao");
+    await user.click(screen.getByRole("button", { name: "Limpar filtros" }));
+    expect(props.onClearAdvancedFilters).toHaveBeenCalledOnce();
+    await user.click(screen.getByRole("button", { name: "Ver projeção" }));
+    expect(props.onOpenStatementProjection).toHaveBeenCalledOnce();
   });
-
-  it("deve disparar callbacks expostos pela view e integrar os filhos no nivel da interface", async () => {
-    const user = userEvent.setup();
-    const onAddTransaction = vi.fn();
-    const onPreviewTransaction = vi.fn();
-    const onOpenCalendar = vi.fn();
-    const onOpenStatementProjection = vi.fn();
-
-    renderDashboardTransactionsView({
-      onOpenCalendar,
-      onOpenStatementProjection,
-      onAddTransaction,
-      onPreviewTransaction,
-    });
-
-    await user.click(screen.getByRole("button", { name: "Trigger add transaction" }));
-    await user.click(screen.getByRole("button", { name: "Trigger preview transaction" }));
-    await user.click(screen.getByRole("button", { name: "Extrato" }));
-    await user.click(screen.getByRole("button", { name: "Calendário" }));
-
-    expect(onAddTransaction).toHaveBeenCalledTimes(1);
-    expect(onPreviewTransaction).toHaveBeenCalledTimes(1);
-    expect(onOpenStatementProjection).toHaveBeenCalledTimes(1);
-    expect(onOpenCalendar).toHaveBeenCalledTimes(1);
+  it("calcula o marcador misto, limita a prévia a dois itens e abre o dia ou o mês correto", async () => {
+    const date = getTodayDateValue();
+    const rows = [createTransaction({ id: "1", title: "Entrada", type: "income", occurrenceDate: date }), createTransaction({ id: "2", title: "Saída A", occurrenceDate: date }), createTransaction({ id: "3", title: "Saída B", occurrenceDate: date })];
+    const { props } = renderDashboardTransactionsView({ statementTransactions: rows, filteredTransactions: rows });
+    const calendar = screen.getByRole("region", { name: "Calendário compacto" });
+    expect(calendar.querySelector('[data-kind="both"]')).toBeInTheDocument();
+    expect(within(calendar).getAllByRole("listitem")).toHaveLength(2);
+    expect(within(calendar).getByRole("button", { name: "+1 lançamento · Ver todos" })).toBeInTheDocument();
+    expect(within(calendar).queryByText("Saída B")).not.toBeInTheDocument();
+    const anotherDay = Number(date.slice(-2)) === 1 ? 2 : 1;
+    const otherButton = within(calendar).getByRole("button", { name: new RegExp("^" + anotherDay + " de ") });
+    await userEvent.click(otherButton);
+    expect(otherButton).toHaveAttribute("aria-pressed", "true");
+    expect(props.onOpenCalendar).not.toHaveBeenCalled();
+    expect(within(calendar).getByText("Nenhum lançamento nesta data.")).toBeInTheDocument();
+    await userEvent.click(otherButton);
+    expect(props.onOpenCalendar).toHaveBeenCalledOnce();
+    expect(props.onOpenCalendar).toHaveBeenLastCalledWith(date.slice(0, 8) + String(anotherDay).padStart(2, "0"));
+    vi.mocked(props.onOpenCalendar).mockClear();
+    await userEvent.click(within(calendar).getByRole("heading", { level: 2 }));
+    await userEvent.click(calendar);
+    expect(props.onOpenCalendar).not.toHaveBeenCalled();
+    await userEvent.click(within(calendar).getByRole("button", { name: "Abrir calendário pelos dias da semana" }));
+    expect(props.onOpenCalendar).toHaveBeenCalledOnce();
+    vi.mocked(props.onOpenCalendar).mockClear();
+    await userEvent.click(within(calendar).getByRole("button", { name: new RegExp("^" + Number(date.slice(-2)) + " de .*entradas e saídas") }));
+    expect(props.onOpenCalendar).not.toHaveBeenCalled();
+    expect(within(calendar).getAllByRole("listitem")).toHaveLength(2);
+    await userEvent.click(within(calendar).getByRole("button", { name: new RegExp("^" + Number(date.slice(-2)) + " de .*entradas e saídas") }));
+    expect(props.onOpenCalendar).toHaveBeenLastCalledWith(date);
+    expect(within(calendar).queryByRole("button", { name: /mês no calendário compacto/i })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /Mês de referência:/ }));
+    fireEvent.change(screen.getByLabelText("Mês de referência"), { target: { value: "2027-02" } });
+    expect(within(calendar).getByRole("heading", { level: 2 })).toHaveTextContent("fevereiro de 2027");
+    expect(within(screen.getByRole("table")).queryByText("Entrada")).not.toBeInTheDocument();
+    await userEvent.click(within(calendar).getByRole("heading", { level: 2 }));
+    expect(props.onOpenCalendar).toHaveBeenLastCalledWith(date);
+    await userEvent.click(within(calendar).getByRole("button", { name: /^1 de fevereiro/ }));
+    expect(props.onOpenCalendar).toHaveBeenLastCalledWith("2027-02-01");
+    await userEvent.click(screen.getByRole("button", { name: /Mês de referência:/ }));
+    await userEvent.click(screen.getByRole("button", { name: "Todos os meses" }));
+    expect(within(screen.getByRole("table")).getByText("Entrada")).toBeInTheDocument();
   });
-
-  it("deve exibir os atalhos para extrato e calendario e disparar seus callbacks", async () => {
+  it("abre a criação completa e mantém as ações dos lançamentos", async () => {
     const user = userEvent.setup();
-    const onOpenCalendar = vi.fn();
-    const onOpenStatementProjection = vi.fn();
-
-    renderDashboardTransactionsView({
-      onOpenCalendar,
-      onOpenStatementProjection,
-    });
-
-    expect(screen.getByRole("button", { name: "Extrato" })).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Calendário" }),
-    ).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: "Extrato" }));
-    await user.click(screen.getByRole("button", { name: "Calendário" }));
-
-    expect(onOpenStatementProjection).toHaveBeenCalledTimes(1);
-    expect(onOpenCalendar).toHaveBeenCalledTimes(1);
+    const { props } = renderDashboardTransactionsView();
+    await user.click(screen.getByRole("button", { name: "Opções de Mercado" }));
+    await user.click(screen.getByRole("menuitem", { name: "Editar" }));
+    expect(props.onEditTransaction).toHaveBeenCalledWith(props.filteredTransactions[0]);
+    await user.click(screen.getByRole("button", { name: "Opções de Mercado" }));
+    await user.click(screen.getByRole("menuitem", { name: "Remover" }));
+    expect(props.onRemoveTransaction).toHaveBeenCalledWith("tx-1");
+    await user.click(screen.getByRole("button", { name: "Novo lançamento" }));
+    const dialog = screen.getByRole("dialog", { name: "Novo lançamento" });
+    for (const name of ["Único", "Parcelado", "Recorrente"]) expect(within(dialog).getByRole("button", { name })).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Simular impacto" })).toBeInTheDocument();
+    await user.click(within(dialog).getByRole("button", { name: "Fechar" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 });
+
+

@@ -346,16 +346,16 @@ describe("HomePage", () => {
     expect(screen.getByRole("region", { name: "Início" })).toBeInTheDocument();
   });
 
-  it("abre lançamentos e metas pelas ações da Visão Geral", async () => {
+  it("abre lançamentos e metas pela navegação principal", async () => {
     const user = userEvent.setup();
     setupLoadedMocks();
     render(<HomePage />);
 
-    await user.click(screen.getByRole("button", { name: "Ver transações" }));
+    await user.click(screen.getByRole("button", { name: /^Lançamentos$/i }));
     expect(screen.getByText("TransactionsView")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /^Início$/i }));
-    await user.click(screen.getByRole("button", { name: "Ver metas" }));
+    await user.click(screen.getByRole("button", { name: /^Metas$/i }));
     expect(screen.getByText("GoalsView")).toBeInTheDocument();
   });
 
@@ -454,7 +454,7 @@ describe("HomePage", () => {
     expect(finance.cancelOccurrence).toHaveBeenCalledWith("tx-1");
   });
 
-  it("deve abrir o modal de progresso de meta a partir da view de metas", async () => {
+  it("deve editar a meta sem utilizar o fluxo de aporte", async () => {
     const user = userEvent.setup();
     const { goals } = setupLoadedMocks();
 
@@ -464,14 +464,31 @@ describe("HomePage", () => {
     expect(screen.getByText("GoalsView")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Atualizar primeira meta" }));
-    expect(screen.getByText("GoalProgressModal")).toBeInTheDocument();
-    expect(screen.getByText("Meta selecionada: Reserva")).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Editar meta" })).toBeInTheDocument();
+    expect(screen.getByText("Reserva")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Título")).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Salvar progresso" }));
-    expect(goals.updateGoalProgress).toHaveBeenCalledWith({
-      id: "goal-1",
-      currentAmount: 800,
-    });
+    await user.clear(screen.getByLabelText("Valor atual"));
+    await user.type(screen.getByLabelText("Valor atual"), "800");
+    await user.click(screen.getByRole("button", { name: "Salvar alterações" }));
+    expect(goals.updateGoalProgress).toHaveBeenCalledWith({ id: "goal-1", currentAmount: 800 });
+  });
+
+  it("mantém a edição montada durante a recarga dos dados após salvar", async () => {
+    const user = userEvent.setup();
+    const { finance, goals } = setupLoadedMocks();
+    const { rerender } = render(<HomePage />);
+    await user.click(screen.getByRole("button", { name: /^Metas$/i }));
+    await user.click(screen.getByRole("button", { name: "Atualizar primeira meta" }));
+    const dialog = screen.getByRole("dialog", { name: "Editar meta" });
+
+    mockUseLocalFinance.mockReturnValue({ ...finance, isLoaded: false });
+    mockUseLocalGoals.mockReturnValue({ ...goals, isLoaded: false });
+    rerender(<HomePage />);
+
+    expect(screen.getByRole("dialog", { name: "Editar meta" })).toBe(dialog);
+    expect(screen.queryByText("Carregando dados...")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Cancelar" }));
   });
 
   it("deve permitir cancelar uma remocao pendente sem excluir a transacao", async () => {

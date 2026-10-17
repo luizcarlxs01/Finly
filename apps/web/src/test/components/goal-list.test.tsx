@@ -36,7 +36,7 @@ describe("GoalList", () => {
     await user.click(screen.getByRole("button", { name: /\+ R\$/ }));
     expect(onAddContribution).toHaveBeenCalledWith(goal, 50);
     await user.click(screen.getByRole("button", { name: "Opções de Reserva" }));
-    await user.click(screen.getByRole("button", { name: "Editar valor" }));
+    await user.click(screen.getByRole("button", { name: "Editar" }));
     expect(onUpdateProgress).toHaveBeenCalledWith(goal);
     await user.click(screen.getByRole("button", { name: "Opções de Reserva" }));
     await user.click(screen.getByRole("button", { name: "Deletar" }));

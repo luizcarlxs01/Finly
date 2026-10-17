@@ -111,7 +111,7 @@ describe("DashboardGoalsView", () => {
     expect(filterButton.querySelector("span")).toBeNull();
   });
 
-  it("changes progress and value filters inside the panel without rendering badges", async () => {
+  it("keeps progress and value options mutually exclusive and allows deselection", async () => {
     const user = userEvent.setup();
     render(<DashboardGoalsView {...props} />);
     const filterButton = screen.getByRole("button", { name: "Filtros" });
@@ -122,16 +122,109 @@ describe("DashboardGoalsView", () => {
     expect(screen.queryByRole("button", { name: /Remover filtro/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Limpar filtros" })).not.toBeInTheDocument();
     await user.click(filterButton);
-    expect(screen.getByRole("button", { name: "Mais distante de atingir" })).toHaveAttribute("aria-pressed", "true");
-    await user.click(screen.getByRole("button", { name: "Mais distante de atingir" }));
     expect(screen.getByRole("button", { name: "Mais distante de atingir" })).toHaveAttribute("aria-pressed", "false");
     expect(screen.getByRole("button", { name: "Maior valor alvo" })).toHaveAttribute("aria-pressed", "true");
+    await user.click(screen.getByRole("button", { name: "Mais distante de atingir" }));
+    expect(screen.getByRole("button", { name: "Mais distante de atingir" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Maior valor alvo" })).toHaveAttribute("aria-pressed", "false");
     await user.click(screen.getByRole("button", { name: "Aplicar filtros" }));
     await user.click(filterButton);
+    await user.click(screen.getByRole("button", { name: "Mais distante de atingir" }));
     expect(screen.getByRole("button", { name: "Mais distante de atingir" })).toHaveAttribute("aria-pressed", "false");
-    await user.click(screen.getByRole("button", { name: "Maior valor alvo" }));
     await user.click(screen.getByRole("button", { name: "Aplicar filtros" }));
     expect(filterButton.querySelector("span")).toBeNull();
+  });
+
+  it("uses only the latest option across all groups and combines it with category", async () => {
+    const user = userEvent.setup();
+    const entries = [
+      goal(1, { category: "educacao", targetAmount: 100, currentAmount: 80, deadline: "2027-01-01" }),
+      goal(2, { category: "educacao", targetAmount: 400, currentAmount: 40, deadline: "2027-03-01" }),
+      goal(3, { category: "educacao", targetAmount: 200, currentAmount: 100, deadline: "2027-02-01" }),
+      goal(4, { category: "alimentacao", currentAmount: 900 }),
+    ];
+    render(<DashboardGoalsView {...props} goals={entries} />);
+    const filterButton = screen.getByRole("button", { name: "Filtros" });
+    const titles = () => screen.getAllByRole("heading", { level: 3 }).map(heading => heading.textContent);
+    await user.click(filterButton);
+    for (const name of ["Mais próximo", "Período específico", "Mais próxima de atingir", "Mais distante de atingir", "Maior valor adicionado", "Maior valor alvo"]) {
+      expect(screen.getByRole("button", { name })).toHaveAttribute("aria-pressed", "false");
+    }
+    await user.selectOptions(screen.getByLabelText("Categoria"), "educacao");
+    await user.click(screen.getByRole("button", { name: "Mais próximo" }));
+    await user.click(screen.getByRole("button", { name: "Mais próxima de atingir" }));
+    expect(screen.getByRole("button", { name: "Mais próximo" })).toHaveAttribute("aria-pressed", "false");
+    await user.click(screen.getByRole("button", { name: "Maior valor adicionado" }));
+    expect(screen.getByRole("button", { name: "Mais próxima de atingir" })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByLabelText("Categoria")).toHaveValue("educacao");
+    await user.click(screen.getByRole("button", { name: "Aplicar filtros" }));
+    expect(titles()).toEqual(["Meta 3", "Meta 1", "Meta 2"]);
+    expect(screen.getByRole("region", { name: "Resumo das metas" }).children[0]).toHaveTextContent("3Em andamento");
+    await user.click(filterButton);
+    await user.click(screen.getByRole("button", { name: "Mais próximo" }));
+    expect(screen.getByRole("button", { name: "Maior valor adicionado" })).toHaveAttribute("aria-pressed", "false");
+    await user.click(screen.getByRole("button", { name: "Aplicar filtros" }));
+    expect(titles()).toEqual(["Meta 1", "Meta 3", "Meta 2"]);
+  });
+
+  it("discards range dates when switching groups and requires fresh valid dates on return", async () => {
+    const user = userEvent.setup();
+    render(<DashboardGoalsView {...props} />);
+    const filterButton = screen.getByRole("button", { name: "Filtros" });
+    await user.click(filterButton);
+    await user.click(screen.getByRole("button", { name: "Período específico" }));
+    fireEvent.change(screen.getByLabelText("De"), { target: { value: "2027-01-02" } });
+    fireEvent.change(screen.getByLabelText("Até"), { target: { value: "2027-01-02" } });
+    await user.click(screen.getByRole("button", { name: "Aplicar filtros" }));
+    expect(screen.getAllByRole("heading", { level: 3 })).toHaveLength(1);
+    expect(screen.getByText("1–1")).toBeInTheDocument();
+    await user.click(filterButton);
+    await user.click(screen.getByRole("button", { name: "Maior valor alvo" }));
+    expect(screen.queryByLabelText("De")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Aplicar filtros" }));
+    expect(screen.getAllByRole("heading", { level: 3 })).toHaveLength(4);
+    expect(screen.getByText("1–4")).toBeInTheDocument();
+    await user.click(filterButton);
+    await user.click(screen.getByRole("button", { name: "Período específico" }));
+    expect(screen.getByLabelText("De")).toHaveValue("");
+    expect(screen.getByLabelText("Até")).toHaveValue("");
+    await user.click(screen.getByRole("button", { name: "Aplicar filtros" }));
+    expect(screen.getByRole("alert")).toBeInTheDocument();
+    expect(screen.getAllByRole("heading", { level: 3 })).toHaveLength(4);
+    fireEvent.change(screen.getByLabelText("De"), { target: { value: "2027-01-04" } });
+    fireEvent.change(screen.getByLabelText("Até"), { target: { value: "2027-01-02" } });
+    await user.click(screen.getByRole("button", { name: "Aplicar filtros" }));
+    expect(screen.getByRole("alert")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Mais próxima de atingir" }));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Aplicar filtros" }));
+    expect(screen.getAllByRole("heading", { level: 3 })).toHaveLength(4);
+  });
+
+  it("applies category alone, resets pagination and counts, and clears without changing search", async () => {
+    const user = userEvent.setup();
+    const entries = Array.from({ length: 8 }, (_, i) => goal(i + 1, { category: i < 2 ? "educacao" : "alimentacao" }));
+    render(<DashboardGoalsView {...props} goals={entries} />);
+    await user.type(screen.getByRole("searchbox", { name: "Buscar metas" }), "Meta");
+    await user.click(screen.getByRole("button", { name: "Próxima página" }));
+    await waitFor(() => expect(screen.getByText("6–8")).toBeInTheDocument());
+    const filterButton = screen.getByRole("button", { name: "Filtros" });
+    await user.click(filterButton);
+    await user.selectOptions(screen.getByLabelText("Categoria"), "educacao");
+    await user.click(screen.getByRole("button", { name: "Aplicar filtros" }));
+    expect(screen.getByText("1–2")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Próxima página" })).toBeDisabled();
+    expect(screen.getAllByRole("heading", { level: 3 })).toHaveLength(2);
+    expect(screen.getByRole("region", { name: "Resumo das metas" }).children[0]).toHaveTextContent("2Em andamento");
+    expect(filterButton.querySelector("span")).not.toBeNull();
+    await user.click(filterButton);
+    await user.click(screen.getByRole("button", { name: "Limpar" }));
+    expect(screen.getByLabelText("Categoria")).toHaveValue("");
+    expect(filterButton.querySelector("span")).toBeNull();
+    expect(screen.getByRole("searchbox", { name: "Buscar metas" })).toHaveValue("Meta");
+    expect(screen.getByText("1–5")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Próxima página" })).toBeEnabled();
+    expect(screen.getByRole("region", { name: "Resumo das metas" }).children[0]).toHaveTextContent("8Em andamento");
   });
 
   it("clears all filters together", async () => {

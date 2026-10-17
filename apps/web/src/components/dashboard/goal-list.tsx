@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Banknote, BriefcaseBusiness, Car, Gamepad2, GraduationCap, HeartPulse, House, MoreHorizontal, Pencil, ReceiptText, ShoppingBag, Target, Trash2, TrendingUp, Utensils } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { getCategoryIcon } from "@/components/dashboard/category-icons";
 import type { Goal } from "@/types/goal";
 import { getTransactionCategoryLabel } from "@/types/transaction-category";
 
@@ -17,7 +18,6 @@ type GoalListProps = {
 };
 
 const formatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
-const icons = { alimentacao: Utensils, transporte: Car, moradia: House, saude: HeartPulse, educacao: GraduationCap, lazer: Gamepad2, salario: Banknote, freelance: BriefcaseBusiness, contas: ReceiptText, investimentos: TrendingUp, compras: ShoppingBag, geral: Target };
 
 function ProgressValues({ goal, progress, white = false }: { goal: Goal; progress: number; white?: boolean }) {
   const current = formatter.format(goal.currentAmount);
@@ -40,7 +40,7 @@ export function GoalList({ goals, lastContributions = {}, onAddContribution = as
 
   return <div className="divide-y divide-border/60 rounded-t-[inherit] bg-card">
     {goals.map((goal) => {
-      const Icon = icons[goal.category as keyof typeof icons] ?? Target;
+      const Icon = getCategoryIcon(goal.category);
       const progress = goal.targetAmount > 0 ? Math.min(goal.currentAmount / goal.targetAmount * 100, 100) : 0;
       const quickAmount = lastContributions[goal.id] > 0 ? lastContributions[goal.id] : goal.currentAmount > 0 ? goal.currentAmount : 1;
       return <div key={goal.id} className="grid gap-4 p-4 sm:p-5 lg:grid-cols-[minmax(0,1fr)_minmax(260px,1.2fr)_minmax(0,1fr)] lg:items-center">
@@ -59,8 +59,8 @@ export function GoalList({ goals, lastContributions = {}, onAddContribution = as
           {progress < 100 && <><button type="button" disabled={actionsDisabled || pendingGoal === goal.id} onClick={async () => { if (pendingGoal) return; setPendingGoal(goal.id); try { await onAddContribution(goal, quickAmount); } catch { /* Error appears in the page message. */ } finally { setPendingGoal(null); } }} className="h-11 min-w-24 whitespace-nowrap rounded-xl bg-primary/10 px-3 text-sm font-medium text-primary hover:bg-primary/20 disabled:opacity-50 sm:min-w-28">+ {formatter.format(quickAmount)}</button><span aria-hidden="true" className="mx-0.5 h-9 w-px shrink-0 bg-border/80" /></>}
           {progress < 100 && <button type="button" disabled={actionsDisabled || pendingGoal === goal.id} onClick={() => onAddCustom(goal)} className="whitespace-nowrap rounded-xl px-2 py-2 text-sm font-medium text-primary hover:bg-primary/10 disabled:opacity-50">+ Adicionar</button>}
           <div className="relative">
-            <button type="button" aria-label={`Opções de ${goal.title}`} aria-expanded={openMenu === goal.id} onClick={() => setOpenMenu(openMenu === goal.id ? null : goal.id)} className="flex size-10 items-center justify-center rounded-xl text-foreground hover:bg-muted"><MoreHorizontal size={20} /></button>
-            {openMenu === goal.id && <><button type="button" aria-label="Fechar opções" className="fixed inset-0 z-10 cursor-default" onClick={() => setOpenMenu(null)} /><div className="absolute right-0 top-full z-20 w-36 rounded-xl border border-border bg-card p-1 shadow-lg"><button type="button" className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm hover:bg-muted" onClick={() => { setOpenMenu(null); onUpdateProgress(goal); }}><Pencil size={16} />Editar valor</button><button type="button" className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-destructive hover:bg-muted" onClick={() => { setOpenMenu(null); onRemoveGoal(goal.id); }}><Trash2 size={16} />Deletar</button></div></>}
+            <button type="button" data-goal-menu={goal.id} aria-label={`Opções de ${goal.title}`} aria-expanded={openMenu === goal.id} onClick={() => setOpenMenu(openMenu === goal.id ? null : goal.id)} className="flex size-10 items-center justify-center rounded-xl text-foreground hover:bg-muted"><MoreHorizontal size={20} /></button>
+            {openMenu === goal.id && <><button type="button" aria-label="Fechar opções" className="fixed inset-0 z-10 cursor-default" onClick={() => setOpenMenu(null)} /><div className="absolute right-0 top-full z-20 w-36 rounded-xl border border-border bg-card p-1 shadow-lg"><button type="button" className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm hover:bg-muted" onClick={() => { setOpenMenu(null); onUpdateProgress(goal); }}><Pencil size={16} />Editar</button><button type="button" className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-destructive hover:bg-muted" onClick={() => { setOpenMenu(null); onRemoveGoal(goal.id); }}><Trash2 size={16} />Deletar</button></div></>}
           </div>
         </div>
       </div>;

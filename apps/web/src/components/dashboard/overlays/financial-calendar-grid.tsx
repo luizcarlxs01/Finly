@@ -1,180 +1,33 @@
-"use client";
-
+﻿"use client";
 import type { Transaction } from "@/types/transaction";
-import {
-  CALENDAR_WEEKDAY_LABELS,
-  isPaidOccurrence,
-  type CalendarDay,
-  type CalendarMonthData,
-} from "@/utils/financial-calendar";
+import { CALENDAR_WEEKDAY_LABELS, type CalendarDay, type CalendarMonthData } from "@/utils/financial-calendar";
+import { CALENDAR_MARKER_LABELS, getCalendarDayMarkers, getCalendarMarkerKind } from "@/utils/calendar-day-markers";
+import styles from "./financial-calendar.module.css";
 
-type FinancialCalendarGridProps = {
-  month: CalendarMonthData;
-  selectedDateValue: string | null;
-  onSelectDay: (dateValue: string) => void;
-};
-
-const MAX_VISIBLE_DOTS = 4;
-const MAX_PREVIEW_ITEMS = 3;
-
-const currencyFormatter = new Intl.NumberFormat("pt-BR", {
-  style: "currency",
-  currency: "BRL",
-});
-
-function getDotClassName(occurrence: Transaction) {
-  return isPaidOccurrence(occurrence)
-    ? "bg-emerald-500 dark:bg-emerald-400"
-    : "bg-muted-foreground/45";
+type Props = { hidden?: boolean; month: CalendarMonthData; selectedDateValue: string | null; onSelectDay: (dateValue: string) => void };
+const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+function DayPreview({ day, upward, hidden }: { day: CalendarDay; upward: boolean; hidden: boolean }) {
+  return <div className={`${styles.tooltip} ${upward ? styles.tooltipUp : ""}`} role="presentation"><ul>{day.occurrences.slice(0, 3).map((item: Transaction) => <li key={item.id}><i className={styles.dot} data-kind={getCalendarMarkerKind(item)} /><span className="min-w-0 flex-1 truncate">{item.title}</span><strong>{hidden ? "••••••" : `${item.type === "income" ? "+" : "−"}${money.format(item.amount)}`}</strong></li>)}</ul>{day.occurrences.length > 3 && <p>e mais {day.occurrences.length - 3} lançamentos</p>}</div>;
 }
-
-function DayPreview({ day, openUpward }: { day: CalendarDay; openUpward: boolean }) {
-  const visibleOccurrences = day.occurrences.slice(0, MAX_PREVIEW_ITEMS);
-  const hiddenCount = day.occurrences.length - visibleOccurrences.length;
-
-  return (
-    <div
-      className={`pointer-events-none absolute left-1/2 z-30 hidden w-56 -translate-x-1/2 rounded-2xl border border-border/70 bg-popover p-3 text-left shadow-xl group-hover:block ${
-        openUpward ? "bottom-full mb-2" : "top-full mt-2"
-      }`}
-      role="presentation"
-    >
-      <ul className="space-y-2">
-        {visibleOccurrences.map((occurrence) => (
-          <li key={occurrence.id} className="flex items-start justify-between gap-2">
-            <span className="flex min-w-0 items-start gap-2">
-              <span
-                className={`mt-1.5 size-1.5 shrink-0 rounded-full ${getDotClassName(occurrence)}`}
-              />
-              <span className="truncate text-xs font-medium text-foreground">
-                {occurrence.title}
-              </span>
-            </span>
-
-            <span
-              className={`shrink-0 text-xs font-semibold ${
-                occurrence.type === "income" ? "text-primary" : "text-foreground"
-              }`}
-            >
-              {occurrence.type === "income" ? "+" : "-"}
-              {currencyFormatter.format(occurrence.amount)}
-            </span>
-          </li>
-        ))}
-      </ul>
-
-      {hiddenCount > 0 ? (
-        <p className="mt-2 text-xs text-muted-foreground">
-          e mais {hiddenCount} lançamento{hiddenCount === 1 ? "" : "s"}
-        </p>
-      ) : null}
+export function FinancialCalendarGrid({ hidden = false, month, selectedDateValue, onSelectDay }: Props) {
+  const rowCount = Math.ceil((month.leadingBlankDays + month.days.length) / 7);
+  return <><div className={styles.gridArea}>
+    <div className={styles.weekdays} aria-hidden="true">{CALENDAR_WEEKDAY_LABELS.map(label => <span key={label}>{label}</span>)}</div>
+    <div className={styles.days} style={{ gridTemplateRows: `repeat(${rowCount}, minmax(0, 1fr))` }}>
+      {Array.from({ length: month.leadingBlankDays }, (_, index) => <div key={`blank-${index}`} className={styles.blankDay} aria-hidden="true" />)}
+      {month.days.map((day, index) => {
+        const selected = day.dateValue === selectedDateValue;
+        const markers = getCalendarDayMarkers(day.occurrences);
+        return <div key={day.dateValue} className={`${styles.cell} ${(month.leadingBlankDays + index) % 7 >= 5 ? styles.rightCell : ""}`}>
+          <button type="button" aria-pressed={selected} aria-current={day.isToday ? "date" : undefined} aria-label={`Dia ${day.dayNumber} — ${day.occurrences.length} lançamento${day.occurrences.length === 1 ? "" : "s"}`} className={`${styles.day} ${selected ? styles.selected : ""}`} onClick={() => onSelectDay(day.dateValue)}>
+            <span>{day.dayNumber}</span>
+            <span className={styles.markers}>{markers.visible.map((kind, i) => <i key={`${kind}-${i}`} aria-label={CALENDAR_MARKER_LABELS[kind]} className={styles.dot} data-kind={kind} />)}{markers.remaining > 0 && <span className={styles.moreDot} aria-label={`Mais ${markers.remaining} lançamento${markers.remaining === 1 ? "" : "s"}`}>+</span>}</span>
+          </button>
+          {day.occurrences.length > 0 && <DayPreview day={day} hidden={hidden} upward={Math.floor((month.leadingBlankDays + index) / 7) >= rowCount - 2} />}
+        </div>;
+      })}
     </div>
-  );
-}
-
-export function FinancialCalendarGrid({
-  month,
-  selectedDateValue,
-  onSelectDay,
-}: FinancialCalendarGridProps) {
-  const totalRows = Math.ceil(
-    (month.leadingBlankDays + month.days.length) / CALENDAR_WEEKDAY_LABELS.length,
-  );
-
-  return (
-    <div className="space-y-2">
-      <div className="grid grid-cols-7 gap-1 sm:gap-2">
-        {CALENDAR_WEEKDAY_LABELS.map((weekdayLabel) => (
-          <div
-            key={weekdayLabel}
-            className="pb-1 text-center text-[0.7rem] font-medium uppercase tracking-[0.12em] text-muted-foreground"
-          >
-            {weekdayLabel}
-          </div>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-7 gap-1 sm:gap-2">
-        {Array.from({ length: month.leadingBlankDays }, (_, index) => (
-          <div key={`blank-${index}`} aria-hidden="true" />
-        ))}
-
-        {month.days.map((day, index) => {
-          const hasOccurrences = day.occurrences.length > 0;
-          const isSelected = day.dateValue === selectedDateValue;
-          const rowIndex = Math.floor(
-            (month.leadingBlankDays + index) / CALENDAR_WEEKDAY_LABELS.length,
-          );
-          const visibleDots = day.occurrences.slice(0, MAX_VISIBLE_DOTS);
-          const hiddenDotCount = day.occurrences.length - visibleDots.length;
-
-          return (
-            <div key={day.dateValue} className="group relative">
-              <button
-                type="button"
-                disabled={!hasOccurrences}
-                aria-pressed={isSelected}
-                aria-label={`Dia ${day.dayNumber} — ${day.occurrences.length} lançamento${
-                  day.occurrences.length === 1 ? "" : "s"
-                }`}
-                onClick={() => onSelectDay(day.dateValue)}
-                className={`flex h-16 w-full flex-col items-center justify-start gap-1.5 rounded-xl border p-1.5 transition-colors sm:h-20 sm:p-2 ${
-                  isSelected
-                    ? "border-primary bg-primary/10"
-                    : "border-border/60 bg-background/50"
-                } ${
-                  hasOccurrences
-                    ? "cursor-pointer hover:border-primary/60 hover:bg-primary/5"
-                    : "cursor-default opacity-60"
-                }`}
-              >
-                <span
-                  className={`flex size-6 items-center justify-center rounded-full text-xs font-semibold sm:size-7 sm:text-sm ${
-                    day.isToday
-                      ? "bg-primary text-primary-foreground"
-                      : day.isPast
-                        ? "text-muted-foreground"
-                        : "text-foreground"
-                  }`}
-                >
-                  {day.dayNumber}
-                </span>
-
-                <span className="flex flex-wrap items-center justify-center gap-0.5">
-                  {visibleDots.map((occurrence) => (
-                    <span
-                      key={occurrence.id}
-                      className={`size-1.5 rounded-full ${getDotClassName(occurrence)}`}
-                    />
-                  ))}
-
-                  {hiddenDotCount > 0 ? (
-                    <span className="text-[0.6rem] font-medium leading-none text-muted-foreground">
-                      +{hiddenDotCount}
-                    </span>
-                  ) : null}
-                </span>
-              </button>
-
-              {hasOccurrences ? (
-                <DayPreview day={day} openUpward={rowIndex >= totalRows - 2} />
-              ) : null}
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="flex flex-wrap items-center gap-4 pt-1 text-xs text-muted-foreground">
-        <span className="flex items-center gap-1.5">
-          <span className="size-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400" />
-          Pago
-        </span>
-
-        <span className="flex items-center gap-1.5">
-          <span className="size-1.5 rounded-full bg-muted-foreground/45" />
-          Pendente
-        </span>
-      </div>
-    </div>
-  );
+  </div>
+    <div className={styles.legend} aria-label="Legenda dos lançamentos">{(["paid", "pending", "income"] as const).map(kind => <span key={kind}><i className={styles.dot} data-kind={kind} aria-hidden="true" />{CALENDAR_MARKER_LABELS[kind]}</span>)}</div>
+  </>;
 }

@@ -1,4 +1,6 @@
 "use client";
+import { sortStatementTransactions } from "@/utils/statement-transactions";
+import { GoalEditDialog } from "@/components/dashboard/goal-edit-dialog";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowUpDown, Plus, Target, X } from "lucide-react";
@@ -11,6 +13,7 @@ import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { DashboardHomeView } from "@/components/dashboard/views/dashboard-home-view";
 import { DashboardTransactionsView } from "@/components/dashboard/views/dashboard-transactions-view";
 import { DashboardGoalsView } from "@/components/dashboard/views/dashboard-goals-view";
+import { GoalDeleteDialog } from "@/components/dashboard/goal-delete-dialog";
 import { DashboardInsightsView } from "@/components/dashboard/views/dashboard-insights-view";
 import { DashboardDownloadView } from "@/components/dashboard/views/dashboard-download-view";
 import { DashboardForumView } from "@/components/dashboard/views/dashboard-forum-view";
@@ -60,32 +63,6 @@ const DEFAULT_SORT_OPTION: TransactionSortOption = "newest";
 
 function normalizeSearchValue(value: string) {
   return value.trim().toLocaleLowerCase("pt-BR");
-}
-
-function sortTransactions<
-  T extends { title: string; amount: number; createdAt: string },
->(items: T[], sortOption: TransactionSortOption) {
-  return [...items].sort((left, right) => {
-    switch (sortOption) {
-      case "oldest":
-        return (
-          new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime()
-        );
-      case "highest":
-        return right.amount - left.amount;
-      case "lowest":
-        return left.amount - right.amount;
-      case "title-asc":
-        return left.title.localeCompare(right.title, "pt-BR");
-      case "title-desc":
-        return right.title.localeCompare(left.title, "pt-BR");
-      case "newest":
-      default:
-        return (
-          new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()
-        );
-    }
-  });
 }
 
 function getPostedTransactions(transactions: Transaction[]) {
@@ -156,9 +133,11 @@ export default function HomePage() {
     useState<string | null>(null);
   const [pendingContractDeletionId, setPendingContractDeletionId] =
     useState<string | null>(null);
-  const [pendingGoalDeletionId, setPendingGoalDeletionId] =
-    useState<string | null>(null);
+  const [pendingGoalDeletion, setPendingGoalDeletion] = useState<Goal | null>(null);
+  const goalEditTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const goalDeleteTriggerRef = useRef<HTMLButtonElement | null>(null);
   const [writeModeMessage, setWriteModeMessage] = useState<string | null>(null);
+  const [calendarInitialDate, setCalendarInitialDate] = useState<string | undefined>(undefined);
   const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
   const [isStatementProjectionModalOpen, setIsStatementProjectionModalOpen] = useState(false);
   const [isSpeedDialOpen, setIsSpeedDialOpen] = useState(false);
@@ -345,7 +324,7 @@ export default function HomePage() {
       return searchableContent.includes(normalizedSearchTerm);
     });
 
-    return sortTransactions(filteredItems, sortOption);
+    return sortStatementTransactions(filteredItems, sortOption);
   }, [
     statementTransactions,
     transactionFilter,
@@ -630,6 +609,11 @@ export default function HomePage() {
     }
   }
 
+  async function saveGoal(input: { id: string; currentAmount: number }) {
+    await updateGoalProgressUnified(input);
+    setWriteModeMessage(null);
+  }
+
   function handleGoalModalChange(open: boolean) {
     if (!open) {
       setSelectedGoal(null);
@@ -642,6 +626,7 @@ export default function HomePage() {
   }
 
   function handleOpenGoalProgress(goal: Goal) {
+    goalEditTriggerRef.current = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-goal-menu]")).find(button => button.dataset.goalMenu === goal.id) ?? null;
     setGoalProgressMode("edit");
     setSelectedGoal(goal);
   }
@@ -672,21 +657,18 @@ export default function HomePage() {
   }
 
   function handleRemoveGoal(id: string) {
-    setPendingGoalDeletionId(id);
+    goalDeleteTriggerRef.current = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-goal-menu]")).find(button => button.dataset.goalMenu === id) ?? null;
+    setPendingGoalDeletion(goals.find(goal => goal.id === id) ?? null);
   }
 
   async function handleConfirmRemoveGoal() {
-    if (!pendingGoalDeletionId) {
+    if (!pendingGoalDeletion) {
       return;
     }
 
-    try {
-      await deleteGoalUnified(pendingGoalDeletionId);
-      setWriteModeMessage(null);
-      setPendingGoalDeletionId(null);
-    } catch {
-      // A mensagem de erro e tratada na pagina principal.
-    }
+    await deleteGoalUnified(pendingGoalDeletion.id);
+    goalDeleteTriggerRef.current = null;
+    setWriteModeMessage(null);
   }
 
   useEffect(() => {
@@ -703,7 +685,8 @@ export default function HomePage() {
     );
   }
 
-  if (!financeData.isLoaded || !goalsData.isLoaded) {
+  // Keep the goal dialog mounted while its save refreshes the API data.
+  if ((!financeData.isLoaded || !goalsData.isLoaded) && !selectedGoal) {
     return (
       <PageContainer>
         <div className="flex min-h-[40vh] items-center justify-center rounded-[2rem] border border-border/70 bg-card/60">
@@ -721,6 +704,7 @@ export default function HomePage() {
       errorMessage={financeData.errorMessage ?? goalsData.errorMessage}
       onViewTransactions={() => setActiveView("transactions")}
       onViewGoals={() => setActiveView("goals")}
+      onViewInsights={() => setActiveView("insights")}
     />
   );
 
@@ -754,7 +738,9 @@ export default function HomePage() {
       getNextRecurringOccurrence={getNextRecurringOccurrence}
       emptyStateTitle={emptyStateTitle}
       emptyStateDescription={emptyStateDescription}
-      onOpenCalendar={() => setIsCalendarModalOpen(true)}
+      calendarTransactions={projectionTransactions}
+      createErrorMessage={createTransactionErrorMessage}
+      onOpenCalendar={(date) => { setCalendarInitialDate(date); setIsCalendarModalOpen(true); }}
       onOpenStatementProjection={() => setIsStatementProjectionModalOpen(true)}
       initialBalance={initialBalance}
       totalIncome={totalIncome}
@@ -855,12 +841,12 @@ export default function HomePage() {
       </PageContainer>
 
       {activeView !== "home" && activeView !== "download" ? (
-        <div className="fixed bottom-6 right-6 z-40 flex flex-col-reverse items-end gap-3">
+        <div className={`fixed bottom-6 right-6 z-40 flex flex-col-reverse items-end gap-3 ${activeView === "goals" ? "pointer-events-none" : ""}`}>
           <button
             type="button"
             onClick={() => setIsSpeedDialOpen((prev) => !prev)}
             aria-label={isSpeedDialOpen ? "Fechar menu" : "Novo lançamento"}
-            className="flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-all hover:scale-105 hover:shadow-xl active:scale-95"
+            className="pointer-events-auto flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-all hover:scale-105 hover:shadow-xl active:scale-95"
           >
             <Plus
               className={`size-6 transition-transform duration-200 ${isSpeedDialOpen ? "rotate-45" : ""}`}
@@ -1005,12 +991,14 @@ export default function HomePage() {
         onRequestDeleteContract={handleRequestDeleteContract}
       />
 
+      {selectedGoal && goalProgressMode === "edit" && <GoalEditDialog key={selectedGoal.id} triggerRef={goalEditTriggerRef} goal={selectedGoal} onSave={saveGoal} onClose={() => setSelectedGoal(null)} />}
+
       <GoalProgressModal
         key={`${selectedGoal?.id ?? "goal-progress-modal"}:${goalProgressMode}`}
         goal={selectedGoal}
         mode={goalProgressMode}
         errorMessage={updateGoalProgressErrorMessage}
-        open={Boolean(selectedGoal)}
+        open={Boolean(selectedGoal) && goalProgressMode === "add"}
         onOpenChange={handleGoalModalChange}
         isSubmitting={isUpdatingGoalProgress}
         onSave={handleSaveGoalProgress}
@@ -1044,21 +1032,18 @@ export default function HomePage() {
         }}
       />
 
-      <ConfirmationModal
-        open={Boolean(pendingGoalDeletionId)}
-        title="Remover meta"
-        description="Tem certeza que deseja remover esta meta? Essa ação não pode ser desfeita."
-        cancelLabel="Cancelar"
-        confirmLabel="Remover meta"
+      {pendingGoalDeletion && <GoalDeleteDialog
+        key={pendingGoalDeletion.id}
+        goal={pendingGoalDeletion}
+        triggerRef={goalDeleteTriggerRef}
+        isSubmitting={isDeletingGoal}
+        errorMessage={deleteGoalErrorMessage}
         onConfirm={handleConfirmRemoveGoal}
-        onOpenChange={(open) => {
-          if (!open) {
-            setPendingGoalDeletionId(null);
-          }
-        }}
-      />
+        onClose={() => setPendingGoalDeletion(null)}
+      />}
 
       <FinancialCalendarModal
+        initialDate={calendarInitialDate}
         open={isCalendarModalOpen}
         onClose={() => setIsCalendarModalOpen(false)}
         transactions={projectionTransactions}

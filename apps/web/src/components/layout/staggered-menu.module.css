@@ -1,0 +1,6 @@
+/* The panel changes from full width to a sidebar at the existing 640px breakpoint. */
+@media (min-width: 640px) {
+  .overlay { z-index: 60; }
+  .layers { z-index: 61; }
+  .panel { z-index: 62; }
+}

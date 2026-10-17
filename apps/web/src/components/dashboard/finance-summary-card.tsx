@@ -18,6 +18,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 type FinanceSummaryCardProps = {
+  valuesHidden?: boolean;
+  onToggleValues?: () => void;
   initialBalance: number;
   totalIncome: number;
   totalExpense: number;
@@ -39,6 +41,8 @@ function formatCurrency(value: number) {
 }
 
 export function FinanceSummaryCard({
+  valuesHidden,
+  onToggleValues,
   initialBalance,
   totalIncome,
   totalExpense,
@@ -54,7 +58,8 @@ export function FinanceSummaryCard({
   const [isEditingBalance, setIsEditingBalance] = useState(false);
   const [balanceInput, setBalanceInput] = useState(String(initialBalance));
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isValuesHidden, setIsValuesHidden] = useState(false);
+  const [localHidden, setIsValuesHidden] = useState(false);
+  const isValuesHidden = valuesHidden ?? localHidden;
   const cancelledRef = useRef(false);
 
   useEffect(() => {
@@ -86,7 +91,7 @@ export function FinanceSummaryCard({
           </CardTitle>
           <button
             type="button"
-            onClick={() => setIsValuesHidden((prev) => !prev)}
+            onClick={() => onToggleValues ? onToggleValues() : setIsValuesHidden((prev) => !prev)}
             aria-label={isValuesHidden ? "Mostrar valores" : "Ocultar valores"}
             className="flex size-8 items-center justify-center rounded-xl text-muted-foreground transition hover:bg-accent hover:text-foreground"
           >

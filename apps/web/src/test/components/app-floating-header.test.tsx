@@ -12,7 +12,7 @@ vi.mock("next/image", () => ({
 }));
 
 vi.mock("@/components/layout/theme-toggle", () => ({
-  ThemeToggle: () => <button type="button">Alternar tema</button>,
+  ThemeToggle: ({ showLabel = false }: { showLabel?: boolean }) => <button type="button">{showLabel ? "Tema" : "Alternar tema"}</button>,
 }));
 
 import { AppFloatingHeader } from "@/components/layout/app-floating-header";
@@ -25,7 +25,7 @@ describe("AppFloatingHeader", () => {
 
     expect(screen.getByRole("img", { name: "Finly" })).toBeInTheDocument();
     expect(screen.getByText("Finly")).toBeInTheDocument();
-    expect(screen.getByText("Seu painel financeiro")).toBeInTheDocument();
+    expect(screen.queryByText("Seu painel financeiro")).not.toBeInTheDocument();
     expect(desktopButton("Início")).toBeInTheDocument();
     expect(
       desktopButton("Lançamentos"),
@@ -91,7 +91,7 @@ describe("AppFloatingHeader", () => {
     expect(homeButton).not.toHaveAttribute("aria-current");
 
     rerender(<AppFloatingHeader activeView="forum" onChangeView={vi.fn()} />);
-    expect(desktopNavigation.querySelector('[aria-current="page"]')).toBeNull();
+    expect(desktopNavigation.querySelector('[aria-current="page"]')).toHaveTextContent("Fórum");
     expect(screen.getByRole("button", { name: "Fórum" })).toHaveAttribute("aria-current", "page");
 
     rerender(<AppFloatingHeader activeView="download" onChangeView={vi.fn()} />);
@@ -135,20 +135,22 @@ describe("AppFloatingHeader", () => {
     })) as typeof window.matchMedia;
 
     const { rerender } = render(<AppFloatingHeader activeView="home" onChangeView={onChangeView} />);
+    expect(screen.queryByRole("button", { name: "Conta" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Download" })).not.toBeInTheDocument();
     const closedMenuButton = screen.getByRole("button", { name: "Abrir menu" });
     expect(closedMenuButton).toHaveClass("size-11");
     expect(closedMenuButton).not.toHaveTextContent(/Menu|Fechar/);
     const iconLines = closedMenuButton.querySelectorAll("[aria-hidden='true'] > span");
-    expect(iconLines).toHaveLength(2);
-    expect(iconLines[0]).toHaveClass("left-1/2", "top-1/2");
-    expect(iconLines[1]).toHaveClass("left-1/2", "top-1/2");
+    expect(iconLines).toHaveLength(3);
+    iconLines.forEach(line => expect(line).toHaveClass("h-0.5", "w-5", "bg-current"));
     await user.click(closedMenuButton);
     expect(screen.getByRole("button", { name: "Fechar menu" })).toHaveAttribute("aria-expanded", "true");
     expect(document.body.style.overflow).toBe("hidden");
 
     const navigation = screen.getByRole("navigation", { name: "Navegação principal" });
     expect(within(navigation).getByRole("button", { name: "Fórum" })).toBeInTheDocument();
-    expect(within(navigation).getByRole("button", { name: "Download" })).toBeInTheDocument();
+    expect(within(navigation).queryByRole("button", { name: "Download" })).not.toBeInTheDocument();
+    expect(within(screen.getByRole("group", { name: "Ações do menu" })).getByRole("button", { name: "Baixar" })).toBeInTheDocument();
     await user.click(within(navigation).getByRole("button", { name: "Lançamentos" }));
     expect(onChangeView).toHaveBeenCalledWith("transactions");
     expect(document.body.style.overflow).toBe("");
@@ -159,6 +161,9 @@ describe("AppFloatingHeader", () => {
     rerender(<AppFloatingHeader activeView="forum" onChangeView={onChangeView} />);
     expect(within(screen.getByRole("navigation", { name: "Navegação principal" }))
       .getByRole("button", { name: "Fórum" })).toHaveAttribute("aria-current", "page");
+    await user.click(screen.getByRole("button", { name: "Baixar" }));
+    expect(onChangeView).toHaveBeenLastCalledWith("download");
+    expect(screen.getByRole("button", { name: "Abrir menu" })).toHaveAttribute("aria-expanded", "false");
   });
 
   it("fecha o painel por Escape e clique fora e mantém conta e tema no painel", async () => {
@@ -182,22 +187,21 @@ describe("AppFloatingHeader", () => {
 
     await user.click(screen.getByRole("button", { name: "Abrir menu" }));
     expect(screen.getByRole("button", { name: "Conta" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Alternar tema" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Tema" })).toBeInTheDocument();
     const panel = document.getElementById("finly-staggered-menu-panel");
     expect(panel).toHaveClass("fixed", "inset-y-0", "h-dvh", "overflow-hidden");
     expect(document.getElementById("finly-staggered-menu-content")).toHaveClass("overflow-y-auto");
     expect(panel).toHaveClass("pointer-events-auto");
-    expect(panel?.contains(screen.getByRole("button", { name: "Conta" }))).toBe(false);
-    expect(panel?.contains(screen.getByRole("button", { name: "Alternar tema" }))).toBe(false);
-    await user.click(screen.getByRole("button", { name: "Alternar tema" }));
+    expect(panel?.contains(screen.getByRole("button", { name: "Conta" }))).toBe(true);
+    expect(panel?.contains(screen.getByRole("button", { name: "Tema" }))).toBe(true);
+    await user.click(screen.getByRole("button", { name: "Tema" }));
     expect(screen.getByRole("button", { name: "Fechar menu" })).toHaveAttribute("aria-expanded", "true");
     await user.click(screen.getByRole("button", { name: "Conta" }));
     expect(screen.getByRole("dialog", { name: "Acesse sua conta" })).toBeVisible();
     await user.keyboard("{Escape}");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    if (screen.getByRole("button", { name: /menu/i }).getAttribute("aria-expanded") === "true") {
-      await user.keyboard("{Escape}");
-    }
+    expect(screen.getByRole("button", { name: "Fechar menu" })).toHaveAttribute("aria-expanded", "true");
+    await user.keyboard("{Escape}");
     expect(screen.getByRole("button", { name: "Abrir menu" })).toHaveAttribute("aria-expanded", "false");
     expect(screen.getByRole("button", { name: "Abrir menu" })).toHaveFocus();
 

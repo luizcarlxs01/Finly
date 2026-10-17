@@ -68,9 +68,9 @@ export function GoalGlassDialog({ triggerRef, title, onClose, children, animatio
     document.body.style.overflow = "hidden";
     if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       if (animation === "gentle") {
-        timelineRef.current = gsap.timeline()
-          .fromTo(backdropRef.current, { backgroundColor: "rgba(2,6,23,0)", backdropFilter: "blur(0px)" }, { backgroundColor: "rgba(2,6,23,0.55)", backdropFilter: "blur(4px)", duration: 0.3 }, 0)
-          .fromTo(dialogRef.current, { opacity: 0, scale: 0.97, y: 12 }, { opacity: 1, scale: 1, y: 0, duration: 0.3, ease: "power2.out" }, 0);
+        timelineRef.current = gsap.timeline({ onComplete: () => { gsap.set(dialogRef.current, { clearProps: "transform,opacity" }); } })
+          .fromTo(backdropRef.current, { backgroundColor: "rgba(2,6,23,0)", backdropFilter: "blur(0px)" }, { backgroundColor: "rgba(2,6,23,0.55)", backdropFilter: "blur(8px)", duration: 0.22 }, 0)
+          .fromTo(dialogRef.current, { opacity: 0, scale: 0.97, y: 12 }, { opacity: 1, scale: 1, y: 0, duration: 0.22, ease: "power2.out" }, 0);
       } else timelineRef.current = gsap.timeline({ onComplete: () => { gsap.set(surfaceRef.current, { clipPath: "none" }); } })
         .fromTo(surfaceRef.current, { ...getOrigin(), opacity: 0.25, clipPath: "polygon(35% 0%, 65% 0%, 100% 100%, 0% 100%)" }, { x: 0, y: 0, scaleX: 1, scaleY: 1, opacity: 1, clipPath: "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)", duration: 0.38, ease: "power3.out" })
         .fromTo(contentRef.current, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.16 }, 0.22);

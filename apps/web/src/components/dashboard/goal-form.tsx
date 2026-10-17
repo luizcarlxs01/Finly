@@ -53,9 +53,9 @@ export function GoalForm({
 
     if (
       !normalizedTitle ||
-      Number.isNaN(parsedTargetAmount) ||
+      !Number.isFinite(parsedTargetAmount) ||
       parsedTargetAmount <= 0 ||
-      Number.isNaN(parsedCurrentAmount) ||
+      !Number.isFinite(parsedCurrentAmount) ||
       parsedCurrentAmount < 0 ||
       !deadline
     ) {
@@ -110,6 +110,8 @@ export function GoalForm({
                   id="goal-title"
                   autoFocus={Boolean(onCancel)}
                   type="text"
+                  maxLength={200}
+                  required
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
                   className={`${fieldClassName} pl-11`}
