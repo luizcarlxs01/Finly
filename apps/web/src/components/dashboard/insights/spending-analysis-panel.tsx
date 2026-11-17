@@ -42,7 +42,21 @@ const CHART_COLORS = [
 ];
 
 const fieldClassName =
-  "w-full rounded-xl border border-border/70 bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15";
+  "h-10 w-full rounded-lg border border-border/50 bg-background/60 px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15";
+const axisAmountFormatter = new Intl.NumberFormat("pt-BR", {
+  notation: "compact",
+  maximumFractionDigits: 0,
+});
+
+function formatAxisAmount(value: number) {
+  const formatted = axisAmountFormatter.format(value);
+  return formatted.length > 8 ? `${formatted.slice(0, 7)}…` : formatted;
+}
+
+const chartTooltipStyle = {
+  maxWidth: "min(320px, calc(100vw - 24px))",
+  overflowWrap: "anywhere" as const,
+};
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("pt-BR", {
@@ -171,18 +185,15 @@ export function SpendingAnalysisPanel({ transactions }: { transactions: Transact
     chartType === "monthly-evolution" ? monthlyData.length > 0 : categoryData.length > 0;
 
   return (
-    <Card className="rounded-[1.75rem] border-border/60 bg-card/70 shadow-sm">
-      <CardHeader className="space-y-1 pb-3">
+    <Card className="rounded-2xl border-border/50 bg-card/55 shadow-sm backdrop-blur-xl">
+      <CardHeader className="space-y-1 pb-2">
         <CardTitle className="text-lg font-semibold tracking-tight">
           Análise de gastos
         </CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Explore seus lançamentos pagos por categoria, período e tipo de lançamento.
-        </p>
       </CardHeader>
 
-      <CardContent className="space-y-5">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <CardContent className="space-y-4">
+        <div className="grid gap-2.5 sm:grid-cols-2 2xl:grid-cols-3">
           <select
             aria-label="Tipo de gráfico"
             value={chartType}
@@ -251,7 +262,7 @@ export function SpendingAnalysisPanel({ transactions }: { transactions: Transact
             Nenhum lançamento pago encontrado com esses filtros.
           </p>
         ) : chartType === "category-pie" ? (
-          <div className="h-80 w-full">
+          <div data-analysis-chart className="h-80 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -266,31 +277,31 @@ export function SpendingAnalysisPanel({ transactions }: { transactions: Transact
                     <Cell key={entry.category} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={formatTooltipValue} />
+                <Tooltip formatter={formatTooltipValue} wrapperStyle={{ maxWidth: "calc(100vw - 24px)" }} contentStyle={chartTooltipStyle} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
               </PieChart>
             </ResponsiveContainer>
           </div>
         ) : chartType === "monthly-evolution" ? (
-          <div className="h-80 w-full">
+          <div data-analysis-chart className="h-80 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={monthlyData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                 <XAxis dataKey="month" stroke="var(--muted-foreground)" fontSize={12} />
-                <YAxis stroke="var(--muted-foreground)" fontSize={12} width={40} />
-                <Tooltip formatter={formatTooltipValue} />
+                <YAxis stroke="var(--muted-foreground)" fontSize={12} width={48} tickFormatter={formatAxisAmount} />
+                <Tooltip formatter={formatTooltipValue} wrapperStyle={{ maxWidth: "calc(100vw - 24px)" }} contentStyle={chartTooltipStyle} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
                 <Bar dataKey="entradas" name="Entradas" fill="var(--primary)" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="saidas" name="Saídas" fill="var(--destructive)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="saidas" name="Saídas" fill="var(--chart-2)" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         ) : (
-          <div className="h-80 w-full">
+          <div data-analysis-chart className="h-80 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={categoryData} layout="vertical" margin={{ left: 24 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                <XAxis type="number" stroke="var(--muted-foreground)" fontSize={12} />
+                <XAxis type="number" stroke="var(--muted-foreground)" fontSize={12} tickFormatter={formatAxisAmount} />
                 <YAxis
                   type="category"
                   dataKey="label"
@@ -298,7 +309,7 @@ export function SpendingAnalysisPanel({ transactions }: { transactions: Transact
                   fontSize={12}
                   width={100}
                 />
-                <Tooltip formatter={formatTooltipValue} />
+                <Tooltip formatter={formatTooltipValue} wrapperStyle={{ maxWidth: "calc(100vw - 24px)" }} contentStyle={chartTooltipStyle} />
                 <Bar dataKey="amount" name="Total" radius={[0, 4, 4, 0]}>
                   {categoryData.map((entry, index) => (
                     <Cell key={entry.category} fill={CHART_COLORS[index % CHART_COLORS.length]} />

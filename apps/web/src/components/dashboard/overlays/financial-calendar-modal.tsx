@@ -6,6 +6,7 @@ import { FinancialDialog } from "./financial-dialog";
 import { FinancialCalendarDayPanel } from "./financial-calendar-day-panel";
 import { FinancialCalendarGrid } from "./financial-calendar-grid";
 import { useValuePrivacy } from "@/hooks/use-value-privacy";
+import { TruncatedValue } from "@/components/ui/truncated-value";
 import type { Transaction } from "@/types/transaction";
 import { getCalendarMonthData } from "@/utils/financial-calendar";
 import { getTodayDateValue } from "@/utils/recurring-transactions";
@@ -43,7 +44,7 @@ function CalendarContent({ initialDate, onClose, transactions, onEditTransaction
   </div>}>
     <div className={styles.body}>
       <section className={styles.summary} aria-label="Previsão do mês">
-        {[{ label: "Entradas previstas", value: month.summary.totalIncome, income: true }, { label: "Saídas previstas", value: month.summary.totalExpense }, { label: "Saldo projetado", value: month.summary.cumulativeBalance }].map(item => <div key={item.label}><strong className={item.income ? "text-primary" : item.value < 0 ? "text-destructive" : ""}>{hidden ? "••••••" : currencyFormatter.format(item.value)}</strong><span>{item.label}</span></div>)}
+        {[{ label: "Entradas previstas", value: month.summary.totalIncome, income: true }, { label: "Saídas previstas", value: month.summary.totalExpense }, { label: "Saldo projetado", value: month.summary.cumulativeBalance }].map(item => <div key={item.label}><strong className={item.income ? "text-primary" : item.value < 0 ? "text-destructive" : ""}><TruncatedValue value={hidden ? "••••••" : currencyFormatter.format(item.value)} /></strong><span>{item.label}</span></div>)}
       </section>
       <div className={styles.layout}>
         <FinancialCalendarGrid hidden={hidden} month={month} selectedDateValue={selectedDateValue} onSelectDay={setSelectedDateValue} />

@@ -3,6 +3,7 @@ import { Pencil } from "lucide-react";
 import type { Transaction } from "@/types/transaction";
 import { getTransactionCategoryLabel } from "@/types/transaction-category";
 import { formatBusinessDateBr } from "@/utils/date-format";
+import { TruncatedValue } from "@/components/ui/truncated-value";
 import { isPaidOccurrence, type CalendarDay } from "@/utils/financial-calendar";
 import styles from "./financial-calendar.module.css";
 
@@ -25,9 +26,9 @@ export function FinancialCalendarDayPanel({ hidden = false, day, onEditTransacti
       {rows.map(item => <li key={item.id}>
         <div className={styles.dayRowTop}><div className="min-w-0"><h4 className="break-words text-sm font-semibold">{item.title}</h4><div className={styles.badges}><span data-status={isPaidOccurrence(item) ? "paid" : "pending"}>{isPaidOccurrence(item) ? "Pago" : "Pendente"}</span><span>{kindLabel(item)}</span><span>{getTransactionCategoryLabel(item.category)}</span></div></div>
         <button type="button" onClick={() => onEditTransaction(item)}><Pencil className="size-3.5" />Editar</button></div>
-        <strong className={`${styles.dayAmount} ${item.type === "income" ? "text-primary" : ""}`}>{hidden ? "••••••" : `${item.type === "income" ? "+ " : "− "}${money.format(item.amount)}`}</strong>
+        <TruncatedValue className={`${styles.dayAmount} font-semibold ${item.type === "income" ? "text-primary" : ""}`} value={hidden ? "••••••" : `${item.type === "income" ? "+ " : "− "}${money.format(item.amount)}`} />
       </li>)}
     </ul>}
-    {rows.length > 0 && <footer className={styles.dayFooter}>{rows.length} {rows.length === 1 ? "lançamento" : "lançamentos"} · entradas {hidden ? "••••••" : money.format(income)} · saídas {hidden ? "••••••" : money.format(expense)}</footer>}
+    {rows.length > 0 && <footer className={styles.dayFooter}><TruncatedValue value={`${rows.length} ${rows.length === 1 ? "lançamento" : "lançamentos"} · entradas ${hidden ? "••••••" : money.format(income)} · saídas ${hidden ? "••••••" : money.format(expense)}`} /></footer>}
   </section>;
 }

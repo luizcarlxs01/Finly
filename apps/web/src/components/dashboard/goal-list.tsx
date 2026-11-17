@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { getCategoryIcon } from "@/components/dashboard/category-icons";
+import { TruncatedValue } from "@/components/ui/truncated-value";
 import type { Goal } from "@/types/goal";
 import { getTransactionCategoryLabel } from "@/types/transaction-category";
 
@@ -26,9 +27,9 @@ function ProgressValues({ goal, progress, white = false }: { goal: Goal; progres
   const characterCount = current.length + target.length + percentage.length;
 
   return <div className={`absolute inset-0 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 px-4 tabular-nums ${white ? "text-white" : "text-black"}`} style={{ fontSize: `clamp(0.625rem, calc((100cqw - 48px) / ${characterCount * 0.6}), 1rem)` }}>
-    <span className="justify-self-start whitespace-nowrap font-medium">{current}</span>
+    <TruncatedValue className="justify-self-start whitespace-nowrap font-medium" value={current} focusOnOverflow={!white} />
     <span className="justify-self-center whitespace-nowrap font-semibold">{percentage}</span>
-    <span className="justify-self-end whitespace-nowrap font-medium">{target}</span>
+    <TruncatedValue className="justify-self-end whitespace-nowrap text-right font-medium" value={target} focusOnOverflow={!white} />
   </div>;
 }
 
@@ -55,8 +56,8 @@ export function GoalList({ goals, lastContributions = {}, onAddContribution = as
             <ProgressValues goal={goal} progress={progress} white />
           </div>
         </div>
-        <div className="flex items-center justify-end gap-1 sm:gap-2">
-          {progress < 100 && <><button type="button" disabled={actionsDisabled || pendingGoal === goal.id} onClick={async () => { if (pendingGoal) return; setPendingGoal(goal.id); try { await onAddContribution(goal, quickAmount); } catch { /* Error appears in the page message. */ } finally { setPendingGoal(null); } }} className="h-11 min-w-24 whitespace-nowrap rounded-xl bg-primary/10 px-3 text-sm font-medium text-primary hover:bg-primary/20 disabled:opacity-50 sm:min-w-28">+ {formatter.format(quickAmount)}</button><span aria-hidden="true" className="mx-0.5 h-9 w-px shrink-0 bg-border/80" /></>}
+        <div className="flex min-w-0 items-center justify-end gap-1 sm:gap-2">
+          {progress < 100 && <><button type="button" title={formatter.format(quickAmount).length > 18 ? `+ ${formatter.format(quickAmount)}` : undefined} disabled={actionsDisabled || pendingGoal === goal.id} onClick={async () => { if (pendingGoal) return; setPendingGoal(goal.id); try { await onAddContribution(goal, quickAmount); } catch { /* Error appears in the page message. */ } finally { setPendingGoal(null); } }} className="h-11 min-w-0 max-w-[42%] overflow-hidden whitespace-nowrap rounded-xl bg-primary/10 px-2 text-sm font-medium text-primary hover:bg-primary/20 disabled:opacity-50 sm:px-3"><TruncatedValue className="text-center" value={`+ ${formatter.format(quickAmount)}`} focusOnOverflow={false} /></button><span aria-hidden="true" className="mx-0.5 h-9 w-px shrink-0 bg-border/80" /></>}
           {progress < 100 && <button type="button" disabled={actionsDisabled || pendingGoal === goal.id} onClick={() => onAddCustom(goal)} className="whitespace-nowrap rounded-xl px-2 py-2 text-sm font-medium text-primary hover:bg-primary/10 disabled:opacity-50">+ Adicionar</button>}
           <div className="relative">
             <button type="button" data-goal-menu={goal.id} aria-label={`Opções de ${goal.title}`} aria-expanded={openMenu === goal.id} onClick={() => setOpenMenu(openMenu === goal.id ? null : goal.id)} className="flex size-10 items-center justify-center rounded-xl text-foreground hover:bg-muted"><MoreHorizontal size={20} /></button>

@@ -27,6 +27,7 @@ type TransactionAdvancedFiltersProps = {
   totalCount: number;
   hasActiveFilters: boolean;
   onClearFilters: () => void;
+  minimal?: boolean;
 };
 
 const fieldClassName =
@@ -43,7 +44,93 @@ export function TransactionAdvancedFilters({
   totalCount,
   hasActiveFilters,
   onClearFilters,
+  minimal = false,
 }: TransactionAdvancedFiltersProps) {
+  if (minimal) {
+    const compactFieldClassName =
+      "w-full rounded-xl border border-border/60 bg-background/70 px-3.5 py-2.5 text-sm text-foreground outline-none transition placeholder:text-muted-foreground/80 focus:border-primary focus:ring-2 focus:ring-primary/15";
+    const labelClassName = "pl-3 text-sm font-medium text-foreground";
+
+    return (
+      <div className="space-y-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.5fr)_minmax(170px,0.85fr)_minmax(170px,0.85fr)]">
+          <div className="space-y-1.5">
+            <label htmlFor="transaction-search" className={labelClassName}>
+              Buscar transação
+            </label>
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                id="transaction-search"
+                type="search"
+                value={searchValue}
+                onChange={(event) => onSearchChange(event.target.value)}
+                className={`${compactFieldClassName} pl-11`}
+                placeholder="Buscar por título, categoria ou valor"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label
+              htmlFor="transaction-category-filter"
+              className={labelClassName}
+            >
+              Categoria
+            </label>
+            <select
+              id="transaction-category-filter"
+              value={categoryValue}
+              onChange={(event) => onCategoryChange(event.target.value)}
+              className={compactFieldClassName}
+            >
+              <option value="all">Todas as categorias</option>
+              {TRANSACTION_CATEGORIES.map((category) => (
+                <option key={category} value={category}>
+                  {getTransactionCategoryLabel(category)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-1.5">
+            <label htmlFor="transaction-sort" className={labelClassName}>
+              Ordenação
+            </label>
+            <select
+              id="transaction-sort"
+              value={sortValue}
+              onChange={(event) =>
+                onSortChange(event.target.value as TransactionSortOption)
+              }
+              className={compactFieldClassName}
+            >
+              <option value="newest">Mais recentes</option>
+              <option value="oldest">Mais antigas</option>
+              <option value="highest">Maior valor</option>
+              <option value="lowest">Menor valor</option>
+              <option value="title-asc">Título A-Z</option>
+              <option value="title-desc">Título Z-A</option>
+            </select>
+          </div>
+        </div>
+
+        {hasActiveFilters ? (
+          <div className="flex justify-end border-t border-border/50 pt-3">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={onClearFilters}
+              className="h-8 rounded-lg px-3 text-sm text-muted-foreground hover:text-foreground"
+            >
+              Limpar filtros
+            </Button>
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5 rounded-[1.5rem] border border-border/70 bg-card/80 p-4 sm:p-5">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">

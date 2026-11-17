@@ -3,6 +3,7 @@
 import { getCategoryIcon } from "@/components/dashboard/category-icons";
 import { getTransactionCategoryLabel } from "@/types/transaction-category";
 import type { CalendarMonthData } from "@/utils/financial-calendar";
+import { TruncatedValue } from "@/components/ui/truncated-value";
 import styles from "./dashboard-transactions-view.module.css";
 
 type Props = {
@@ -38,7 +39,8 @@ export function CompactFinancialCalendar({ month, selectedDate, hidden, onSelect
       <h3 className="mb-3 text-sm font-semibold">{day ? `Lançamentos em ${day.dayNumber} de ${month.monthLabel.split(" de ")[0]}` : "Selecione uma data"}</h3>
       <div className={styles.previewBody}>{rows.length === 0 ? <p className="text-sm text-muted-foreground">Nenhum lançamento nesta data.</p> : <ul className={styles.previewList}>{rows.slice(0, 2).map(item => {
         const Icon = getCategoryIcon(item.category);
-        return <li key={item.id}><button type="button" className={styles.previewRow} onClick={event => { event.stopPropagation(); open(); }}><span className={styles.categoryIcon}><Icon className="size-5" /></span><span className="min-w-0 flex-1"><span className="block truncate font-semibold">{item.title}</span><span className="text-xs text-muted-foreground">{getTransactionCategoryLabel(item.category)}</span></span><span className={`whitespace-nowrap font-semibold ${item.type === "income" ? "text-primary" : ""}`}>{hidden ? "••••••" : `${item.type === "income" ? "+ " : "− "}${money.format(item.amount)}`}</span></button></li>;
+        const amount = hidden ? "••••••" : `${item.type === "income" ? "+ " : "− "}${money.format(item.amount)}`;
+        return <li key={item.id}><button type="button" title={!hidden && amount.length > 18 ? amount : undefined} className={styles.previewRow} onClick={event => { event.stopPropagation(); open(); }}><span className={styles.categoryIcon}><Icon className="size-5" /></span><span className="min-w-0 flex-1"><span className="block truncate font-semibold">{item.title}</span><span className="text-xs text-muted-foreground">{getTransactionCategoryLabel(item.category)}</span></span><TruncatedValue className={`max-w-[48%] text-right font-semibold ${item.type === "income" ? "text-primary" : ""}`} value={amount} focusOnOverflow={false} /></button></li>;
       })}</ul>}</div>
       <div className={styles.previewMore}>{rows.length > 2 && <button type="button" onClick={event => { event.stopPropagation(); open(); }}>Ver todos</button>}</div>
     </div>

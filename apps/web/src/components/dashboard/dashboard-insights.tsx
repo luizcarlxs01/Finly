@@ -1,4 +1,3 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type {
   DashboardInsight,
   DashboardInsightTone,
@@ -8,83 +7,44 @@ type DashboardInsightsProps = {
   insights: DashboardInsight[];
 };
 
-const toneClasses: Record<
-  DashboardInsightTone,
-  {
-    container: string;
-    badge: string;
-  }
-> = {
-  neutral: {
-    container: "border-border/60 bg-background/65",
-    badge: "bg-muted text-muted-foreground",
-  },
-  positive: {
-    container: "border-primary/20 bg-primary/10",
-    badge: "bg-primary/15 text-primary",
-  },
-  warning: {
-    container: "border-accent/60 bg-accent/25",
-    badge: "bg-accent/55 text-foreground",
-  },
+const badgeClasses: Record<DashboardInsightTone, string> = {
+  neutral: "bg-muted text-muted-foreground",
+  positive: "bg-primary/10 text-primary",
+  warning: "bg-accent/25 text-foreground",
 };
 
 function getToneLabel(tone: DashboardInsightTone) {
-  if (tone === "positive") {
-    return "Bom sinal";
-  }
-
-  if (tone === "warning") {
-    return "Vale atenção";
-  }
-
+  if (tone === "positive") return "Bom sinal";
+  if (tone === "warning") return "Vale atenção";
   return "No radar";
 }
 
 export function DashboardInsights({ insights }: DashboardInsightsProps) {
   return (
-    <Card className="overflow-hidden rounded-[1.75rem] border-border/60 bg-card/95 shadow-sm">
-      <CardHeader className="space-y-1 pb-4">
-        <CardTitle className="text-xl font-semibold tracking-tight">
-          Leituras rápidas
-        </CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Sinais simples para te ajudar a entender o momento atual.
-        </p>
-      </CardHeader>
-
-      <CardContent className="p-5 pt-0">
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-          {insights.map((insight) => {
-            const toneClass = toneClasses[insight.tone];
-
-            return (
-              <article
-                key={insight.id}
-                className={`rounded-[1.25rem] border p-4 ${toneClass.container}`}
-              >
-                <div className="space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <h3 className="text-sm font-semibold text-foreground">
-                      {insight.title}
-                    </h3>
-
-                    <span
-                      className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-medium ${toneClass.badge}`}
-                    >
-                      {getToneLabel(insight.tone)}
-                    </span>
-                  </div>
-
-                  <p className="text-sm leading-6 text-foreground/85">
-                    {insight.description}
-                  </p>
-                </div>
-              </article>
-            );
-          })}
-        </div>
-      </CardContent>
-    </Card>
+    <div data-insights-grid className="grid h-full min-h-0 auto-rows-fr grid-cols-2 gap-2">
+      {insights.map((insight) => (
+        <article
+          key={insight.id}
+          className="flex min-h-0 flex-col gap-1 overflow-hidden rounded-2xl border border-border/50 bg-card/55 p-3 text-card-foreground shadow-sm backdrop-blur-xl"
+        >
+          <h3
+            className="min-w-0 overflow-hidden text-[13px] font-semibold leading-4 text-foreground"
+            style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}
+          >
+            {insight.title}
+          </h3>
+          <p
+            className="overflow-hidden text-[13px] leading-[18px] text-foreground/85"
+            title={insight.description}
+            style={{ display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical" }}
+          >
+            {insight.description}
+          </p>
+          <span className={`mt-auto inline-flex w-fit shrink-0 self-end rounded-full px-2.5 py-1 text-[11px] font-medium ${badgeClasses[insight.tone]}`}>
+            {getToneLabel(insight.tone)}
+          </span>
+        </article>
+      ))}
+    </div>
   );
 }

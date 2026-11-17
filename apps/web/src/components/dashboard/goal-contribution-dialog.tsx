@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import styles from "./goal-contribution-dialog.module.css";
 import { Button } from "@/components/ui/button";
+import { TruncatedValue } from "@/components/ui/truncated-value";
 import { GoalGlassDialog } from "./goal-glass-dialog";
 import type { GoalProgressModalProps } from "./goal-progress-modal";
 import type { Goal } from "@/types/goal";
@@ -104,7 +105,7 @@ export function GoalContributionDialog({ goal, errorMessage, isSubmitting = fals
           <div className="grid gap-2 pb-6">
           {[{ name: "Antes", value: goal.currentAmount, percentage: beforePercent, position: beforePosition, color: "text-muted-foreground" }, { name: "Depois", value: displayedAfter, percentage: displayedPercent, position: displayedPosition, color: "text-primary" }].reverse().map(marker => <div key={marker.name} className={marker.name === "Depois" && !previewValid ? "invisible" : undefined} aria-hidden={marker.name === "Depois" && !previewValid ? true : undefined}>
             <div className={`relative w-36 -translate-x-1/2 text-center text-xs tabular-nums ${marker.color} `} style={{ left: `clamp(72px, ${marker.position}%, calc(100% - 72px))` }}>
-              <div ref={marker.name === "Depois" ? afterLabelRef : undefined}><p className="min-h-4">{marker.name !== "Antes" || amount.trim() ? marker.name : ""}</p><p className="h-5 whitespace-nowrap font-semibold" style={{ fontSize: `min(0.875rem, ${144 / ((percent.format(marker.percentage) + "% (R$" + markerMoney.format(marker.value) + ")").length * 0.6)}px)` }}>{percent.format(marker.percentage)}% (R${markerMoney.format(marker.value)})</p></div>
+              <div ref={marker.name === "Depois" ? afterLabelRef : undefined}><p className="min-h-4">{marker.name !== "Antes" || amount.trim() ? marker.name : ""}</p><TruncatedValue className="h-5 text-xs font-semibold" value={`${percent.format(marker.percentage)}% (R$${markerMoney.format(marker.value)})`} /></div>
             </div>
             <span aria-hidden="true" className={`absolute bottom-6 h-5 w-px bg-current ${marker.name === "Antes" ? "text-primary" : "text-[#69B4FE]"} `} style={{ left: `clamp(12px, ${marker.position}%, calc(100% - 12px))` }} />
           </div>)}
@@ -115,7 +116,7 @@ export function GoalContributionDialog({ goal, errorMessage, isSubmitting = fals
             {flowing && displayedPosition > beforePosition && displayedPosition < 100 && <span aria-hidden="true" className={styles.wave} style={{ left: `calc(${displayedPosition}% - 4px)` }} />}
           </div>
         </div>
-        <p className="mt-3 text-sm text-muted-foreground">Meta de {money.format(goal.targetAmount)}</p>
+        <TruncatedValue className="mt-3 text-sm text-muted-foreground" value={`Meta de ${money.format(goal.targetAmount)}`} />
       </section>
       <div className="space-y-2">
         <label htmlFor="goal-contribution-amount" className="block pl-3 text-sm font-medium">Valor do aporte</label>

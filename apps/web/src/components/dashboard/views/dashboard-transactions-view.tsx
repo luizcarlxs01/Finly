@@ -2,8 +2,9 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Eye, EyeOff, Plus, Search, SlidersHorizontal, CalendarDays, ChevronDown } from "lucide-react";
 import { FinanceSummaryCard } from "@/components/dashboard/finance-summary-card";
-import { TransactionForm } from "@/components/dashboard/transaction-form";
+import { TruncatedValue } from "@/components/ui/truncated-value";
 import { FinancialDialog } from "@/components/dashboard/overlays/financial-dialog";
+import { TransactionCreateDialog } from "@/components/dashboard/transaction-create-dialog";
 import { CompactFinancialCalendar } from "./compact-financial-calendar";
 import { TransactionStatement } from "./transaction-statement";
 import { Button } from "@/components/ui/button";
@@ -71,6 +72,7 @@ export function DashboardTransactionsView(props: DashboardTransactionsViewProps)
   const monthRef = useRef<HTMLDivElement>(null);
   const filtersRef = useRef<HTMLDivElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
+  const createButtonRef = useRef<HTMLButtonElement | null>(null);
   useEffect(() => { onSortOptionChange("newest"); }, [onSortOptionChange]);
   useEffect(() => { if (createOpen && props.isPreviewActive) previewRef.current?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "nearest" }); }, [createOpen, props.isPreviewActive]);
   useLayoutEffect(() => {
@@ -114,13 +116,13 @@ export function DashboardTransactionsView(props: DashboardTransactionsViewProps)
   return <div ref={rootRef} className={styles.transactions}>
     <h1 className="sr-only">Lançamentos</h1>
     <section data-shared-indicators data-eclipse-anchor className={styles.summary} aria-label="Indicadores financeiros">
-      {[{ label: "Saldo atual", value: currentBalance }, { label: "Entradas", value: monthTotals.income }, { label: "Saídas", value: monthTotals.expense }, { label: "Resultado do mês", value: monthTotals.income - monthTotals.expense }].map((item, index) => <div key={item.label} className={styles.indicator}><strong>{hidden ? "••••••" : money.format(item.value)}</strong><span>{item.label}{index === 0 && <><button type="button" aria-label={hidden ? "Mostrar valores" : "Ocultar valores"} className={styles.iconButton} onClick={toggle}>{hidden ? <EyeOff className="size-4" /> : <Eye className="size-4" />}</button></>}</span></div>)}
+      {[{ label: "Saldo atual", value: currentBalance }, { label: "Entradas", value: monthTotals.income }, { label: "Saídas", value: monthTotals.expense }, { label: "Resultado do mês", value: monthTotals.income - monthTotals.expense }].map((item, index) => <div key={item.label} className={styles.indicator}><strong><TruncatedValue value={hidden ? "••••••" : money.format(item.value)} /></strong><span>{item.label}{index === 0 && <><button type="button" aria-label={hidden ? "Mostrar valores" : "Ocultar valores"} className={styles.iconButton} onClick={toggle}>{hidden ? <EyeOff className="size-4" /> : <Eye className="size-4" />}</button></>}</span></div>)}
     </section>
     <div className={styles.columns}>
       <CompactFinancialCalendar month={month} selectedDate={selectedDate} hidden={hidden} onSelect={setSelectedDate} onOpen={openCalendar} />
       <section className={styles.card + " " + styles.statement} aria-label="Extrato">
         <div className={styles.statementTop}>
-          <div className="flex items-center justify-between gap-3"><h2 className="text-xl font-semibold">Extrato</h2><Button onClick={() => setCreateOpen(true)} className="rounded-xl"><Plus className="size-4" />Novo lançamento</Button></div>
+          <div className="flex items-center justify-between gap-3"><h2 className="text-xl font-semibold">Extrato</h2><Button ref={createButtonRef} onClick={() => setCreateOpen(true)} className="h-10 rounded-lg px-4"><Plus className="size-4" />Novo lançamento</Button></div>
           <div className={styles.controls}>
             <div className={styles.tabs} aria-label="Tipo de lançamento">{([{ value: "all", label: "Todos" }, { value: "income", label: "Entradas" }, { value: "expense", label: "Saídas" }] as const).map(tab => <button type="button" key={tab.value} aria-pressed={transactionFilter === tab.value} onClick={() => onTransactionFilterChange(tab.value)}>{tab.label}</button>)}</div>
             <label className={styles.search}><Search className="size-4 shrink-0" /><input type="search" aria-label="Buscar lançamento" placeholder="Buscar lançamento" value={searchTerm} onChange={event => onSearchTermChange(event.target.value)} /></label>
@@ -129,15 +131,39 @@ export function DashboardTransactionsView(props: DashboardTransactionsViewProps)
               {monthOpen && <div className={styles.filters}><label>Mês de referência<input type="month" autoFocus value={statementMonth} onChange={event => { if (event.target.validity.valid && event.target.value) selectMonth(event.target.value); }} /></label><Button variant="ghost" onClick={() => selectMonth("")}>Todos os meses</Button></div>}
             </div>
             <div ref={filtersRef} className={"relative " + styles.filterControl}><button type="button" className={styles.iconButton + " border border-border"} aria-label="Filtros do extrato" aria-expanded={filtersOpen} onClick={() => { setFiltersOpen(!filtersOpen); setMonthOpen(false); }}><SlidersHorizontal className="size-4" />{(props.hasActiveAdvancedFilters || statementMonth) && <span className="absolute -right-1 -top-1 size-2 rounded-full bg-primary" />}</button>
-              {filtersOpen && <div className={styles.filters}><label>Categoria<select value={categoryFilter} onChange={event => onCategoryFilterChange(event.target.value)}><option value="all">Todas as categorias</option>{TRANSACTION_CATEGORIES.map(category => <option value={category} key={category}>{getTransactionCategoryLabel(category)}</option>)}</select></label><label>Ordenação<select value={sortOption} onChange={event => onSortOptionChange(event.target.value as TransactionSortOption)}><option value="newest">Mais recentes</option><option value="oldest">Mais antigas</option><option value="highest">Maior valor</option><option value="lowest">Menor valor</option><option value="title-asc">Título A–Z</option><option value="title-desc">Título Z–A</option></select></label><button type="button" className="mb-3 text-sm text-primary hover:underline" onClick={() => { setFiltersOpen(false); setSummaryOpen(true); }}>Resumo financeiro</button><Button variant="ghost" onClick={() => { props.onClearAdvancedFilters(); setStatementMonth(""); }}>Limpar filtros</Button><button type="button" className="ml-3 text-sm text-primary" onClick={() => setFiltersOpen(false)}>Fechar</button></div>}
+              {filtersOpen && <div className={styles.filters}><label>Categoria<select value={categoryFilter} onChange={event => onCategoryFilterChange(event.target.value)}><option value="all">Todas as categorias</option>{TRANSACTION_CATEGORIES.map(category => <option value={category} key={category}>{getTransactionCategoryLabel(category)}</option>)}</select></label><label>Ordenação<select value={sortOption} onChange={event => onSortOptionChange(event.target.value as TransactionSortOption)}><option value="newest">Mais recentes</option><option value="oldest">Mais antigas</option><option value="highest">Maior valor</option><option value="lowest">Menor valor</option><option value="title-asc">Título A–Z</option><option value="title-desc">Título Z–A</option></select></label><div className="mt-1 flex items-center justify-between gap-3 border-t border-border/60 pt-3"><button type="button" className="rounded-lg px-2 py-1 text-sm text-primary transition-colors hover:bg-primary/10 focus-visible:outline-2 focus-visible:outline-primary" onClick={() => { setFiltersOpen(false); setSummaryOpen(true); }}>Resumo financeiro</button><button type="button" className="rounded-lg px-2 py-1 text-sm text-primary transition-colors hover:bg-primary/10 focus-visible:outline-2 focus-visible:outline-primary" onClick={() => { props.onClearAdvancedFilters(); setStatementMonth(""); }}>Limpar filtros</button></div></div>}
             </div>
           </div>
-          <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-muted-foreground"><span aria-live="polite">{rows.length} de {statementTransactions.length} lançamentos{statementMonth ? " · " + statementMonth.split("-").reverse().join("/") : ""}</span><button type="button" className="text-primary hover:underline" onClick={props.onOpenStatementProjection}>Ver projeção</button></div>
         </div>
         <TransactionStatement transactions={rows} hidden={hidden} sort={sortOption} onSort={onSortOptionChange} onEdit={props.onEditTransaction} onRemove={props.onRemoveTransaction} getNextRecurringOccurrence={props.getNextRecurringOccurrence} emptyTitle={props.emptyStateTitle} emptyDescription={props.emptyStateDescription} />
+        <footer className={styles.statementFooter}>
+          <span aria-live="polite">{rows.length} de {statementTransactions.length} lançamentos{statementMonth ? " · " + statementMonth.split("-").reverse().join("/") : ""}</span>
+          <button type="button" onClick={props.onOpenStatementProjection}>Ver projeção</button>
+        </footer>
       </section>
     </div>
     {summaryOpen && <FinancialDialog title="Resumo financeiro" onClose={() => setSummaryOpen(false)}>{summary}<a href="https://wa.me/5511975832629" target="_blank" rel="noreferrer" className="mt-4 block text-center text-sm text-primary">Reportar problema</a></FinancialDialog>}
-    {createOpen && <FinancialDialog title="Novo lançamento" onClose={() => { setCreateOpen(false); props.onClearPreview(); }}><TransactionForm onAddTransaction={async input => { await props.onAddTransaction(input); setCreateOpen(false); }} onPreviewTransaction={props.onPreviewTransaction} onClearPreview={props.onClearPreview} isPreviewActive={props.isPreviewActive} showPreviewNotice={false} isSubmitting={props.isSubmitting} />{props.createErrorMessage && <p role="alert" className="mt-3 text-sm text-destructive">{props.createErrorMessage}</p>}{props.isPreviewActive && <div ref={previewRef} className="mt-4">{summary}</div>}</FinancialDialog>}
+    {createOpen ? (
+      <TransactionCreateDialog
+        triggerRef={createButtonRef}
+        isSubmitting={props.isSubmitting}
+        isPreviewActive={props.isPreviewActive}
+        errorMessage={props.createErrorMessage}
+        previewContent={
+          props.isPreviewActive ? (
+            <div ref={previewRef} className="mt-4">
+              {summary}
+            </div>
+          ) : null
+        }
+        onAddTransaction={props.onAddTransaction}
+        onPreviewTransaction={props.onPreviewTransaction}
+        onClearPreview={props.onClearPreview}
+        onClose={() => {
+          setCreateOpen(false);
+          props.onClearPreview();
+        }}
+      />
+    ) : null}
   </div>;
 }

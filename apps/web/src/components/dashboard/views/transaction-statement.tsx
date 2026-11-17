@@ -8,6 +8,7 @@ import { getCategoryIcon } from "@/components/dashboard/category-icons";
 import { getTransactionCategoryLabel } from "@/types/transaction-category";
 import { formatBusinessDateBr } from "@/utils/date-format";
 import { getTransactionDateValue } from "@/utils/statement-transactions";
+import { TruncatedValue } from "@/components/ui/truncated-value";
 import styles from "./dashboard-transactions-view.module.css";
 
 type Props = { transactions: Transaction[]; hidden: boolean; sort: TransactionSortOption; onSort: (sort: TransactionSortOption) => void; onEdit: (transaction: Transaction) => void; onRemove: (id: string) => void; getNextRecurringOccurrence: (transaction: Transaction) => string | null; emptyTitle: string; emptyDescription: string };
@@ -43,7 +44,7 @@ export function TransactionStatement({ transactions, hidden, sort, onSort, onEdi
           <div role="cell" className={`${styles.categoryColumn} text-muted-foreground`}>{getTransactionCategoryLabel(transaction.category)}</div>
           <div role="cell" className={styles.kindColumn}><span className={styles.kind}>{kind}</span></div>
           <div role="cell" className="text-muted-foreground">{formatBusinessDateBr(getTransactionDateValue(transaction)) ?? "—"}</div>
-          <div role="cell" className={`whitespace-nowrap text-right font-semibold ${transaction.type === "income" ? "text-primary" : ""}`}>{hidden ? "••••••" : `${transaction.type === "income" ? "+ " : "− "}${money.format(transaction.amount)}`}</div>
+          <div role="cell" className={`min-w-0 text-right font-semibold ${transaction.type === "income" ? "text-primary" : ""}`}><TruncatedValue value={hidden ? "••••••" : `${transaction.type === "income" ? "+ " : "− "}${money.format(transaction.amount)}`} /></div>
           <div role="cell"><button type="button" aria-label={`Opções de ${transaction.title}`} aria-haspopup="menu" aria-expanded={menu?.transaction.id === transaction.id} className={styles.iconButton} onClick={event => { const button = event.currentTarget; if (menu?.transaction.id === transaction.id) { setMenu(null); return; } triggerRef.current = button; const bounds = button.getBoundingClientRect(); setMenu({ transaction, left: Math.max(12, Math.min(bounds.right - 180, window.innerWidth - 192)), top: Math.min(bounds.bottom + 4, window.innerHeight - 108) }); }}><MoreHorizontal className="size-4" /></button></div>
         </div>;
       })}

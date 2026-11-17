@@ -12,7 +12,7 @@ type Props = {
 };
 
 export function GoalCreateDialog({ triggerRef, isSubmitting, errorMessage, onAddGoal, onClose }: Props) {
-  return <GoalGlassDialog triggerRef={triggerRef} title="Nova meta" onClose={onClose}>
+  return <GoalGlassDialog triggerRef={triggerRef} title="Nova meta" animation="genie" onClose={onClose}>
     {requestClose => <GoalForm isSubmitting={isSubmitting} errorMessage={errorMessage} onCancel={requestClose} onAddGoal={async input => { await onAddGoal(input); requestClose(); }} />}
   </GoalGlassDialog>;
 }

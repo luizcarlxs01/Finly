@@ -8,6 +8,7 @@ import type { TransactionFilter } from "@/types/finance";
 type TransactionFilterTabsProps = {
   value: TransactionFilter;
   onChange: (value: TransactionFilter) => void;
+  minimal?: boolean;
 };
 
 const filters: Array<{
@@ -23,7 +24,33 @@ const filters: Array<{
 export function TransactionFilterTabs({
   value,
   onChange,
+  minimal = false,
 }: TransactionFilterTabsProps) {
+  if (minimal) {
+    return (
+      <div className="inline-flex max-w-full flex-wrap gap-1 rounded-2xl border border-border/60 bg-muted/35 p-1.5">
+        {filters.map((filter) => {
+          const isActive = value === filter.value;
+          const Icon = filter.icon;
+
+          return (
+            <Button
+              key={filter.value}
+              type="button"
+              variant={isActive ? "default" : "ghost"}
+              onClick={() => onChange(filter.value)}
+              aria-pressed={isActive}
+              className="min-w-24 rounded-xl px-3"
+            >
+              <Icon className="size-4" />
+              {filter.label}
+            </Button>
+          );
+        })}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3">
       <div className="space-y-1">

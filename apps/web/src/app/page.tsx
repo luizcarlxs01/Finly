@@ -3,17 +3,18 @@ import { sortStatementTransactions } from "@/utils/statement-transactions";
 import { GoalEditDialog } from "@/components/dashboard/goal-edit-dialog";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowUpDown, Plus, Target, X } from "lucide-react";
+import { ArrowUpDown, Plus, Target } from "lucide-react";
 import {
   AppFloatingHeader,
   type DashboardView,
 } from "@/components/layout/app-floating-header";
-import { TransactionForm } from "@/components/dashboard/transaction-form";
+import { TransactionCreateDialog } from "@/components/dashboard/transaction-create-dialog";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { DashboardHomeView } from "@/components/dashboard/views/dashboard-home-view";
 import { DashboardTransactionsView } from "@/components/dashboard/views/dashboard-transactions-view";
 import { DashboardGoalsView } from "@/components/dashboard/views/dashboard-goals-view";
 import { GoalDeleteDialog } from "@/components/dashboard/goal-delete-dialog";
+import { GoalCreateDialog } from "@/components/dashboard/goal-create-dialog";
 import { DashboardInsightsView } from "@/components/dashboard/views/dashboard-insights-view";
 import { DashboardDownloadView } from "@/components/dashboard/views/dashboard-download-view";
 import { DashboardForumView } from "@/components/dashboard/views/dashboard-forum-view";
@@ -37,11 +38,11 @@ import { useUpdateOccurrence } from "@/hooks/use-update-occurrence";
 import { useUpdateTransaction } from "@/hooks/use-update-transaction";
 import { useUpdateInitialBalance } from "@/hooks/use-update-initial-balance";
 import { useUpdateSpendingProfile } from "@/hooks/use-update-spending-profile";
-import { GoalForm } from "@/components/dashboard/goal-form";
 import { GoalProgressModal } from "@/components/dashboard/goal-progress-modal";
 import { FinancialCalendarModal } from "@/components/dashboard/overlays/financial-calendar-modal";
 import { StatementProjectionModal } from "@/components/dashboard/overlays/statement-projection-modal";
 import { TransactionEditModal } from "@/components/dashboard/transaction-edit-modal";
+import { FinancialDialog } from "@/components/dashboard/overlays/financial-dialog";
 import { PageContainer } from "@/components/layout/page-container";
 import { ConfirmationModal } from "@/components/ui/confirmation-modal";
 import {
@@ -136,6 +137,8 @@ export default function HomePage() {
   const [pendingGoalDeletion, setPendingGoalDeletion] = useState<Goal | null>(null);
   const goalEditTriggerRef = useRef<HTMLButtonElement | null>(null);
   const goalDeleteTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const fabTransactionTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const fabGoalTriggerRef = useRef<HTMLButtonElement | null>(null);
   const [writeModeMessage, setWriteModeMessage] = useState<string | null>(null);
   const [calendarInitialDate, setCalendarInitialDate] = useState<string | undefined>(undefined);
   const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
@@ -686,7 +689,7 @@ export default function HomePage() {
   }
 
   // Keep the goal dialog mounted while its save refreshes the API data.
-  if ((!financeData.isLoaded || !goalsData.isLoaded) && !selectedGoal) {
+  if ((!financeData.isLoaded || !goalsData.isLoaded) && !selectedGoal && !editingTransaction && !isCalendarModalOpen) {
     return (
       <PageContainer>
         <div className="flex min-h-[40vh] items-center justify-center rounded-[2rem] border border-border/70 bg-card/60">
@@ -841,7 +844,7 @@ export default function HomePage() {
       </PageContainer>
 
       {activeView !== "home" && activeView !== "download" ? (
-        <div className={`fixed bottom-6 right-6 z-40 flex flex-col-reverse items-end gap-3 ${activeView === "goals" ? "pointer-events-none" : ""}`}>
+        <div className={`fixed bottom-6 right-6 z-20 flex flex-col-reverse items-end gap-3 ${activeView === "goals" ? "pointer-events-none" : ""} ${activeView === "transactions" || activeView === "goals" ? "max-[1023px]:hidden" : ""}`}>
           <button
             type="button"
             onClick={() => setIsSpeedDialOpen((prev) => !prev)}
@@ -862,6 +865,7 @@ export default function HomePage() {
           >
             <button
               type="button"
+              ref={fabTransactionTriggerRef}
               onClick={() => {
                 setIsSpeedDialOpen(false);
                 setIsFabTransactionOpen(true);
@@ -878,6 +882,7 @@ export default function HomePage() {
 
             <button
               type="button"
+              ref={fabGoalTriggerRef}
               onClick={() => {
                 setIsSpeedDialOpen(false);
                 setIsFabGoalOpen(true);
@@ -896,83 +901,35 @@ export default function HomePage() {
       ) : null}
 
       {isFabTransactionOpen ? (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 backdrop-blur-sm sm:items-center sm:px-4 sm:py-6"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setIsFabTransactionOpen(false);
+        <TransactionCreateDialog
+          triggerRef={fabTransactionTriggerRef}
+          isSubmitting={
+            isCreatingTransaction ||
+            isUpdatingInitialBalance ||
+            isUpdatingTransaction ||
+            isDeletingTransaction ||
+            isCancellingOccurrence
+          }
+          isPreviewActive={isPreviewActive}
+          errorMessage={createTransactionErrorMessage}
+          onAddTransaction={handleAddTransaction}
+          onPreviewTransaction={handlePreviewTransaction}
+          onClearPreview={handleClearPreview}
+          onClose={() => {
+            setIsFabTransactionOpen(false);
+            handleClearPreview();
           }}
-        >
-          <div className="flex max-h-[min(100dvh-0.5rem,96vh)] w-full flex-col overflow-hidden rounded-t-[1.75rem] border border-border/70 bg-card shadow-2xl sm:max-w-xl sm:rounded-[1.75rem]">
-            <div className="flex items-center justify-between border-b border-border/60 px-5 py-4 sm:px-6">
-              <p className="text-base font-semibold text-foreground">
-                Nova transação
-              </p>
-              <button
-                type="button"
-                onClick={() => setIsFabTransactionOpen(false)}
-                aria-label="Fechar"
-                className="flex size-8 items-center justify-center rounded-xl text-muted-foreground transition hover:bg-accent hover:text-foreground"
-              >
-                <X className="size-4" />
-              </button>
-            </div>
-
-            <div className="overflow-y-auto p-5 sm:p-6">
-              <TransactionForm
-                onAddTransaction={async (input) => {
-                  await handleAddTransaction(input);
-                  setIsFabTransactionOpen(false);
-                }}
-                onPreviewTransaction={handlePreviewTransaction}
-                onClearPreview={handleClearPreview}
-                isPreviewActive={isPreviewActive}
-                showPreviewNotice={false}
-                isSubmitting={
-                  isCreatingTransaction ||
-                  isUpdatingInitialBalance ||
-                  isUpdatingTransaction ||
-                  isDeletingTransaction ||
-                  isCancellingOccurrence
-                }
-              />
-            </div>
-          </div>
-        </div>
+        />
       ) : null}
 
       {isFabGoalOpen ? (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 backdrop-blur-sm sm:items-center sm:px-4 sm:py-6"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setIsFabGoalOpen(false);
-          }}
-        >
-          <div className="flex max-h-[min(100dvh-0.5rem,96vh)] w-full flex-col overflow-hidden rounded-t-[1.75rem] border border-border/70 bg-card shadow-2xl sm:max-w-xl sm:rounded-[1.75rem]">
-            <div className="flex items-center justify-between border-b border-border/60 px-5 py-4 sm:px-6">
-              <p className="text-base font-semibold text-foreground">
-                Nova meta
-              </p>
-              <button
-                type="button"
-                onClick={() => setIsFabGoalOpen(false)}
-                aria-label="Fechar"
-                className="flex size-8 items-center justify-center rounded-xl text-muted-foreground transition hover:bg-accent hover:text-foreground"
-              >
-                <X className="size-4" />
-              </button>
-            </div>
-
-            <div className="overflow-y-auto p-5 sm:p-6">
-              <GoalForm
-                onAddGoal={async (input) => {
-                  await handleAddGoal(input);
-                  setIsFabGoalOpen(false);
-                }}
-                isSubmitting={isCreatingGoal}
-              />
-            </div>
-          </div>
-        </div>
+        <GoalCreateDialog
+          triggerRef={fabGoalTriggerRef}
+          isSubmitting={isCreatingGoal}
+          errorMessage={createGoalErrorMessage}
+          onAddGoal={handleAddGoal}
+          onClose={() => setIsFabGoalOpen(false)}
+        />
       ) : null}
 
       <TransactionEditModal
@@ -1018,19 +975,13 @@ export default function HomePage() {
         }}
       />
 
-      <ConfirmationModal
-        open={Boolean(pendingContractDeletionId)}
-        title="Excluir toda a série"
-        description="Isso remove o lançamento inteiro e todas as suas parcelas ou competências, incluindo as já pagas. Essa ação não pode ser desfeita."
-        cancelLabel="Cancelar"
-        confirmLabel="Excluir toda a série"
-        onConfirm={handleConfirmDeleteContract}
-        onOpenChange={(open) => {
-          if (!open) {
-            setPendingContractDeletionId(null);
-          }
-        }}
-      />
+      {pendingContractDeletionId && <FinancialDialog title="Excluir toda a série" smooth onClose={() => setPendingContractDeletionId(null)}>
+        <p className="text-sm leading-6 text-muted-foreground">Isso remove o lançamento inteiro e todas as suas parcelas ou competências, incluindo as já pagas. Essa ação não pode ser desfeita.</p>
+        <div className="mt-6 flex justify-end gap-3">
+          <button type="button" className="rounded-xl border border-border px-4 py-2 text-sm" onClick={() => setPendingContractDeletionId(null)}>Cancelar</button>
+          <button type="button" className="rounded-xl bg-destructive/10 px-4 py-2 text-sm text-destructive" onClick={handleConfirmDeleteContract}>Excluir toda a série</button>
+        </div>
+      </FinancialDialog>}
 
       {pendingGoalDeletion && <GoalDeleteDialog
         key={pendingGoalDeletion.id}
@@ -1049,7 +1000,6 @@ export default function HomePage() {
         transactions={projectionTransactions}
         currentBalance={currentBalance}
         onEditTransaction={(transaction) => {
-          setIsCalendarModalOpen(false);
           handleOpenEditModal(transaction);
         }}
       />

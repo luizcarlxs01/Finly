@@ -8,6 +8,7 @@ import { Area, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip,
 import type { Goal } from "@/types/goal";
 import type { Transaction } from "@/types/transaction";
 import { getTransactionCategoryLabel } from "@/types/transaction-category";
+import { TruncatedValue } from "@/components/ui/truncated-value";
 import { formatBusinessDateBr } from "@/utils/date-format";
 import { getTodayDateValue } from "@/utils/recurring-transactions";
 
@@ -29,6 +30,10 @@ type Props = {
 
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const axisMoney = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", notation: "compact", maximumFractionDigits: 0 });
+const formatAxisMoney = (value: number) => {
+  const formatted = axisMoney.format(value);
+  return formatted.length > 12 ? `${formatted.slice(0, 11)}…` : formatted;
+};
 const shortMonth = new Intl.DateTimeFormat("pt-BR", { month: "short", year: "2-digit" });
 
 function subscribeToMotionPreference(onChange: () => void) {
@@ -168,6 +173,8 @@ export function DashboardHomeView({ currentBalance, postedTransactions, goals, o
         <p className="mt-2 text-sm text-muted-foreground sm:text-base">Suas finanças em um só lugar</p>
       </div>
     </div>;
+  const activeBalanceLabel = money.format(showMonthlyResult ? monthlyResult : currentBalance + futureAdjustment);
+  const balanceTooltip = !hidden && activeBalanceLabel.length > 18 ? activeBalanceLabel : undefined;
 
   return <section aria-label="Início" className={`${styles.overview} w-full min-w-0`}>
     {errorMessage ? <>{heading}<p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">{errorMessage}</p></> : <>
@@ -189,9 +196,9 @@ export function DashboardHomeView({ currentBalance, postedTransactions, goals, o
                 aria-valuenow={hidden ? undefined : Math.round(progress)} aria-valuemin={hidden ? undefined : 0} aria-valuemax={hidden ? undefined : 100}>
                 {!hidden ? <div className="h-full rounded-full bg-primary" style={{ width: `${progress}%` }} /> : null}
               </div>
-              <div className="mt-2 flex flex-wrap justify-between gap-2 text-xs text-muted-foreground">
-                <span>{hidden ? "••••••" : money.format(goal.currentAmount)}</span>
-                <span>{hidden ? "••••••" : `Meta: ${money.format(goal.targetAmount)}`}</span>
+              <div className="mt-2 flex min-w-0 justify-between gap-2 text-xs text-muted-foreground">
+                <TruncatedValue className="max-w-[48%]" value={hidden ? "••••••" : money.format(goal.currentAmount)} />
+                <TruncatedValue className="max-w-[48%] text-right" value={hidden ? "••••••" : `Meta: ${money.format(goal.targetAmount)}`} />
               </div>
             </li>;
           })}</ul> : <p className="my-8 text-center text-sm text-muted-foreground">Nenhuma meta cadastrada.</p>}
@@ -211,6 +218,7 @@ export function DashboardHomeView({ currentBalance, postedTransactions, goals, o
         <button
           type="button"
           className={styles.balance}
+          title={balanceTooltip}
           aria-label={showMonthlyResult ? "Resultado do mês. Mostrar saldo atual" : "Saldo atual. Mostrar resultado do mês"}
           aria-pressed={showMonthlyResult}
           onClick={() => setShowMonthlyResult(current => !current)}
@@ -224,7 +232,7 @@ export function DashboardHomeView({ currentBalance, postedTransactions, goals, o
                 const active = showMonthlyResult === isResult;
                 return <span key={String(isResult)} aria-hidden={!active} data-active={active} className={styles.balanceFace}>
                   <span className="block text-sm font-medium text-foreground sm:text-base">{isResult ? "Resultado do mês" : "Saldo atual"}</span>
-                  <span className="block break-words text-2xl font-semibold tracking-tight text-primary tabular-nums sm:text-3xl">{hidden ? "••••••" : money.format(isResult ? monthlyResult : currentBalance + futureAdjustment)}</span>
+                  <TruncatedValue className="text-2xl font-semibold tracking-tight text-primary tabular-nums sm:text-3xl" value={hidden ? "••••••" : money.format(isResult ? monthlyResult : currentBalance + futureAdjustment)} focusOnOverflow={false} />
                 </span>;
               })}
             </span>
@@ -242,9 +250,7 @@ export function DashboardHomeView({ currentBalance, postedTransactions, goals, o
                 <p className="truncate text-sm font-medium text-foreground">{transaction.title}</p>
                 <p className="text-xs text-muted-foreground">{getTransactionCategoryLabel(transaction.category)} · {formatBusinessDateBr(date)}</p>
               </div>
-              <span className={`shrink-0 text-xs font-medium sm:text-sm ${transaction.type === "income" ? "text-emerald-600 dark:text-emerald-400" : "text-foreground"}`}>
-                {hidden ? "••••••" : `${transaction.type === "income" ? "+" : "−"} ${money.format(transaction.amount)}`}
-              </span>
+              <TruncatedValue className={`max-w-[46%] text-right text-xs font-medium sm:text-sm ${transaction.type === "income" ? "text-emerald-600 dark:text-emerald-400" : "text-foreground"}`} value={hidden ? "••••••" : `${transaction.type === "income" ? "+" : "−"} ${money.format(transaction.amount)}`} />
             </li>;
           })}</ul>
             : <p className="my-8 text-center text-sm text-muted-foreground">Nenhuma transação paga até hoje.</p>}
@@ -267,9 +273,10 @@ export function DashboardHomeView({ currentBalance, postedTransactions, goals, o
               <ComposedChart data={chart} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
                 <CartesianGrid stroke="var(--border)" strokeDasharray="3 4" vertical={false} />
                 <XAxis dataKey="label" tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} tickLine={false} axisLine={false} />
-                <YAxis width={68} tickFormatter={(value: number) => axisMoney.format(value)} tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} tickLine={false} axisLine={false} />
+                <YAxis width={68} tickFormatter={formatAxisMoney} tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} tickLine={false} axisLine={false} />
                 <Tooltip formatter={(value, name) => [money.format(Number(value ?? 0)), name === "income" ? "Receitas" : "Despesas"]}
-                  contentStyle={{ borderRadius: 12, borderColor: "var(--border)", background: "var(--card)" }} />
+                  wrapperStyle={{ maxWidth: "calc(100vw - 24px)" }}
+                  contentStyle={{ maxWidth: "min(320px, calc(100vw - 24px))", overflowWrap: "anywhere", borderRadius: 12, borderColor: "var(--border)", background: "var(--card)" }} />
                 <Area type="monotone" dataKey="income" stroke="var(--chart-1)" fill="var(--chart-1)" fillOpacity={0.12} strokeWidth={2.5} dot={false} isAnimationActive={!reducedMotion} animationBegin={0} animationDuration={900} animationEasing="ease-in-out" activeDot={{ r: 4 }} />
                 <Line type="monotone" dataKey="expense" stroke="var(--chart-2)" strokeWidth={2.5} dot={false} isAnimationActive={!reducedMotion} animationBegin={0} animationDuration={900} animationEasing="ease-in-out" activeDot={{ r: 4 }} />
               </ComposedChart>

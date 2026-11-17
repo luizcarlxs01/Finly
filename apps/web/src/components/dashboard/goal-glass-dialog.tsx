@@ -8,12 +8,16 @@ type Props = {
   triggerRef: React.RefObject<HTMLButtonElement | null>;
   title: string;
   animation?: "genie" | "gentle";
+  dialogClassName?: string;
+  panelClassName?: string;
+  surfaceClassName?: string;
+  contentClassName?: string;
   onClose: () => void;
   onClosing?: () => void;
   children: (requestClose: () => void) => React.ReactNode;
 };
 
-export function GoalGlassDialog({ triggerRef, title, onClose, children, animation = "genie", onClosing }: Props) {
+export function GoalGlassDialog({ triggerRef, title, onClose, children, animation = "genie", dialogClassName, panelClassName, surfaceClassName, contentClassName, onClosing }: Props) {
   const backdropRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const surfaceRef = useRef<HTMLDivElement>(null);
@@ -102,12 +106,12 @@ export function GoalGlassDialog({ triggerRef, title, onClose, children, animatio
   };
 
   return <div ref={backdropRef} className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-3 backdrop-blur-sm" onMouseDown={event => { if (event.target === event.currentTarget) { event.preventDefault(); requestClose(); } }}>
-    <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={title} onKeyDown={trapFocus} className="w-full max-w-xl">
-      <div className={styles.panel}>
-        <div ref={surfaceRef} aria-hidden="true" className={styles.surface} />
+    <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={title} onKeyDown={trapFocus} className={`w-full ${dialogClassName ?? "max-w-xl"}`}>
+      <div className={`${styles.panel} ${panelClassName ?? ""}`}>
+        <div ref={surfaceRef} aria-hidden="true" className={`${styles.surface} ${surfaceClassName ?? ""}`} />
         {/* The render callback only passes requestClose to event handlers; it does not read refs. */}
         {/* eslint-disable-next-line react-hooks/refs */}
-        <div ref={contentRef} className={`${styles.content} max-h-[calc(100dvh-1.5rem)] overflow-y-auto rounded-2xl`}>{children(requestClose)}</div>
+        <div ref={contentRef} className={`${styles.content} max-h-[calc(100dvh-1.5rem)] overflow-y-auto rounded-2xl ${contentClassName ?? ""}`}>{children(requestClose)}</div>
       </div>
     </div>
   </div>;

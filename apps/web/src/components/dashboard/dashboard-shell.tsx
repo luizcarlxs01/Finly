@@ -26,7 +26,7 @@ export function DashboardShell({ activeView, homeView, transactionsView, goalsVi
   const indicatorSurface = useRef<HTMLElement | null>(null);
   const surfaceOrigin = useRef({ left: 0, top: 0 });
   const hiddenIndicator = useRef<HTMLElement | null>(null);
-  const isEclipseView = activeView === "home" || activeView === "goals" || activeView === "transactions";
+  const isEclipseView = activeView === "home" || activeView === "goals" || activeView === "transactions" || activeView === "insights";
 
   useLayoutEffect(() => {
     const shell = shellRef.current;
@@ -49,7 +49,7 @@ export function DashboardShell({ activeView, homeView, transactionsView, goalsVi
       if (!shell || !eclipse) return 0;
       eclipse.style.width = `${document.documentElement.clientWidth}px`;
       if (!anchor) return Number(gsap.getProperty(eclipse, "top")) || 0;
-      const offset = activeView === "transactions" ? 15 : activeView === "goals" ? 45 : 100;
+      const offset = activeView === "insights" ? 0 : activeView === "transactions" ? 15 : activeView === "goals" ? 45 : 100;
       return anchor.getBoundingClientRect().bottom - shell.getBoundingClientRect().top - offset;
     }
     const top = position();

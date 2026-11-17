@@ -2,12 +2,13 @@
 import type { Transaction } from "@/types/transaction";
 import { CALENDAR_WEEKDAY_LABELS, type CalendarDay, type CalendarMonthData } from "@/utils/financial-calendar";
 import { CALENDAR_MARKER_LABELS, getCalendarDayMarkers, getCalendarMarkerKind } from "@/utils/calendar-day-markers";
+import { TruncatedValue } from "@/components/ui/truncated-value";
 import styles from "./financial-calendar.module.css";
 
 type Props = { hidden?: boolean; month: CalendarMonthData; selectedDateValue: string | null; onSelectDay: (dateValue: string) => void };
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 function DayPreview({ day, upward, hidden }: { day: CalendarDay; upward: boolean; hidden: boolean }) {
-  return <div className={`${styles.tooltip} ${upward ? styles.tooltipUp : ""}`} role="presentation"><ul>{day.occurrences.slice(0, 3).map((item: Transaction) => <li key={item.id}><i className={styles.dot} data-kind={getCalendarMarkerKind(item)} /><span className="min-w-0 flex-1 truncate">{item.title}</span><strong>{hidden ? "••••••" : `${item.type === "income" ? "+" : "−"}${money.format(item.amount)}`}</strong></li>)}</ul>{day.occurrences.length > 3 && <p>e mais {day.occurrences.length - 3} lançamentos</p>}</div>;
+  return <div className={`${styles.tooltip} ${upward ? styles.tooltipUp : ""}`} role="presentation"><ul>{day.occurrences.slice(0, 3).map((item: Transaction) => <li key={item.id}><i className={styles.dot} data-kind={getCalendarMarkerKind(item)} /><span className="min-w-0 flex-1 truncate">{item.title}</span><TruncatedValue className="max-w-[55%] text-right font-semibold" value={hidden ? "••••••" : `${item.type === "income" ? "+" : "−"}${money.format(item.amount)}`} /></li>)}</ul>{day.occurrences.length > 3 && <p>e mais {day.occurrences.length - 3} lançamentos</p>}</div>;
 }
 export function FinancialCalendarGrid({ hidden = false, month, selectedDateValue, onSelectDay }: Props) {
   const rowCount = Math.ceil((month.leadingBlankDays + month.days.length) / 7);
