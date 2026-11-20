@@ -92,11 +92,11 @@ export function validateCustomThresholds(
 
   if (okThreshold !== undefined && !Number.isNaN(okThreshold)) {
     if (okThreshold < 0) {
-      return 'O valor de "Mais ou menos" não pode ser negativo.';
+      return 'O valor de "Mediano" não pode ser negativo.';
     }
 
     if (okThreshold >= goodThreshold) {
-      return 'O valor de "Mais ou menos" deve ser menor que o valor de "Bom".';
+      return 'O valor de "Mediano" deve ser menor que o valor de "Bom".';
     }
   }
 

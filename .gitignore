@@ -26,6 +26,7 @@ Thumbs.db
 *.zip
 *.tgz
 *.tar.gz
+docker/docker-compose.override.yml
 
 # Node / Next
 node_modules/

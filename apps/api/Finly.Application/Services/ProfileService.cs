@@ -24,7 +24,7 @@ public class ProfileService : IProfileService
         if (string.IsNullOrWhiteSpace(value))
             return fallback;
 
-        if (!Enum.TryParse<SpendingProfile>(value, ignoreCase: true, out var parsed))
+        if (!Enum.TryParse<SpendingProfile>(value, ignoreCase: true, out var parsed) || !Enum.IsDefined(parsed))
             throw new InvalidOperationException("Perfil de gastos inválido.");
 
         return parsed;

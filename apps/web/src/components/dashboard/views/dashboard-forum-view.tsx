@@ -6,6 +6,7 @@ import { TopicDetail } from "@/components/dashboard/forum/topic-detail";
 import { TopicForm } from "@/components/dashboard/forum/topic-form";
 import { TopicList } from "@/components/dashboard/forum/topic-list";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { useForum } from "@/hooks/use-forum";
 
 export function DashboardForumView() {
@@ -14,6 +15,9 @@ export function DashboardForumView() {
     isLoaded,
     selectedTopic,
     isSubmitting,
+    errorMessage,
+    topicsErrorMessage,
+    refreshTopics,
     openTopic,
     closeTopic,
     submitTopic,
@@ -46,6 +50,8 @@ export function DashboardForumView() {
         title="Fórum"
         description="Dúvidas, reclamações e sugestões da comunidade Finly."
       />
+
+      {errorMessage ? <p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">{errorMessage}</p> : null}
 
       {isAdmin && adminTopics ? (
         <ForumAdminPanel
@@ -88,7 +94,12 @@ export function DashboardForumView() {
         </aside>
 
         <div className="min-w-0 space-y-5">
-          {isLoaded ? (
+          {topicsErrorMessage ? (
+            <div className="space-y-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4">
+              <p role="alert" className="text-sm text-destructive">{topicsErrorMessage}</p>
+              <Button type="button" variant="outline" onClick={() => void refreshTopics()}>Tentar novamente</Button>
+            </div>
+          ) : isLoaded ? (
             <TopicList topics={topics} onOpenTopic={openTopic} />
           ) : (
             <p className="text-sm text-muted-foreground">Carregando tópicos...</p>

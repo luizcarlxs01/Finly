@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { ConfirmationModal } from "@/components/ui/confirmation-modal";
@@ -54,10 +54,10 @@ describe("ConfirmationModal", () => {
     await user.click(screen.getByRole("button", { name: /Cancelar/i }));
 
     expect(onConfirm).toHaveBeenCalledTimes(1);
-    expect(onOpenChange).toHaveBeenCalledWith(false);
+    await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
   });
 
-  it("deve fechar com Escape e controlar o overflow do body", () => {
+  it("deve fechar pelo evento nativo de Escape e controlar o overflow do body", async () => {
     const onOpenChange = vi.fn();
     document.body.style.overflow = "auto";
 
@@ -73,9 +73,10 @@ describe("ConfirmationModal", () => {
 
     expect(document.body.style.overflow).toBe("hidden");
 
-    window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    // Browsers translate Escape into the cancel event on a native dialog.
+    fireEvent(screen.getByRole("dialog"), new Event("cancel", { cancelable: true }));
 
-    expect(onOpenChange).toHaveBeenCalledWith(false);
+    await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
 
     rerender(
       <ConfirmationModal

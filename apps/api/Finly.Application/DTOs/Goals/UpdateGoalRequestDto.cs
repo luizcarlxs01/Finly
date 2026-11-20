@@ -8,7 +8,7 @@ public class UpdateGoalRequestDto
     public Guid FinancialProfileId { get; set; }
 
     [Required]
-    [MaxLength(200)]
+    [MaxLength(150)]
     public string Title { get; set; } = string.Empty;
 
     public decimal TargetAmount { get; set; }

@@ -1,0 +1,407 @@
+.overview {
+  position: relative;
+  isolation: isolate;
+}
+
+.hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.card {
+  position: relative;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--card) 94%, transparent);
+  box-shadow: 0 8px 24px rgb(3 21 51 / 9%), 0 2px 6px rgb(3 21 51 / 4%);
+}
+
+.interactiveCard,
+.cashflow {
+  background: linear-gradient(145deg,
+    color-mix(in srgb, var(--card) 55%, transparent),
+    color-mix(in srgb, var(--card) 35%, transparent));
+  -webkit-backdrop-filter: blur(10px) saturate(120%);
+  backdrop-filter: blur(10px) saturate(120%);
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.cardLink {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  cursor: pointer;
+  outline: none;
+}
+
+.cardArrow {
+  flex-shrink: 0;
+  color: var(--primary);
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+
+.interactiveCard:hover,
+.interactiveCard:has(.cardLink:focus-visible) {
+  transform: translateY(-4px);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 35%, transparent),
+    0 12px 28px color-mix(in srgb, var(--primary) 12%, transparent);
+}
+
+.interactiveCard:hover .cardArrow,
+.interactiveCard:has(.cardLink:focus-visible) .cardArrow {
+  opacity: 1;
+}
+
+.hero .insight {
+  min-width: 0;
+  padding: 12px 20px 8px;
+}
+
+.insightBadge {
+  display: inline-block;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 14%, transparent);
+  padding: 4px 10px;
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.insightActions {
+  position: relative;
+  flex-shrink: 0;
+  padding-left: 28px;
+}
+
+.insightArrow {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.insight:hover .insightBadge,
+.insight:has(.cardLink:focus-visible) .insightBadge {
+  transform: translateX(-28px);
+}
+
+.insight:hover .insightArrow,
+.insight:has(.cardLink:focus-visible) .insightArrow {
+  transition-delay: 80ms;
+}
+
+.goals {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.balance {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  width: 100%;
+  padding: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+
+.balance:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 4px;
+}
+
+.orb,
+.balanceText {
+  grid-area: 1 / 1;
+}
+
+.orb {
+  position: relative;
+  width: min(100%, 360px);
+  aspect-ratio: 1;
+}
+
+.orb::before {
+  content: "";
+  position: absolute;
+  inset: 20%;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--card) 0%, color-mix(in srgb, var(--card) 85%, transparent) 50%, transparent 75%);
+  pointer-events: none;
+}
+
+.balanceFace > span:first-child {
+  color: var(--card-foreground);
+  line-height: 1.15;
+}
+
+.balanceFace > span:nth-child(2) {
+  line-height: 1.15;
+}
+
+.balanceText {
+  position: relative;
+  z-index: 1;
+  width: 72%;
+  text-align: center;
+  pointer-events: none;
+}
+
+.balanceFaces {
+  display: grid;
+}
+
+.balanceFace {
+  grid-area: 1 / 1;
+  min-width: 0;
+}
+
+.balanceFace[data-active="false"] {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.balanceArrow {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 50%;
+  translate: -50% 0;
+  color: var(--primary);
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+.balance:hover .balanceArrow,
+.balance:focus-visible .balanceArrow {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .balanceArrow,
+  .cardArrow {
+    opacity: 1;
+  }
+
+  .insightBadge {
+    transform: translateX(-28px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .balanceArrow,
+  .cardArrow,
+  .insightBadge,
+  .interactiveCard {
+    transition: none;
+  }
+
+  .insight:hover .insightArrow,
+  .insight:has(.cardLink:focus-visible) .insightArrow {
+    transition-delay: 0ms;
+  }
+
+  .interactiveCard:hover,
+  .interactiveCard:has(.cardLink:focus-visible) {
+    transform: none;
+  }
+}
+
+@media (min-width: 1024px) {
+  :global([data-variant="default"]):has(.overview) {
+    --home-page-padding: clamp(16px, 3svh, 32px);
+    padding-top: 56px;
+    padding-bottom: var(--home-page-padding);
+  }
+
+  :global([data-variant="default"]):has(.overview) > div > :global(:not(:last-child)) {
+    margin-block: 0 32px;
+  }
+
+  :global([data-variant="default"]):has(.overview) > div > .overview {
+    margin-block-start: 0;
+  }
+
+  .overview {
+    display: grid;
+    grid-template-rows: minmax(min-content, 1.15fr) minmax(210px, 1fr);
+    gap: 12px;
+    height: calc(100svh - 56px - var(--home-page-padding) - 98px);
+  }
+
+  .heading {
+    margin-bottom: 0;
+  }
+
+  .hero .heading {
+    grid-area: heading;
+  }
+
+  .heading h1 {
+    font-size: 28px;
+    line-height: 36px;
+  }
+
+  .heading p {
+    margin-top: 4px;
+    font-size: 14px;
+    line-height: 24px;
+  }
+
+  .hero {
+    grid-template-columns: minmax(0, 0.88fr) minmax(0, 1fr) minmax(0, 0.92fr);
+    grid-template-areas: "heading balance transactions" "goals balance transactions";
+    grid-template-rows: auto auto;
+    align-content: center;
+    gap: 16px clamp(32px, 4vw, 64px);
+    margin-bottom: 0;
+    min-height: 0;
+  }
+
+  .card {
+    padding: clamp(12px, calc(3svh - 11px), 18px) 20px;
+  }
+
+  .hero .card ul {
+    margin-top: 8px;
+  }
+
+  .hero .card li {
+    padding-block: 6px;
+  }
+
+  .hero .card li > span:first-child {
+    width: 32px;
+    height: 32px;
+  }
+
+  .goals {
+    grid-area: goals;
+  }
+
+  .transactions {
+    grid-area: transactions;
+    align-self: start;
+  }
+
+  .orb {
+    width: min(100%, clamp(250px, 34svh, 340px));
+  }
+
+  .cashflow {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .chart {
+    flex: 1;
+    min-height: 110px;
+    height: auto;
+    margin-top: 12px;
+  }
+
+  .cashflow > div:last-child {
+    margin-top: 8px;
+  }
+
+  .balance {
+    grid-area: balance;
+  }
+}
+
+@media (min-width: 1024px) and (max-height: 850px) {
+  .hero {
+    gap: 12px clamp(32px, 4vw, 64px);
+  }
+
+  .goals {
+    gap: 10px;
+  }
+
+  .heading h1 {
+    line-height: 32px;
+  }
+
+  .heading p {
+    line-height: 20px;
+  }
+
+  .hero .card h2 {
+    font-size: 18px;
+    line-height: 24px;
+  }
+
+  .goals > section:first-child h2 {
+    padding-bottom: 8px;
+  }
+
+  .hero .card li {
+    padding-block: 4px;
+  }
+
+  .goals > section:first-child li > div + div {
+    margin-top: 4px;
+  }
+
+  .hero .insight {
+    padding: 10px 20px 8px;
+  }
+
+  .hero .insight h2 {
+    font-size: 14px;
+    line-height: 20px;
+  }
+
+  .insight p {
+    margin-top: 4px;
+    font-size: 13px;
+    line-height: 20px;
+  }
+
+  .insightBadge {
+    padding: 3px 8px;
+    font-size: 11px;
+  }
+
+}
+
+@media (min-width: 1024px) and (max-height: 760px) {
+  .hero {
+    row-gap: 10px;
+  }
+
+  .heading h1 {
+    font-size: 24px;
+    line-height: 28px;
+  }
+
+  .heading p {
+    font-size: 12px;
+    line-height: 16px;
+  }
+
+  .goals > section:first-child h2 {
+    font-size: 16px;
+    line-height: 20px;
+  }
+
+  .goals > section:first-child li > div:first-child {
+    font-size: 12px;
+    line-height: 16px;
+  }
+
+  .insight p {
+    font-size: 12px;
+    line-height: 18px;
+  }
+}

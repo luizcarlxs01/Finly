@@ -1,0 +1,60 @@
+.dialog {
+  width: min(520px, calc(100% - 24px));
+}
+
+.dialog > header {
+  position: relative;
+  justify-content: center;
+  padding: 20px 56px 12px;
+  border-bottom: 0;
+}
+
+.dialog > header > button {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+}
+
+.heading {
+  display: flex;
+  justify-content: center;
+}
+
+.heading > h2 {
+  width: max-content;
+  max-width: 100%;
+  padding: 0 16px 8px;
+  border-bottom: 1px solid var(--border);
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  text-align: center;
+}
+
+.dialog > div {
+  padding: 8px 28px 24px;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 12px;
+  padding-top: 22px;
+}
+
+@media (min-width: 640px) {
+  .actions {
+    flex-direction: row;
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 639px) {
+  .dialog > header {
+    padding: 16px 48px 8px;
+  }
+
+  .dialog > div {
+    padding: 8px 16px 20px;
+  }
+}

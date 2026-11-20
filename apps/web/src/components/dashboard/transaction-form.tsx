@@ -34,6 +34,7 @@ type TransactionFormProps = {
   isPreviewActive: boolean;
   showPreviewNotice?: boolean;
   isSubmitting?: boolean;
+  minimal?: boolean;
 };
 
 const inputClassName =
@@ -48,6 +49,7 @@ export function TransactionForm({
   isPreviewActive,
   showPreviewNotice = true,
   isSubmitting = false,
+  minimal = false,
 }: TransactionFormProps) {
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
@@ -211,19 +213,19 @@ export function TransactionForm({
   }
 
   return (
-    <Card className="rounded-[1.5rem] border-border/60 bg-card/95 shadow-sm">
-      <CardHeader className="space-y-1 pb-4">
+    <Card className={minimal ? "gap-0 rounded-none border-0 bg-transparent p-0 shadow-none ring-0" : "rounded-[1.5rem] border-border/60 bg-card/95 shadow-sm"}>
+      {!minimal && <CardHeader className="space-y-1 pb-4">
         <CardTitle className="text-xl font-semibold tracking-tight">
           Novo lançamento
         </CardTitle>
         <p className="text-sm text-muted-foreground">
           Registre uma movimentação para manter seu saldo em dia.
         </p>
-      </CardHeader>
+      </CardHeader>}
 
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <section className="space-y-4 rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
+      <CardContent className={minimal ? "px-0" : undefined}>
+        <form onSubmit={handleSubmit} className={minimal ? "space-y-4" : "space-y-5"}>
+          <section className={minimal ? "space-y-4 border-b border-border/70 pb-4" : "space-y-4 rounded-[1.25rem] border border-border/60 bg-background/55 p-4"}>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="grid gap-1.5">
                 <label
@@ -310,12 +312,12 @@ export function TransactionForm({
             </div>
           </section>
 
-          <section className="grid gap-1.5 rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
+          <section className={minimal ? "grid gap-2 border-b border-border/70 pb-4" : "grid gap-1.5 rounded-[1.25rem] border border-border/60 bg-background/55 p-4"}>
             <label className="text-sm font-medium text-foreground">
               Tipo de lançamento
             </label>
 
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className={minimal ? "grid grid-cols-3 gap-2" : "grid gap-3 sm:grid-cols-3"}>
               {[
                 { value: "single", label: "Único" },
                 { value: "installment-template", label: "Parcelado" },
@@ -327,7 +329,7 @@ export function TransactionForm({
                   onClick={() =>
                     setTransactionKind(option.value as TransactionEditorKind)
                   }
-                  className={`rounded-[1.25rem] border px-4 py-3 text-sm font-medium transition lg:rounded-xl lg:py-2 ${
+                  className={`${minimal ? "rounded-xl border px-2 py-3 text-xs sm:px-4 sm:text-sm" : "rounded-[1.25rem] border px-4 py-3 text-sm lg:rounded-xl lg:py-2"} font-medium transition ${
                     transactionKind === option.value
                       ? "border-primary bg-primary/10 text-primary"
                       : "border-border/60 bg-card/75 text-foreground hover:border-border"
@@ -340,7 +342,7 @@ export function TransactionForm({
           </section>
 
           {transactionKind === "single" ? (
-            <section className="space-y-3 overflow-hidden rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
+            <section className={minimal ? "space-y-3 pb-1" : "space-y-3 overflow-hidden rounded-[1.25rem] border border-border/60 bg-background/55 p-4"}>
               <div className="grid gap-1.5">
                 <label
                   htmlFor="transaction-date"
@@ -364,7 +366,7 @@ export function TransactionForm({
           ) : null}
 
           {transactionKind === "installment-template" ? (
-            <section className="space-y-4 overflow-hidden rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
+            <section className={minimal ? "space-y-4 pb-1" : "space-y-4 overflow-hidden rounded-[1.25rem] border border-border/60 bg-background/55 p-4"}>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="grid gap-1.5">
                   <label
@@ -414,7 +416,7 @@ export function TransactionForm({
           ) : null}
 
           {transactionKind === "recurring-template" ? (
-            <section className="space-y-4 overflow-hidden rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
+            <section className={minimal ? "space-y-4 pb-1" : "space-y-4 overflow-hidden rounded-[1.25rem] border border-border/60 bg-background/55 p-4"}>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="grid gap-1.5">
                   <label
@@ -535,8 +537,8 @@ export function TransactionForm({
             </section>
           ) : null}
 
-          <section className="space-y-3 rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
-            <div className="grid gap-3 lg:grid-cols-2">
+          <section className={minimal ? "space-y-3 border-t border-border/70 pt-4" : "space-y-3 rounded-[1.25rem] border border-border/60 bg-background/55 p-4"}>
+            <div className={minimal ? "grid grid-cols-2 gap-3" : "grid gap-3 lg:grid-cols-2"}>
               <Button
                 type="submit"
                 className="h-12 flex-1 rounded-2xl lg:h-10 lg:rounded-xl"

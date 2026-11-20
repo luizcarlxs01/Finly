@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 const mockUseLocalFinance = vi.fn();
@@ -20,21 +20,6 @@ vi.mock("@/hooks/use-local-goals", () => ({
 
 vi.mock("@/utils/dashboard-insights", () => ({
   getDashboardInsights: (...args: unknown[]) => mockGetDashboardInsights(...args),
-}));
-
-vi.mock("@/components/dashboard/views/dashboard-home-view", () => ({
-  DashboardHomeView: ({
-    onGoToTransactions,
-  }: {
-    onGoToTransactions: () => void;
-  }) => (
-    <div>
-      <p>HomeView</p>
-      <button type="button" onClick={onGoToTransactions}>
-        Ir para lançamentos
-      </button>
-    </div>
-  ),
 }));
 
 vi.mock("@/components/dashboard/views/dashboard-transactions-view", () => ({
@@ -332,7 +317,7 @@ describe("HomePage", () => {
     render(<HomePage />);
 
     expect(screen.getByText("Carregando dados...")).toBeInTheDocument();
-    expect(screen.queryByText("HomeView")).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Início" })).not.toBeInTheDocument();
   });
 
   it("deve renderizar a home por padrao e navegar entre as secoes principais", async () => {
@@ -342,7 +327,7 @@ describe("HomePage", () => {
 
     render(<HomePage />);
 
-    expect(screen.getByText("HomeView")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Início" })).toBeInTheDocument();
     expect(screen.queryByText("TransactionsView")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /^Lançamentos$/i }));
@@ -358,10 +343,23 @@ describe("HomePage", () => {
     expect(screen.getByText("Insights: 1")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /^Início$/i }));
-    expect(screen.getByText("HomeView")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Início" })).toBeInTheDocument();
   });
 
-  it("deve abrir o login diretamente pela view de conta", async () => {
+  it("abre lançamentos e metas pela navegação principal", async () => {
+    const user = userEvent.setup();
+    setupLoadedMocks();
+    render(<HomePage />);
+
+    await user.click(screen.getByRole("button", { name: /^Lançamentos$/i }));
+    expect(screen.getByText("TransactionsView")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /^Início$/i }));
+    await user.click(screen.getByRole("button", { name: /^Metas$/i }));
+    expect(screen.getByText("GoalsView")).toBeInTheDocument();
+  });
+
+  it("deve abrir o login no painel preservando a home", async () => {
     const user = userEvent.setup();
 
     setupLoadedMocks();
@@ -370,22 +368,27 @@ describe("HomePage", () => {
 
     await user.click(screen.getByRole("button", { name: "Conta" }));
 
-    expect(await screen.findByText("Entrar na sua conta")).toBeInTheDocument();
-    expect(screen.queryByText("HomeView")).not.toBeInTheDocument();
+    expect(await screen.findByRole("dialog", { name: "Acesse sua conta" })).toBeVisible();
+    expect(screen.getByRole("region", { name: "Início" })).toBeInTheDocument();
   });
 
-  it("nao deve exibir o atalho de lancamento na view de conta", async () => {
+  it("deve preservar os lancamentos e seu atalho ao abrir e fechar a conta", async () => {
     const user = userEvent.setup();
 
     setupLoadedMocks();
 
     render(<HomePage />);
 
+    await user.click(screen.getByRole("button", { name: "Lançamentos" }));
     await user.click(screen.getByRole("button", { name: "Conta" }));
 
     expect(
       screen.queryByRole("button", { name: "Novo lançamento" }),
-    ).not.toBeInTheDocument();
+    ).toBeInTheDocument();
+    expect(screen.getByText("TransactionsView")).toBeInTheDocument();
+
+    await user.keyboard("{Escape}");
+    expect(screen.getByText("TransactionsView")).toBeInTheDocument();
   });
 
   it("deve manter renderizacao estavel com dados minimos validos", async () => {
@@ -410,7 +413,7 @@ describe("HomePage", () => {
 
     render(<HomePage />);
 
-    expect(screen.getByText("HomeView")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Início" })).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /^Lançamentos$/i }));
     expect(screen.getByText("TransactionsView")).toBeInTheDocument();
@@ -428,7 +431,7 @@ describe("HomePage", () => {
 
     render(<HomePage />);
 
-    await user.click(screen.getByRole("button", { name: "Ir para lançamentos" }));
+    await user.click(screen.getByRole("button", { name: /^Lançamentos$/i }));
     expect(screen.getByText("TransactionsView")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Editar primeira transação" }));
@@ -451,7 +454,7 @@ describe("HomePage", () => {
     expect(finance.cancelOccurrence).toHaveBeenCalledWith("tx-1");
   });
 
-  it("deve abrir o modal de progresso de meta a partir da view de metas", async () => {
+  it("deve editar a meta sem utilizar o fluxo de aporte", async () => {
     const user = userEvent.setup();
     const { goals } = setupLoadedMocks();
 
@@ -461,14 +464,53 @@ describe("HomePage", () => {
     expect(screen.getByText("GoalsView")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Atualizar primeira meta" }));
-    expect(screen.getByText("GoalProgressModal")).toBeInTheDocument();
-    expect(screen.getByText("Meta selecionada: Reserva")).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Editar meta" })).toBeInTheDocument();
+    expect(screen.getByText("Reserva")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Título")).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Salvar progresso" }));
-    expect(goals.updateGoalProgress).toHaveBeenCalledWith({
-      id: "goal-1",
-      currentAmount: 800,
-    });
+    await user.clear(screen.getByLabelText("Valor atual"));
+    await user.type(screen.getByLabelText("Valor atual"), "800");
+    await user.click(screen.getByRole("button", { name: "Salvar alterações" }));
+    expect(goals.updateGoalProgress).toHaveBeenCalledWith({ id: "goal-1", currentAmount: 800 });
+  });
+
+  it("mantém a edição montada durante a recarga dos dados após salvar", async () => {
+    const user = userEvent.setup();
+    const { finance, goals } = setupLoadedMocks();
+    const { rerender } = render(<HomePage />);
+    await user.click(screen.getByRole("button", { name: /^Metas$/i }));
+    await user.click(screen.getByRole("button", { name: "Atualizar primeira meta" }));
+    const dialog = screen.getByRole("dialog", { name: "Editar meta" });
+
+    mockUseLocalFinance.mockReturnValue({ ...finance, isLoaded: false });
+    mockUseLocalGoals.mockReturnValue({ ...goals, isLoaded: false });
+    rerender(<HomePage />);
+
+    expect(screen.getByRole("dialog", { name: "Editar meta" })).toBe(dialog);
+    expect(screen.queryByText("Carregando dados...")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Cancelar" }));
+  });
+
+  it("preserva o formulário de nova meta durante a recarga e respeita o fechamento", async () => {
+    const user = userEvent.setup();
+    const { finance, goals } = setupLoadedMocks();
+    const { rerender } = render(<HomePage />);
+    await user.click(screen.getByRole("button", { name: /^Insights$/i }));
+    await user.click(screen.getByRole("button", { name: "Novo lançamento", exact: true }));
+    await user.click(screen.getByRole("button", { name: "Nova meta", exact: true }));
+    const dialog = screen.getByRole("dialog", { name: "Nova meta", exact: true });
+
+    mockUseLocalFinance.mockReturnValue({ ...finance, isLoaded: false });
+    mockUseLocalGoals.mockReturnValue({ ...goals, isLoaded: false });
+    rerender(<HomePage />);
+    expect(screen.getByRole("dialog", { name: "Nova meta", exact: true })).toBe(dialog);
+    expect(screen.queryByText("Carregando dados...")).not.toBeInTheDocument();
+
+    await user.keyboard("{Escape}");
+    mockUseLocalFinance.mockReturnValue(finance);
+    mockUseLocalGoals.mockReturnValue(goals);
+    rerender(<HomePage />);
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Nova meta", exact: true })).not.toBeInTheDocument());
   });
 
   it("deve permitir cancelar uma remocao pendente sem excluir a transacao", async () => {
@@ -478,7 +520,7 @@ describe("HomePage", () => {
     render(<HomePage />);
 
     await user.click(
-      screen.getByRole("button", { name: /Ir para lan.*amentos/i }),
+      screen.getByRole("button", { name: /^Lançamentos$/i }),
     );
     expect(screen.getByText("TransactionsView")).toBeInTheDocument();
 

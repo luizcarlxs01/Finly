@@ -1,0 +1,49 @@
+.dialog {
+  width: min(720px, calc(100% - 24px));
+  max-height: calc(100dvh - 40px);
+}
+
+.dialog > header {
+  position: relative;
+  justify-content: center;
+  padding: 20px 56px 12px;
+  border-bottom: 0;
+}
+
+.dialog > header > button {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+}
+
+.heading {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+}
+
+.heading > h2 {
+  width: max-content;
+  max-width: 100%;
+  padding: 0 16px 8px;
+  border-bottom: 1px solid var(--border);
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  text-align: center;
+}
+
+.dialog > div {
+  padding: 4px 24px 22px;
+}
+
+@media (max-width: 639px) {
+  .dialog > header {
+    padding: 16px 48px 8px;
+  }
+
+  .dialog > div {
+    padding: 4px 16px 18px;
+  }
+
+}

@@ -1,0 +1,39 @@
+.shell {
+  position: relative;
+  isolation: isolate;
+  min-width: 0;
+}
+
+.content {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+}
+
+.indicatorSurface {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  overflow: visible;
+  border-radius: 18px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--card) 35%, transparent), color-mix(in srgb, var(--card) 15%, transparent));
+  backdrop-filter: blur(24px) saturate(140%);
+  box-shadow: 0 12px 32px rgb(3 21 51 / 6%);
+}
+
+.shell:has(:global([role="dialog"])),
+.shell:has(:global(button[aria-label="Filtros"][aria-expanded="true"])) {
+  z-index: 50;
+}
+
+.eclipse {
+  visibility: hidden;
+  position: absolute;
+  z-index: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  height: 180px;
+  overflow: hidden;
+  pointer-events: none;
+}

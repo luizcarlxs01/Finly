@@ -117,4 +117,21 @@ describe("FinancialForecastCard", () => {
     expect(getAllByExactText(scope, currencyFormatter.format(2500))).toHaveLength(2);
     expect(getByExactText(scope, currencyFormatter.format(0))).toBeInTheDocument();
   });
+
+  it("mantem o alerta legivel e os valores negativos na previsao compacta", () => {
+    renderFinancialForecastCard({
+      minimal: true,
+      compact: true,
+      totalIncome: 1000,
+      totalExpense: 1800,
+      projectedBalance: -800,
+    });
+
+    const forecast = within(screen.getByRole("region", { name: "Previsão financeira" }));
+    expect(forecast.getByText("Atenção")).toBeInTheDocument();
+    expect(forecast.getByText("Próximo período")).toBeInTheDocument();
+    expect(forecast.getByLabelText(currencyFormatter.format(-800), { normalizer: (value) => value })).toBeInTheDocument();
+    expect(forecast.getByLabelText(currencyFormatter.format(1000), { normalizer: (value) => value })).toBeInTheDocument();
+    expect(forecast.getByLabelText(currencyFormatter.format(1800), { normalizer: (value) => value })).toBeInTheDocument();
+  });
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   forgotPassword as forgotPasswordWithApi,
   login as loginWithApi,
@@ -54,6 +54,7 @@ export function useAuthSession(): UseAuthSessionReturn {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pendingVerification, setPendingVerification] =
     useState<PendingVerification | null>(null);
+  const verificationVersion = useRef(0);
 
   useEffect(() => {
     function syncSession() {
@@ -111,6 +112,7 @@ export function useAuthSession(): UseAuthSessionReturn {
       const outcome = await loginWithApi(payload);
 
       if (outcome.requiresVerification) {
+        verificationVersion.current += 1;
         setPendingVerification({ email: outcome.email, name: outcome.name });
         return;
       }
@@ -129,6 +131,7 @@ export function useAuthSession(): UseAuthSessionReturn {
       const outcome = await registerWithApi(payload);
 
       if (outcome.requiresVerification) {
+        verificationVersion.current += 1;
         setPendingVerification({ email: outcome.email, name: outcome.name });
         return;
       }
@@ -145,6 +148,7 @@ export function useAuthSession(): UseAuthSessionReturn {
       return;
     }
 
+    const version = verificationVersion.current;
     setIsSubmitting(true);
 
     try {
@@ -152,11 +156,16 @@ export function useAuthSession(): UseAuthSessionReturn {
         email: pendingVerification.email,
         code,
       });
+      if (verificationVersion.current !== version) {
+        return;
+      }
       saveAuthSession(nextSession);
       setSession(nextSession);
       setPendingVerification(null);
     } finally {
-      setIsSubmitting(false);
+      if (verificationVersion.current === version) {
+        setIsSubmitting(false);
+      }
     }
   }
 
@@ -165,17 +174,22 @@ export function useAuthSession(): UseAuthSessionReturn {
       return;
     }
 
+    const version = verificationVersion.current;
     setIsSubmitting(true);
 
     try {
       await resendVerificationCodeWithApi({ email: pendingVerification.email });
     } finally {
-      setIsSubmitting(false);
+      if (verificationVersion.current === version) {
+        setIsSubmitting(false);
+      }
     }
   }
 
   function cancelVerification() {
+    verificationVersion.current += 1;
     setPendingVerification(null);
+    setIsSubmitting(false);
   }
 
   async function forgotPassword(email: string) {
@@ -189,6 +203,8 @@ export function useAuthSession(): UseAuthSessionReturn {
   }
 
   function logout() {
+    verificationVersion.current += 1;
+    setPendingVerification(null);
     clearAuthSession();
     setSession(null);
   }

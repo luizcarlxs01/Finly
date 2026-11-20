@@ -25,6 +25,7 @@ export function useForum() {
   const [selectedTopic, setSelectedTopic] = useState<TopicDetail | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [topicsErrorMessage, setTopicsErrorMessage] = useState<string | null>(null);
 
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminTopics, setAdminTopics] = useState<TopicSummary[] | null>(null);
@@ -33,12 +34,20 @@ export function useForum() {
   );
 
   const refreshTopics = useCallback(async () => {
-    const list = await getTopics();
-    setTopics(list);
+    setIsLoaded(false);
+    setTopicsErrorMessage(null);
+    try {
+      const list = await getTopics();
+      setTopics(list);
+    } catch (error) {
+      setTopicsErrorMessage(error instanceof Error ? error.message : "Não foi possível carregar os tópicos.");
+    } finally {
+      setIsLoaded(true);
+    }
   }, []);
 
   useEffect(() => {
-    refreshTopics().finally(() => setIsLoaded(true));
+    void refreshTopics();
   }, [refreshTopics]);
 
   const loadAdminTopics = useCallback(
@@ -124,6 +133,8 @@ export function useForum() {
     selectedTopic,
     isSubmitting,
     errorMessage,
+    topicsErrorMessage,
+    refreshTopics,
     openTopic,
     closeTopic,
     submitTopic,

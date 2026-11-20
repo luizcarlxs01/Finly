@@ -44,12 +44,7 @@ describe("DashboardInsights", () => {
       ],
     });
 
-    expect(screen.getByText("Leituras rápidas")).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "Sinais simples para te ajudar a entender o momento atual.",
-      ),
-    ).toBeInTheDocument();
+    expect(screen.getAllByRole("article")).toHaveLength(2);
     expect(screen.getByText("Saldo saudável")).toBeInTheDocument();
     expect(screen.getByText("Seu fluxo segue estável no período.")).toBeInTheDocument();
     expect(screen.getByText("Bom sinal")).toBeInTheDocument();

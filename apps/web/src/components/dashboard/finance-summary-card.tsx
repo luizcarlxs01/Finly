@@ -15,9 +15,12 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { TruncatedValue } from "@/components/ui/truncated-value";
 import { cn } from "@/lib/utils";
 
 type FinanceSummaryCardProps = {
+  valuesHidden?: boolean;
+  onToggleValues?: () => void;
   initialBalance: number;
   totalIncome: number;
   totalExpense: number;
@@ -39,6 +42,8 @@ function formatCurrency(value: number) {
 }
 
 export function FinanceSummaryCard({
+  valuesHidden,
+  onToggleValues,
   initialBalance,
   totalIncome,
   totalExpense,
@@ -54,7 +59,8 @@ export function FinanceSummaryCard({
   const [isEditingBalance, setIsEditingBalance] = useState(false);
   const [balanceInput, setBalanceInput] = useState(String(initialBalance));
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isValuesHidden, setIsValuesHidden] = useState(false);
+  const [localHidden, setIsValuesHidden] = useState(false);
+  const isValuesHidden = valuesHidden ?? localHidden;
   const cancelledRef = useRef(false);
 
   useEffect(() => {
@@ -86,7 +92,7 @@ export function FinanceSummaryCard({
           </CardTitle>
           <button
             type="button"
-            onClick={() => setIsValuesHidden((prev) => !prev)}
+            onClick={() => onToggleValues ? onToggleValues() : setIsValuesHidden((prev) => !prev)}
             aria-label={isValuesHidden ? "Mostrar valores" : "Ocultar valores"}
             className="flex size-8 items-center justify-center rounded-xl text-muted-foreground transition hover:bg-accent hover:text-foreground"
           >
@@ -132,7 +138,7 @@ export function FinanceSummaryCard({
                   if (!isValuesHidden) setIsEditingBalance(true);
                 }}
                 className={cn(
-                  "group text-left",
+                  "group min-w-0 flex-1 text-left",
                   isValuesHidden && "cursor-default",
                 )}
                 title={
@@ -140,18 +146,18 @@ export function FinanceSummaryCard({
                 }
               >
                 <p className="text-sm text-muted-foreground">Saldo atual</p>
-                <p
+                <TruncatedValue
                   className={cn(
                     "mt-2 text-2xl font-semibold text-foreground",
                     !isValuesHidden &&
                       "transition-colors group-hover:text-primary",
                   )}
-                >
-                  {masked(formatCurrency(currentBalance))}
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Base inicial: {masked(formatCurrency(initialBalance))}
-                </p>
+                  value={masked(formatCurrency(currentBalance))}
+                />
+                <TruncatedValue
+                  className="mt-1 text-xs text-muted-foreground"
+                  value={`Base inicial: ${masked(formatCurrency(initialBalance))}`}
+                />
               </button>
             )}
 
@@ -179,24 +185,18 @@ export function FinanceSummaryCard({
             <div className="mt-4 grid gap-3">
               <div className="rounded-[1rem] border border-border/60 bg-background/70 p-3">
                 <p className="text-xs text-muted-foreground">Saldo projetado</p>
-                <p className="mt-1 text-lg font-semibold text-foreground">
-                  {masked(formatCurrency(forecastProjectedBalance))}
-                </p>
+                <TruncatedValue className="mt-1 text-lg font-semibold text-foreground" value={masked(formatCurrency(forecastProjectedBalance))} />
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
                 <div className="rounded-[1rem] border border-border/60 bg-background/70 p-3">
                   <p className="text-xs text-muted-foreground">Entradas</p>
-                  <p className="mt-1 text-base font-semibold text-primary">
-                    {masked(formatCurrency(forecastTotalIncome))}
-                  </p>
+                  <TruncatedValue className="mt-1 text-base font-semibold text-primary" value={masked(formatCurrency(forecastTotalIncome))} />
                 </div>
 
                 <div className="rounded-[1rem] border border-border/60 bg-background/70 p-3">
                   <p className="text-xs text-muted-foreground">Saídas</p>
-                  <p className="mt-1 text-base font-semibold text-foreground">
-                    {masked(formatCurrency(forecastTotalExpense))}
-                  </p>
+                  <TruncatedValue className="mt-1 text-base font-semibold text-foreground" value={masked(formatCurrency(forecastTotalExpense))} />
                 </div>
               </div>
             </div>
@@ -218,11 +218,9 @@ export function FinanceSummaryCard({
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
               <div className="rounded-[1.25rem] border border-primary/15 bg-primary/8 p-4">
                 <div className="flex items-center justify-between gap-3">
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <p className="text-sm text-muted-foreground">Entradas</p>
-                    <p className="mt-2 text-xl font-semibold text-primary">
-                      {masked(formatCurrency(totalIncome))}
-                    </p>
+                    <TruncatedValue className="mt-2 text-xl font-semibold text-primary" value={masked(formatCurrency(totalIncome))} />
                   </div>
                   <ArrowUpRight className="size-4.5 text-primary" />
                 </div>
@@ -230,11 +228,9 @@ export function FinanceSummaryCard({
 
               <div className="rounded-[1.25rem] border border-accent/60 bg-accent/25 p-4">
                 <div className="flex items-center justify-between gap-3">
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <p className="text-sm text-muted-foreground">Saídas</p>
-                    <p className="mt-2 text-xl font-semibold text-foreground">
-                      {masked(formatCurrency(totalExpense))}
-                    </p>
+                    <TruncatedValue className="mt-2 text-xl font-semibold text-foreground" value={masked(formatCurrency(totalExpense))} />
                   </div>
                   <ArrowDownRight className="size-4.5 text-foreground" />
                 </div>

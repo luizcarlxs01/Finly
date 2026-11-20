@@ -74,7 +74,7 @@ export function ForgotPasswordForm({
       <CardHeader>
         <CardTitle>Esqueci minha senha</CardTitle>
         <CardDescription>
-          Informe o e-mail da sua conta. Se ela existir, mandamos um link para
+          Informe o e-mail da sua conta. Mandaremos um link para
           redefinir a senha.
         </CardDescription>
       </CardHeader>
@@ -101,7 +101,7 @@ export function ForgotPasswordForm({
           </div>
 
           {errorMessage ? (
-            <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <div role="alert" className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
               {errorMessage}
             </div>
           ) : null}

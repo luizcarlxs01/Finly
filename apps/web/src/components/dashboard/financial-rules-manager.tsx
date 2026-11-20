@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { Loader2, Play, Plus, Save, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { ApiFinancialRule } from "@/types/api-financial-rule";
@@ -44,7 +44,7 @@ const currencyFormatter = new Intl.NumberFormat("pt-BR", {
 });
 
 const fieldClassName =
-  "w-full rounded-xl border border-border/70 bg-background px-4 py-3 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15";
+  "w-full rounded-lg border border-border/50 bg-background/60 px-4 py-3 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15";
 
 const defaultFormState: FinancialRuleFormState = {
   amount: "",
@@ -190,19 +190,19 @@ function ProcessingResult({
 }) {
   return (
     <div className="grid gap-3 md:grid-cols-3">
-      <div className="rounded-xl border border-border/60 bg-background/70 p-4">
+      <div className="rounded-lg border border-border/50 bg-background/40 p-4">
         <p className="text-xs text-muted-foreground">Regras processadas</p>
         <p className="mt-1 text-lg font-semibold text-foreground">
           {result.processedRuleCount}
         </p>
       </div>
-      <div className="rounded-xl border border-border/60 bg-background/70 p-4">
+      <div className="rounded-lg border border-border/50 bg-background/40 p-4">
         <p className="text-xs text-muted-foreground">Transacoes criadas</p>
         <p className="mt-1 text-lg font-semibold text-foreground">
           {result.createdTransactionCount}
         </p>
       </div>
-      <div className="rounded-xl border border-border/60 bg-background/70 p-4">
+      <div className="rounded-lg border border-border/50 bg-background/40 p-4">
         <p className="text-xs text-muted-foreground">Transacoes ignoradas</p>
         <p className="mt-1 text-lg font-semibold text-foreground">
           {result.skippedTransactionCount}
@@ -229,23 +229,12 @@ export function FinancialRulesManager({
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
   const [formState, setFormState] = useState<FinancialRuleFormState>(defaultFormState);
 
-  const editingRule = useMemo(
-    () => rules.find((rule) => rule.id === editingRuleId) ?? null,
-    [editingRuleId, rules],
-  );
   const isRecurring = isRecurringRule(formState.ruleType);
   const shouldShowEndDate = isRecurring && formState.recurrenceMode === "UntilDate";
   const shouldShowTotalMonths =
     formState.ruleType === "InstallmentExpense" ||
     (isRecurring && formState.recurrenceMode === "ForMonths");
 
-  useEffect(() => {
-    if (!editingRule) {
-      return;
-    }
-
-    setFormState(buildFormState(editingRule));
-  }, [editingRule]);
 
   function resetForm() {
     setEditingRuleId(null);
@@ -295,7 +284,7 @@ export function FinancialRulesManager({
   }
 
   return (
-    <section className="space-y-6 rounded-[1.75rem] border border-border/60 bg-card/70 p-5 shadow-sm sm:p-6">
+    <section className="space-y-5 rounded-2xl border border-border/50 bg-card/55 p-5 shadow-sm backdrop-blur-xl sm:p-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-2">
           <h3 className="text-xl font-semibold tracking-tight text-foreground">
@@ -308,7 +297,7 @@ export function FinancialRulesManager({
 
         <Button
           type="button"
-          className="rounded-2xl"
+          className="rounded-lg"
           disabled={isProcessing || isLoading}
           onClick={() => void handleProcessRules()}
         >
@@ -321,13 +310,13 @@ export function FinancialRulesManager({
         </Button>
       </div>
 
-      <div className="rounded-[1.25rem] border border-border/60 bg-background/55 px-4 py-3 text-sm text-muted-foreground">
+      <div className="rounded-lg border border-border/50 bg-background/35 px-4 py-3 text-sm text-muted-foreground">
         O processamento gera transacoes reais a partir das regras ativas. O saldo
         atual continua considerando apenas lancamentos com data ate hoje.
       </div>
 
       {processErrorMessage ? (
-        <div className="rounded-[1.25rem] border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+        <div className="rounded-lg border border-destructive/25 bg-destructive/5 px-4 py-3 text-sm text-destructive">
           {processErrorMessage}
         </div>
       ) : null}
@@ -337,7 +326,7 @@ export function FinancialRulesManager({
       <div className="grid gap-6 xl:grid-cols-[minmax(320px,380px)_minmax(0,1fr)]">
         <form
           onSubmit={handleSubmit}
-          className="space-y-4 rounded-[1.5rem] border border-border/60 bg-background/60 p-4"
+          className="space-y-4 rounded-xl border border-border/50 bg-background/35 p-4"
         >
           <div className="space-y-1">
             <h4 className="text-lg font-semibold text-foreground">
@@ -524,7 +513,7 @@ export function FinancialRulesManager({
             ) : null}
           </div>
 
-          <label className="flex items-center gap-3 rounded-xl border border-border/60 bg-card/70 px-4 py-3 text-sm text-foreground">
+          <label className="flex items-center gap-3 rounded-lg border border-border/50 bg-background/45 px-4 py-3 text-sm text-foreground">
             <input
               type="checkbox"
               checked={formState.isActive}
@@ -539,7 +528,7 @@ export function FinancialRulesManager({
           </label>
 
           {errorMessage ? (
-            <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            <div className="rounded-lg border border-destructive/25 bg-destructive/5 px-4 py-3 text-sm text-destructive">
               {errorMessage}
             </div>
           ) : null}
@@ -547,7 +536,7 @@ export function FinancialRulesManager({
           <div className="flex flex-col gap-3 sm:flex-row">
             <Button
               type="submit"
-              className="rounded-2xl"
+              className="rounded-lg"
               disabled={isSubmitting}
             >
               {editingRuleId ? <Save className="size-4" /> : <Plus className="size-4" />}
@@ -562,7 +551,7 @@ export function FinancialRulesManager({
               <Button
                 type="button"
                 variant="outline"
-                className="rounded-2xl"
+                className="rounded-lg"
                 onClick={resetForm}
               >
                 Cancelar edicao
@@ -573,13 +562,13 @@ export function FinancialRulesManager({
 
         <div className="space-y-3">
           {isLoading ? (
-            <div className="rounded-[1.5rem] border border-dashed border-border/70 bg-background/60 px-4 py-8 text-sm text-muted-foreground">
+            <div className="rounded-xl border border-dashed border-border/60 bg-background/35 px-4 py-8 text-sm text-muted-foreground">
               Carregando regras financeiras...
             </div>
           ) : null}
 
           {!isLoading && rules.length === 0 ? (
-            <div className="rounded-[1.5rem] border border-dashed border-border/70 bg-background/60 px-4 py-8 text-sm text-muted-foreground">
+            <div className="rounded-xl border border-dashed border-border/60 bg-background/35 px-4 py-8 text-sm text-muted-foreground">
               Nenhuma regra financeira criada nesta conta ainda.
             </div>
           ) : null}
@@ -588,7 +577,7 @@ export function FinancialRulesManager({
             rules.map((rule) => (
               <article
                 key={rule.id}
-                className="rounded-[1.5rem] border border-border/60 bg-background/60 p-4"
+                className="rounded-xl border border-border/50 bg-background/35 p-4"
               >
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                   <div className="space-y-2">
@@ -644,10 +633,11 @@ export function FinancialRulesManager({
                     <Button
                       type="button"
                       variant="outline"
-                      className="rounded-2xl"
+                      className="rounded-lg"
                       disabled={isSubmitting}
                       onClick={() => {
                         setEditingRuleId(rule.id);
+                        setFormState(buildFormState(rule));
                         setFormState(buildFormState(rule));
                       }}
                     >
@@ -656,7 +646,7 @@ export function FinancialRulesManager({
                     <Button
                       type="button"
                       variant="destructive"
-                      className="rounded-2xl"
+                      className="rounded-lg"
                       disabled={isSubmitting}
                       onClick={() => void handleDeleteRule(rule.id)}
                     >

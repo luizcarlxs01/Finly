@@ -1,6 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { FinancialDialog } from "./overlays/financial-dialog";
+import glass from "./goal-create-dialog.module.css";
+import styles from "./transaction-edit-modal.module.css";
 import { Button } from "@/components/ui/button";
 import type { Transaction } from "@/types/finance";
 import type {
@@ -60,7 +63,7 @@ type TransactionEditModalProps = {
 };
 
 const fieldClassName =
-  "w-full rounded-xl border border-border/70 bg-background px-4 py-3 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15";
+  "w-full rounded-2xl border border-border/70 bg-background px-4 py-3 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15";
 
 function formatDateForInput(dateValue: string | null | undefined) {
   if (!dateValue) {
@@ -114,6 +117,8 @@ export function TransactionEditModal({
   isSubmittingOccurrence = false,
   onRequestDeleteContract,
 }: TransactionEditModalProps) {
+  const dialogControl = useRef<{ close: () => void }>(null);
+  const requestClose = () => dialogControl.current?.close();
   const [title, setTitle] = useState(transaction?.title ?? "");
   const [amount, setAmount] = useState(transaction ? String(transaction.amount) : "");
   const [type, setType] = useState<TransactionType>(transaction?.type ?? "expense");
@@ -154,6 +159,8 @@ export function TransactionEditModal({
       return;
     }
 
+    // Reset the existing draft when the selected transaction changes or reopens.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTitle(transaction.title);
     setAmount(String(transaction.amount));
     setType(transaction.type);
@@ -172,28 +179,6 @@ export function TransactionEditModal({
     setOccurrenceDueDate(formatDateForInput(transaction.occurrenceDate));
     setOccurrenceAmount(String(transaction.amount));
   }, [open, transaction]);
-
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        onOpenChange(false);
-      }
-    }
-
-    window.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      document.body.style.overflow = originalOverflow;
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [open, onOpenChange]);
 
   if (!open || !transaction) {
     return null;
@@ -240,7 +225,7 @@ export function TransactionEditModal({
           recurrenceDay: null,
           recurrenceStartDate: null,
         });
-        onOpenChange(false);
+        requestClose();
       } catch {
         // A mensagem de erro é tratada na página principal.
       }
@@ -268,7 +253,7 @@ export function TransactionEditModal({
           recurrenceDay: null,
           recurrenceStartDate: null,
         });
-        onOpenChange(false);
+        requestClose();
       } catch {
         // A mensagem de erro é tratada na página principal.
       }
@@ -302,7 +287,7 @@ export function TransactionEditModal({
           installmentCount: parsedInstallmentCount,
           installmentStartDate: normalizedInstallmentStartDate,
         });
-        onOpenChange(false);
+        requestClose();
       } catch {
         // A mensagem de erro é tratada na página principal.
       }
@@ -346,7 +331,7 @@ export function TransactionEditModal({
         recurrenceMonths:
           recurrenceMode === "for-months" ? parsedRecurrenceMonths : null,
       });
-      onOpenChange(false);
+      requestClose();
     } catch {
       // A mensagem de erro é tratada na página principal.
     }
@@ -404,40 +389,16 @@ export function TransactionEditModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 p-0 sm:items-center sm:px-4 sm:py-6">
-      <div className="flex h-[min(100dvh-0.5rem,96vh)] w-full flex-col overflow-hidden rounded-t-[1.75rem] border border-border/70 bg-card shadow-2xl sm:max-h-[92vh] sm:max-w-2xl sm:rounded-[1.75rem]">
-        <div className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-border/60 bg-card/95 px-4 py-4 backdrop-blur sm:px-6 sm:py-5">
-          <div className="space-y-2">
-            <p className="text-sm font-medium uppercase tracking-[0.18em] text-muted-foreground">
-              Editar lancamento
-            </p>
-            <h3 className="text-2xl font-semibold tracking-tight text-foreground">
-              Atualizar transacao
-            </h3>
-            <p className="text-sm leading-6 text-muted-foreground">
-              Ajuste os dados sem sair da dashboard.
-            </p>
-          </div>
-
-          <Button
-            type="button"
-            variant="ghost"
-            className="shrink-0 rounded-xl"
-            disabled={isSubmitting}
-            onClick={() => onOpenChange(false)}
-          >
-            Fechar
-          </Button>
-        </div>
-
+    <FinancialDialog title="Editar lançamento" smooth controlRef={dialogControl} onClose={() => onOpenChange(false)} className={styles.dialog} header={<h2 className={styles.title}>Editar lançamento</h2>}>
+      <div aria-hidden="true" className={`${glass.surface} ${styles.surface}`} />
         <form
           onSubmit={handleSubmit}
-          className="flex min-h-0 flex-1 flex-col overflow-hidden"
+          className={styles.form}
         >
-          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6">
+          <div className={styles.fields}>
             <div className="space-y-5">
               {!isGeneratedInstance ? (
-                <div className="space-y-3 rounded-2xl border border-border/60 bg-background/60 p-4">
+                <div className="space-y-3 rounded-2xl border border-border/60 bg-background/35 p-4 sm:p-5">
                   <div className="space-y-1">
                     <p className="text-sm font-medium text-foreground">
                       Tipo do lancamento
@@ -492,7 +453,7 @@ export function TransactionEditModal({
                   </div>
                 </div>
               ) : (
-                <div className="rounded-2xl border border-border/60 bg-background/60 p-4">
+                <div className="rounded-2xl border border-border/60 bg-background/35 p-4 sm:p-5">
                   <p className="text-sm font-medium text-foreground">
                     Lancamento gerado automaticamente
                   </p>
@@ -504,7 +465,7 @@ export function TransactionEditModal({
                 </div>
               )}
 
-              <div className="space-y-2">
+              <div className="grid gap-1.5">
                 <label
                   htmlFor="edit-transaction-title"
                   className="text-sm font-medium text-foreground"
@@ -522,7 +483,7 @@ export function TransactionEditModal({
                 />
               </div>
 
-              <div className="space-y-2">
+              <div className="grid gap-1.5">
                 <label
                   htmlFor="edit-transaction-amount"
                   className="text-sm font-medium text-foreground"
@@ -542,7 +503,7 @@ export function TransactionEditModal({
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
+                <div className="grid gap-1.5">
                   <label
                     htmlFor="edit-transaction-type"
                     className="text-sm font-medium text-foreground"
@@ -563,7 +524,7 @@ export function TransactionEditModal({
                   </select>
                 </div>
 
-                <div className="space-y-2">
+                <div className="grid gap-1.5">
                   <label
                     htmlFor="edit-transaction-category"
                     className="text-sm font-medium text-foreground"
@@ -587,7 +548,7 @@ export function TransactionEditModal({
               </div>
 
               {!isGeneratedInstance && transactionKind === "single" ? (
-                <div className="space-y-2 rounded-2xl border border-border/60 bg-background/60 p-4">
+                <div className="space-y-2 rounded-2xl border border-border/60 bg-background/35 p-4 sm:p-5">
                   <label
                     htmlFor="edit-transaction-date"
                     className="text-sm font-medium text-foreground"
@@ -606,7 +567,7 @@ export function TransactionEditModal({
               ) : null}
 
               {!isGeneratedInstance && transactionKind === "installment-template" ? (
-                <div className="space-y-4 rounded-2xl border border-border/60 bg-background/60 p-4">
+                <div className="space-y-4 rounded-2xl border border-border/60 bg-background/35 p-4 sm:p-5">
                   <div className="space-y-1">
                     <p className="text-sm font-medium text-foreground">
                       Parcelamento
@@ -617,7 +578,7 @@ export function TransactionEditModal({
                   </div>
 
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
+                    <div className="grid gap-1.5">
                       <label
                         htmlFor="edit-transaction-installment-count"
                         className="text-sm font-medium text-foreground"
@@ -638,7 +599,7 @@ export function TransactionEditModal({
                       />
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="grid gap-1.5">
                       <label
                         htmlFor="edit-transaction-installment-start-date"
                         className="text-sm font-medium text-foreground"
@@ -661,7 +622,7 @@ export function TransactionEditModal({
               ) : null}
 
               {!isGeneratedInstance && transactionKind === "recurring-template" ? (
-                <div className="space-y-4 rounded-2xl border border-border/60 bg-background/60 p-4">
+                <div className="space-y-4 rounded-2xl border border-border/60 bg-background/35 p-4 sm:p-5">
                   <div className="space-y-1">
                     <p className="text-sm font-medium text-foreground">
                       Recorrencia
@@ -672,7 +633,7 @@ export function TransactionEditModal({
                   </div>
 
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
+                    <div className="grid gap-1.5">
                       <label
                         htmlFor="edit-transaction-recurrence-day"
                         className="text-sm font-medium text-foreground"
@@ -692,7 +653,7 @@ export function TransactionEditModal({
                       />
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="grid gap-1.5">
                       <label
                         htmlFor="edit-transaction-recurrence-start-date"
                         className="text-sm font-medium text-foreground"
@@ -712,7 +673,7 @@ export function TransactionEditModal({
                     </div>
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="grid gap-1.5">
                     <label
                       htmlFor="edit-transaction-recurrence-mode"
                       className="text-sm font-medium text-foreground"
@@ -737,7 +698,7 @@ export function TransactionEditModal({
                   </div>
 
                   {recurrenceMode === "until-date" ? (
-                    <div className="space-y-2">
+                    <div className="grid gap-1.5">
                       <label
                         htmlFor="edit-transaction-recurrence-end-date"
                         className="text-sm font-medium text-foreground"
@@ -759,7 +720,7 @@ export function TransactionEditModal({
                   ) : null}
 
                   {recurrenceMode === "for-months" ? (
-                    <div className="space-y-2">
+                    <div className="grid gap-1.5">
                       <label
                         htmlFor="edit-transaction-recurrence-months"
                         className="text-sm font-medium text-foreground"
@@ -784,7 +745,7 @@ export function TransactionEditModal({
               ) : null}
 
               {transaction.occurrenceId && transaction.transactionKind !== "single" ? (
-                <div className="space-y-4 rounded-2xl border border-border/60 bg-background/60 p-4">
+                <div className="space-y-4 rounded-2xl border border-border/60 bg-background/35 p-4 sm:p-5">
                   <div className="space-y-1">
                     <p className="text-sm font-medium text-foreground">
                       Esta ocorrência
@@ -796,7 +757,7 @@ export function TransactionEditModal({
                   </div>
 
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
+                    <div className="grid gap-1.5">
                       <label
                         htmlFor="edit-occurrence-due-date"
                         className="text-sm font-medium text-foreground"
@@ -813,7 +774,7 @@ export function TransactionEditModal({
                       />
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="grid gap-1.5">
                       <label
                         htmlFor="edit-occurrence-amount"
                         className="text-sm font-medium text-foreground"
@@ -885,14 +846,14 @@ export function TransactionEditModal({
             </div>
           </div>
 
-          <div className="border-t border-border/60 bg-card/95 px-4 py-3 backdrop-blur sm:px-6 sm:py-4">
-            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <div className={styles.footer}>
+            <div className="flex gap-3 justify-between">
               <Button
                 type="button"
                 variant="outline"
                 className="w-full rounded-xl sm:w-auto"
                 disabled={isSubmitting}
-                onClick={() => onOpenChange(false)}
+                onClick={requestClose}
               >
                 Cancelar
               </Button>
@@ -902,12 +863,11 @@ export function TransactionEditModal({
                 className="w-full rounded-xl sm:w-auto"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? "Salvando..." : "Salvar alteracoes"}
+                {isSubmitting ? "Salvando..." : "Salvar alterações"}
               </Button>
             </div>
           </div>
         </form>
-      </div>
-    </div>
+    </FinancialDialog>
   );
-}
+}

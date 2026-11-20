@@ -45,7 +45,7 @@ describe("GoalProgressModal", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Meta")).toBeInTheDocument();
     expect(screen.getByText("Reserva de emergencia")).toBeInTheDocument();
-    expect(screen.getByLabelText("Valor atual")).toHaveValue(2500);
+    expect(screen.getByLabelText("Valor atual")).toHaveValue("2500");
     expect(screen.getByRole("button", { name: "Fechar" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Cancelar" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Salvar" })).toBeInTheDocument();
@@ -126,7 +126,7 @@ describe("GoalProgressModal", () => {
     );
 
     expect(screen.getByText("Viagem")).toBeInTheDocument();
-    expect(screen.getByLabelText("Valor atual")).toHaveValue(0);
+    expect(screen.getByLabelText("Valor atual")).toHaveValue("0");
 
     cleanup();
 
@@ -144,7 +144,7 @@ describe("GoalProgressModal", () => {
     );
 
     expect(screen.getByText("Reserva concluida")).toBeInTheDocument();
-    expect(screen.getByLabelText("Valor atual")).toHaveValue(10000);
+    expect(screen.getByLabelText("Valor atual")).toHaveValue("10000");
   });
 
   it("nao deve salvar quando o valor informado for invalido", async () => {

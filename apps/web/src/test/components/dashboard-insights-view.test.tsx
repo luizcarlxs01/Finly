@@ -1,61 +1,10 @@
-import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
-
-vi.mock("@/components/dashboard/dashboard-insights", () => ({
-  DashboardInsights: ({
-    insights,
-  }: {
-    insights: Array<{
-      id: string;
-      title: string;
-      description: string;
-      tone: "neutral" | "positive" | "warning";
-    }>;
-  }) => (
-    <div>
-      <p>DashboardInsights</p>
-      <p>Quantidade insights: {insights.length}</p>
-      {insights.length === 0 ? <p>Nenhum insight disponível</p> : null}
-      {insights.map((insight) => (
-        <div key={insight.id}>
-          <p>{insight.title}</p>
-          <p>{insight.description}</p>
-          <p>{insight.tone}</p>
-        </div>
-      ))}
-    </div>
-  ),
-}));
-
-vi.mock("@/components/dashboard/financial-forecast-card", () => ({
-  FinancialForecastCard: ({
-    totalIncome,
-    totalExpense,
-    projectedBalance,
-  }: {
-    totalIncome: number;
-    totalExpense: number;
-    projectedBalance: number;
-  }) => (
-    <div>
-      <p>FinancialForecastCard</p>
-      <p>Entradas previsão: {totalIncome}</p>
-      <p>Saídas previsão: {totalExpense}</p>
-      <p>Saldo previsto: {projectedBalance}</p>
-    </div>
-  ),
-}));
-
-vi.mock("@/components/dashboard/insights/spending-analysis-panel", () => ({
-  SpendingAnalysisPanel: () => <div>SpendingAnalysisPanel</div>,
-}));
+import { describe, expect, it } from "vitest";
+import { render, screen, within } from "@testing-library/react";
 
 import { DashboardInsightsView } from "@/components/dashboard/views/dashboard-insights-view";
 import type { DashboardInsight } from "@/utils/dashboard-insights";
 
-function createInsight(
-  overrides: Partial<DashboardInsight> = {},
-): DashboardInsight {
+function createInsight(overrides: Partial<DashboardInsight> = {}): DashboardInsight {
   return {
     id: "insight-1",
     title: "Saldo saudável",
@@ -68,100 +17,71 @@ function createInsight(
 function renderDashboardInsightsView(
   overrides: Partial<React.ComponentProps<typeof DashboardInsightsView>> = {},
 ) {
-  const props: React.ComponentProps<typeof DashboardInsightsView> = {
-    insights: [createInsight()],
-    forecastTotalIncome: 3000,
-    forecastTotalExpense: 1200,
-    forecastProjectedBalance: 1800,
-    ...overrides,
-  };
-
-  return {
-    ...render(<DashboardInsightsView {...props} />),
-    props,
-  };
+  return render(<DashboardInsightsView
+    insights={[createInsight()]}
+    forecastTotalIncome={3000}
+    forecastTotalExpense={1200}
+    forecastProjectedBalance={1800}
+    {...overrides}
+  />);
 }
 
 describe("DashboardInsightsView", () => {
-  it("deve renderizar os blocos principais da view", () => {
-    renderDashboardInsightsView();
+  it("exibe perfil, leituras, previsao e analise com componentes reais", () => {
+    renderDashboardInsightsView({
+      spendingProfileCard: <button>Editar perfil</button>,
+      accountAutomationView: <button>Ativar sincronização</button>,
+    });
 
-    expect(
-      screen.getByRole("heading", { level: 1, name: "Insights" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText("Veja leituras rápidas sobre sua vida financeira."),
-    ).toBeInTheDocument();
-    expect(screen.getByText("DashboardInsights")).toBeInTheDocument();
-    expect(screen.getByText("FinancialForecastCard")).toBeInTheDocument();
-    expect(screen.getByText("SpendingAnalysisPanel")).toBeInTheDocument();
+    expect(within(screen.getByRole("region", { name: "Perfil de gastos" })).getByRole("button", { name: "Editar perfil" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Leituras rápidas" })).toHaveTextContent("Saldo saudável");
+    expect(screen.getByRole("region", { name: "Previsão financeira" })).toHaveTextContent("Saldo previsto");
+    expect(within(screen.getByRole("region", { name: "Regras financeiras da conta" })).getByRole("button", { name: "Ativar sincronização" })).toBeInTheDocument();
+    expect(within(screen.getByRole("region", { name: "Análise de gastos" })).getByRole("combobox", { name: "Tipo de gráfico" })).toHaveValue("category-pie");
   });
 
-  it("deve exibir corretamente os insights recebidos por props com dados completos", () => {
+  it("exibe insights e valores recebidos pela view sem substituir seus componentes", () => {
     renderDashboardInsightsView({
-      insights: [
-        createInsight(),
-        createInsight({
-          id: "insight-2",
-          title: "2 metas ativas",
-          description: "Você está avançando nas metas do mês.",
-          tone: "neutral",
-        }),
-      ],
+      insights: [createInsight(), createInsight({ id: "insight-2", title: "2 metas ativas", description: "Você está avançando nas metas do mês.", tone: "neutral" })],
       forecastTotalIncome: 4500,
       forecastTotalExpense: 1700,
       forecastProjectedBalance: 2800,
     });
-
-    expect(screen.getByText("Quantidade insights: 2")).toBeInTheDocument();
-    expect(screen.getByText("Saldo saudável")).toBeInTheDocument();
-    expect(screen.getByText("Seu saldo segue confortável.")).toBeInTheDocument();
-    expect(screen.getByText("positive")).toBeInTheDocument();
-    expect(screen.getByText("2 metas ativas")).toBeInTheDocument();
-    expect(
-      screen.getByText("Você está avançando nas metas do mês."),
-    ).toBeInTheDocument();
-    expect(screen.getByText("neutral")).toBeInTheDocument();
-    expect(screen.getByText("Entradas previsão: 4500")).toBeInTheDocument();
-    expect(screen.getByText("Saídas previsão: 1700")).toBeInTheDocument();
-    expect(screen.getByText("Saldo previsto: 2800")).toBeInTheDocument();
+    const readings = within(screen.getByRole("region", { name: "Leituras rápidas" }));
+    expect(readings.getAllByRole("article")).toHaveLength(2);
+    expect(readings.getByRole("heading", { name: "Saldo saudável" })).toBeInTheDocument();
+    expect(readings.getByText("Seu saldo segue confortável.")).toBeInTheDocument();
+    expect(readings.getByText("Bom sinal")).toBeInTheDocument();
+    expect(readings.getByRole("heading", { name: "2 metas ativas" })).toBeInTheDocument();
+    expect(readings.getByText("Você está avançando nas metas do mês.")).toBeInTheDocument();
+    expect(readings.getByText("No radar")).toBeInTheDocument();
+    const forecast = within(screen.getByRole("region", { name: "Previsão financeira" }));
+    expect(forecast.getByLabelText("R$ 4.500,00")).toBeInTheDocument();
+    expect(forecast.getByLabelText("R$ 1.700,00")).toBeInTheDocument();
+    expect(forecast.getByLabelText("R$ 2.800,00")).toBeInTheDocument();
   });
 
-  it("deve renderizar de forma estavel com dados minimos validos", () => {
+  it("exibe dados minimos e saldo neutro sem perder as leituras", () => {
     renderDashboardInsightsView({
-      insights: [
-        createInsight({
-          id: "insight-minimal",
-          title: "Fallback neutro",
-          description: "Sem dados suficientes.",
-          tone: "neutral",
-        }),
-      ],
+      insights: [createInsight({ id: "insight-minimal", title: "Fallback neutro", description: "Sem dados suficientes.", tone: "neutral" })],
       forecastTotalIncome: 0,
       forecastTotalExpense: 0,
       forecastProjectedBalance: 0,
     });
-
-    expect(screen.getByText("Quantidade insights: 1")).toBeInTheDocument();
-    expect(screen.getByText("Fallback neutro")).toBeInTheDocument();
-    expect(screen.getByText("Sem dados suficientes.")).toBeInTheDocument();
-    expect(screen.getByText("neutral")).toBeInTheDocument();
-    expect(screen.getByText("Entradas previsão: 0")).toBeInTheDocument();
-    expect(screen.getByText("Saídas previsão: 0")).toBeInTheDocument();
-    expect(screen.getByText("Saldo previsto: 0")).toBeInTheDocument();
+    const readings = within(screen.getByRole("region", { name: "Leituras rápidas" }));
+    expect(readings.getAllByRole("article")).toHaveLength(1);
+    expect(readings.getByText("Fallback neutro")).toBeInTheDocument();
+    expect(readings.getByText("Sem dados suficientes.")).toBeInTheDocument();
+    expect(readings.getByText("No radar")).toBeInTheDocument();
+    const forecast = within(screen.getByRole("region", { name: "Previsão financeira" }));
+    expect(forecast.getAllByLabelText("R$ 0,00")).toHaveLength(3);
+    expect(forecast.getByText("Em dia")).toBeInTheDocument();
   });
 
-  it("deve refletir o comportamento condicional quando nao houver insights", () => {
-    renderDashboardInsightsView({
-      insights: [],
-      forecastTotalIncome: 0,
-      forecastTotalExpense: 0,
-      forecastProjectedBalance: 0,
-    });
-
-    expect(screen.getByText("Quantidade insights: 0")).toBeInTheDocument();
-    expect(screen.getByText("Nenhum insight disponível")).toBeInTheDocument();
-    expect(screen.getByText("FinancialForecastCard")).toBeInTheDocument();
-    expect(screen.getByText("Saldo previsto: 0")).toBeInTheDocument();
+  it("mantem previsao e estado vazio da analise quando nao ha insights", () => {
+    renderDashboardInsightsView({ insights: [], forecastTotalIncome: 0, forecastTotalExpense: 0, forecastProjectedBalance: 0 });
+    expect(within(screen.getByRole("region", { name: "Leituras rápidas" })).queryAllByRole("article")).toHaveLength(0);
+    expect(within(screen.getByRole("region", { name: "Previsão financeira" })).getAllByLabelText("R$ 0,00")).toHaveLength(3);
+    expect(screen.getByRole("region", { name: "Análise de gastos" })).toHaveTextContent("Nenhum lançamento pago encontrado com esses filtros.");
   });
 });

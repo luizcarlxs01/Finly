@@ -68,14 +68,14 @@ public class FinancialRuleService : IFinancialRuleService
         if (request.DayOfMonth < 1 || request.DayOfMonth > 31)
             throw new InvalidOperationException("O dia do mês da regra deve estar entre 1 e 31.");
 
-        if (!Enum.TryParse<RuleType>(request.RuleType, true, out var ruleType))
+        if (!Enum.TryParse<RuleType>(request.RuleType, true, out var ruleType) || !Enum.IsDefined(ruleType))
             throw new InvalidOperationException("O tipo da regra é inválido.");
 
         RecurrenceMode? recurrenceMode = null;
 
         if (!string.IsNullOrWhiteSpace(request.RecurrenceMode))
         {
-            if (!Enum.TryParse<RecurrenceMode>(request.RecurrenceMode, true, out var parsedMode))
+            if (!Enum.TryParse<RecurrenceMode>(request.RecurrenceMode, true, out var parsedMode) || !Enum.IsDefined(parsedMode))
                 throw new InvalidOperationException("O modo de recorrência da regra é inválido.");
 
             recurrenceMode = parsedMode;
@@ -137,14 +137,14 @@ public class FinancialRuleService : IFinancialRuleService
         if (request.DayOfMonth < 1 || request.DayOfMonth > 31)
             throw new InvalidOperationException("O dia do mês da regra deve estar entre 1 e 31.");
 
-        if (!Enum.TryParse<RuleType>(request.RuleType, true, out var ruleType))
+        if (!Enum.TryParse<RuleType>(request.RuleType, true, out var ruleType) || !Enum.IsDefined(ruleType))
             throw new InvalidOperationException("O tipo da regra é inválido.");
 
         RecurrenceMode? recurrenceMode = null;
 
         if (!string.IsNullOrWhiteSpace(request.RecurrenceMode))
         {
-            if (!Enum.TryParse<RecurrenceMode>(request.RecurrenceMode, true, out var parsedMode))
+            if (!Enum.TryParse<RecurrenceMode>(request.RecurrenceMode, true, out var parsedMode) || !Enum.IsDefined(parsedMode))
                 throw new InvalidOperationException("O modo de recorrência da regra é inválido.");
 
             recurrenceMode = parsedMode;

@@ -12,6 +12,8 @@ import {
 
 type GoalFormProps = {
   isSubmitting?: boolean;
+  errorMessage?: string | null;
+  onCancel?: () => void;
   onAddGoal: (input: {
     title: string;
     targetAmount: number;
@@ -32,7 +34,9 @@ function getTodayDateValue() {
 
 export function GoalForm({
   isSubmitting = false,
+  errorMessage,
   onAddGoal,
+  onCancel,
 }: GoalFormProps) {
   const [title, setTitle] = useState("");
   const [targetAmount, setTargetAmount] = useState("");
@@ -49,10 +53,11 @@ export function GoalForm({
 
     if (
       !normalizedTitle ||
-      Number.isNaN(parsedTargetAmount) ||
+      !Number.isFinite(parsedTargetAmount) ||
       parsedTargetAmount <= 0 ||
-      Number.isNaN(parsedCurrentAmount) ||
-      parsedCurrentAmount < 0
+      !Number.isFinite(parsedCurrentAmount) ||
+      parsedCurrentAmount < 0 ||
+      !deadline
     ) {
       return;
     }
@@ -63,7 +68,7 @@ export function GoalForm({
         targetAmount: parsedTargetAmount,
         currentAmount: parsedCurrentAmount,
         category,
-        deadline: deadline || undefined,
+        deadline,
       });
 
       setTitle("");
@@ -77,29 +82,24 @@ export function GoalForm({
   }
 
   return (
-    <Card className="rounded-[1.5rem] border-border/60 bg-card/95 shadow-sm">
-      <CardHeader className="space-y-1 pb-4">
-        <CardTitle className="text-xl font-semibold tracking-tight">
+    <Card className="overflow-visible rounded-2xl border-0 bg-transparent pt-6 pb-10 shadow-none ring-0">
+      <CardHeader className="flex flex-row items-center justify-center pb-4 text-center">
+        <CardTitle className="border-b border-border px-4 pb-2 text-xl font-semibold tracking-tight">
           Nova meta
         </CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Crie um objetivo para acompanhar sua evolução.
-        </p>
       </CardHeader>
 
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <section className="space-y-4 rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
+      <CardContent className="sm:px-10">
+        <form onSubmit={handleSubmit} className="mx-auto w-full max-w-xl space-y-8">
+          <section className="space-y-4">
             <div className="space-y-1">
-              <h3 className="text-base font-semibold text-foreground">
-                Sua meta
-              </h3>
+              <h3 className="sr-only">Sua meta</h3>
             </div>
 
             <div className="grid gap-1.5">
               <label
                 htmlFor="goal-title"
-                className="text-sm font-medium text-foreground"
+                className="pl-4 text-sm font-medium text-foreground"
               >
                 Título
               </label>
@@ -108,28 +108,29 @@ export function GoalForm({
                 <Goal className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <input
                   id="goal-title"
+                  autoFocus={Boolean(onCancel)}
                   type="text"
+                  maxLength={200}
+                  required
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
                   className={`${fieldClassName} pl-11`}
-                  placeholder="Ex.: Reserva de emergência"
+                  placeholder="Ex: Reserva de emergência"
                 />
               </div>
             </div>
           </section>
 
-          <section className="space-y-4 rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
+          <section className="space-y-4">
             <div className="space-y-1">
-              <h3 className="text-base font-semibold text-foreground">
-                Valores
-              </h3>
+              <h3 className="sr-only">Valores</h3>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="grid gap-1.5">
                 <label
                   htmlFor="goal-target-amount"
-                  className="text-sm font-medium text-foreground"
+                  className="pl-4 text-sm font-medium text-foreground"
                 >
                   Valor alvo
                 </label>
@@ -143,7 +144,7 @@ export function GoalForm({
                     value={targetAmount}
                     onChange={(event) => setTargetAmount(event.target.value)}
                     className={`${fieldClassName} pl-11`}
-                    placeholder="Ex.: 10000"
+                    placeholder="Ex: 10000"
                   />
                 </div>
               </div>
@@ -151,7 +152,7 @@ export function GoalForm({
               <div className="grid gap-1.5">
                 <label
                   htmlFor="goal-current-amount"
-                  className="text-sm font-medium text-foreground"
+                  className="pl-4 text-sm font-medium text-foreground"
                 >
                   Valor atual
                 </label>
@@ -165,25 +166,23 @@ export function GoalForm({
                     value={currentAmount}
                     onChange={(event) => setCurrentAmount(event.target.value)}
                     className={`${fieldClassName} pl-11`}
-                    placeholder="Ex.: 1500"
+                    placeholder="Ex: 1500"
                   />
                 </div>
               </div>
             </div>
           </section>
 
-          <section className="space-y-4 rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
+          <section className="space-y-4">
             <div className="space-y-1">
-              <h3 className="text-base font-semibold text-foreground">
-                Categoria e prazo
-              </h3>
+              <h3 className="sr-only">Categoria e prazo</h3>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="grid gap-1.5">
                 <label
                   htmlFor="goal-category"
-                  className="text-sm font-medium text-foreground"
+                  className="pl-4 text-sm font-medium text-foreground"
                 >
                   Categoria
                 </label>
@@ -195,7 +194,7 @@ export function GoalForm({
                   className={fieldClassName}
                 >
                   <option value="general">Geral</option>
-                  {TRANSACTION_CATEGORIES.map((currentCategory) => (
+                  {TRANSACTION_CATEGORIES.filter((currentCategory) => currentCategory !== "geral").map((currentCategory) => (
                     <option key={currentCategory} value={currentCategory}>
                       {getTransactionCategoryLabel(currentCategory)}
                     </option>
@@ -206,7 +205,7 @@ export function GoalForm({
               <div className="grid gap-1.5">
                 <label
                   htmlFor="goal-deadline"
-                  className="text-sm font-medium text-foreground"
+                  className="pl-4 text-sm font-medium text-foreground"
                 >
                   Prazo
                 </label>
@@ -216,6 +215,7 @@ export function GoalForm({
                   <input
                     id="goal-deadline"
                     type="date"
+                    required
                     min={getTodayDateValue()}
                     value={deadline}
                     onChange={(event) => setDeadline(event.target.value)}
@@ -226,13 +226,15 @@ export function GoalForm({
             </div>
           </section>
 
-          <section className="rounded-[1.25rem] border border-border/60 bg-background/55 p-4">
+          {errorMessage && <p role="alert" className="text-sm text-destructive">{errorMessage}</p>}
+          <section className="flex flex-col-reverse gap-3 pt-6 sm:flex-row sm:justify-between">
+            {onCancel && <Button type="button" variant="outline" className="h-11 rounded-xl sm:min-w-32" onClick={onCancel}>Cancelar</Button>}
             <Button
               type="submit"
-              className="h-11 w-full rounded-2xl"
+              className="h-11 rounded-xl sm:min-w-32"
               disabled={isSubmitting}
             >
-              {isSubmitting ? "Salvando..." : "Salvar meta"}
+              {isSubmitting ? "Salvando..." : "Criar meta"}
             </Button>
           </section>
         </form>

@@ -8,7 +8,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -39,7 +38,6 @@ export function RegisterForm({
   description = "Crie sua conta para sincronizar transações, metas e resumo financeiro.",
   submitLabel = "Criar conta",
   submittingLabel = "Criando conta...",
-  footerText = "Sua sessão será criada automaticamente após o cadastro.",
 }: RegisterFormProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -50,6 +48,11 @@ export function RegisterForm({
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setErrorMessage(null);
+
+    if (!name.trim()) {
+      setErrorMessage("Informe seu nome para criar a conta.");
+      return;
+    }
 
     try {
       await onSubmit({
@@ -146,7 +149,7 @@ export function RegisterForm({
           </div>
 
           {errorMessage ? (
-            <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <div role="alert" className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
               {errorMessage}
             </div>
           ) : null}
@@ -156,10 +159,6 @@ export function RegisterForm({
           </Button>
         </form>
       </CardContent>
-
-      <CardFooter className="border-t border-border/60 pt-4 text-xs text-muted-foreground">
-        {footerText}
-      </CardFooter>
     </Card>
   );
 }

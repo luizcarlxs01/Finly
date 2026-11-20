@@ -1,23 +1,27 @@
 "use client";
+import { sortStatementTransactions } from "@/utils/statement-transactions";
+import { GoalEditDialog } from "@/components/dashboard/goal-edit-dialog";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowUpDown, Plus, Target, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ArrowUpDown, Plus, Target } from "lucide-react";
 import {
   AppFloatingHeader,
   type DashboardView,
 } from "@/components/layout/app-floating-header";
-import { TransactionForm } from "@/components/dashboard/transaction-form";
+import { TransactionCreateDialog } from "@/components/dashboard/transaction-create-dialog";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { DashboardHomeView } from "@/components/dashboard/views/dashboard-home-view";
 import { DashboardTransactionsView } from "@/components/dashboard/views/dashboard-transactions-view";
 import { DashboardGoalsView } from "@/components/dashboard/views/dashboard-goals-view";
+import { GoalDeleteDialog } from "@/components/dashboard/goal-delete-dialog";
+import { GoalCreateDialog } from "@/components/dashboard/goal-create-dialog";
 import { DashboardInsightsView } from "@/components/dashboard/views/dashboard-insights-view";
 import { DashboardDownloadView } from "@/components/dashboard/views/dashboard-download-view";
 import { DashboardForumView } from "@/components/dashboard/views/dashboard-forum-view";
-import { DashboardAccountView } from "@/components/dashboard/views/dashboard-account-view";
 import { FinancialRulesManager } from "@/components/dashboard/financial-rules-manager";
 import { SpendingProfileCard } from "@/components/dashboard/insights/spending-profile-card";
 import { useFinanceSource } from "@/contexts/finance-source-context";
+import { useAuthSession } from "@/hooks/use-auth-session";
 import { useCreateTransaction } from "@/hooks/use-create-transaction";
 import { useCreateGoal } from "@/hooks/use-create-goal";
 import { useCancelOccurrence } from "@/hooks/use-cancel-occurrence";
@@ -34,11 +38,11 @@ import { useUpdateOccurrence } from "@/hooks/use-update-occurrence";
 import { useUpdateTransaction } from "@/hooks/use-update-transaction";
 import { useUpdateInitialBalance } from "@/hooks/use-update-initial-balance";
 import { useUpdateSpendingProfile } from "@/hooks/use-update-spending-profile";
-import { GoalForm } from "@/components/dashboard/goal-form";
 import { GoalProgressModal } from "@/components/dashboard/goal-progress-modal";
 import { FinancialCalendarModal } from "@/components/dashboard/overlays/financial-calendar-modal";
 import { StatementProjectionModal } from "@/components/dashboard/overlays/statement-projection-modal";
 import { TransactionEditModal } from "@/components/dashboard/transaction-edit-modal";
+import { FinancialDialog } from "@/components/dashboard/overlays/financial-dialog";
 import { PageContainer } from "@/components/layout/page-container";
 import { ConfirmationModal } from "@/components/ui/confirmation-modal";
 import {
@@ -60,32 +64,6 @@ const DEFAULT_SORT_OPTION: TransactionSortOption = "newest";
 
 function normalizeSearchValue(value: string) {
   return value.trim().toLocaleLowerCase("pt-BR");
-}
-
-function sortTransactions<
-  T extends { title: string; amount: number; createdAt: string },
->(items: T[], sortOption: TransactionSortOption) {
-  return [...items].sort((left, right) => {
-    switch (sortOption) {
-      case "oldest":
-        return (
-          new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime()
-        );
-      case "highest":
-        return right.amount - left.amount;
-      case "lowest":
-        return left.amount - right.amount;
-      case "title-asc":
-        return left.title.localeCompare(right.title, "pt-BR");
-      case "title-desc":
-        return right.title.localeCompare(left.title, "pt-BR");
-      case "newest":
-      default:
-        return (
-          new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()
-        );
-    }
-  });
 }
 
 function getPostedTransactions(transactions: Transaction[]) {
@@ -112,14 +90,13 @@ function getProjectionSnapshot(
   };
 }
 
-const currencyFormatter = new Intl.NumberFormat("pt-BR", {
-  style: "currency",
-  currency: "BRL",
-});
-
 export default function HomePage() {
   const [hasMounted, setHasMounted] = useState(false);
   const { source } = useFinanceSource();
+  const { session } = useAuthSession();
+  const [lastContributions, setLastContributions] = useState<Record<string, number>>({});
+  const [contributionScope, setContributionScope] = useState("");
+  const contributionPending = useRef(false);
   const localFinance = useLocalFinance();
   const localGoals = useLocalGoals();
   const financeData = useFinanceData({ localFinance });
@@ -152,13 +129,18 @@ export default function HomePage() {
   const [editingTransaction, setEditingTransaction] =
     useState<Transaction | null>(null);
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
+  const [goalProgressMode, setGoalProgressMode] = useState<"edit" | "add">("edit");
   const [pendingRemovalTransactionId, setPendingRemovalTransactionId] =
     useState<string | null>(null);
   const [pendingContractDeletionId, setPendingContractDeletionId] =
     useState<string | null>(null);
-  const [pendingGoalDeletionId, setPendingGoalDeletionId] =
-    useState<string | null>(null);
+  const [pendingGoalDeletion, setPendingGoalDeletion] = useState<Goal | null>(null);
+  const goalEditTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const goalDeleteTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const fabTransactionTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const fabGoalTriggerRef = useRef<HTMLButtonElement | null>(null);
   const [writeModeMessage, setWriteModeMessage] = useState<string | null>(null);
+  const [calendarInitialDate, setCalendarInitialDate] = useState<string | undefined>(undefined);
   const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
   const [isStatementProjectionModalOpen, setIsStatementProjectionModalOpen] = useState(false);
   const [isSpeedDialOpen, setIsSpeedDialOpen] = useState(false);
@@ -176,9 +158,37 @@ export default function HomePage() {
   } = financeData;
   const {
     goals,
-    remainingGoalAmount,
-    totalGoalProgress,
   } = goalsData;
+  const nextContributionScope = source === "local" ? "local" : session?.userId && financeData.selectedProfile?.id ? `${session.userId}:${financeData.selectedProfile.id}` : "";
+  useEffect(() => {
+    if (!nextContributionScope) { setContributionScope(""); setLastContributions({}); return; }
+    try {
+      const parsed = JSON.parse(window.localStorage.getItem(`finly:goal-last-contributions:${nextContributionScope}`) ?? "{}");
+      setLastContributions(typeof parsed === "object" && parsed !== null && !Array.isArray(parsed) ? parsed : {});
+    } catch { setLastContributions({}); }
+    setContributionScope(nextContributionScope);
+  }, [nextContributionScope]);
+
+  useEffect(() => {
+    if (!contributionScope || contributionScope !== nextContributionScope || !goals.length) return;
+    setLastContributions(previous => {
+      const missing = goals.filter(goal => !(goal.id in previous));
+      if (!missing.length) return previous;
+      const next = { ...previous };
+      for (const goal of missing) next[goal.id] = goal.currentAmount > 0 ? goal.currentAmount : 1;
+      window.localStorage.setItem(`finly:goal-last-contributions:${contributionScope}`, JSON.stringify(next));
+      return next;
+    });
+  }, [goals, contributionScope, nextContributionScope]);
+
+  function rememberContribution(id: string, amount: number) {
+    if (!contributionScope || amount <= 0) return;
+    setLastContributions(previous => {
+      const next = { ...previous, [id]: amount };
+      window.localStorage.setItem(`finly:goal-last-contributions:${contributionScope}`, JSON.stringify(next));
+      return next;
+    });
+  }
   const {
     deleteGoal: deleteGoalUnified,
     errorMessage: deleteGoalErrorMessage,
@@ -317,7 +327,7 @@ export default function HomePage() {
       return searchableContent.includes(normalizedSearchTerm);
     });
 
-    return sortTransactions(filteredItems, sortOption);
+    return sortStatementTransactions(filteredItems, sortOption);
   }, [
     statementTransactions,
     transactionFilter,
@@ -602,14 +612,15 @@ export default function HomePage() {
     }
   }
 
+  async function saveGoal(input: { id: string; currentAmount: number }) {
+    await updateGoalProgressUnified(input);
+    setWriteModeMessage(null);
+  }
+
   function handleGoalModalChange(open: boolean) {
     if (!open) {
       setSelectedGoal(null);
     }
-  }
-
-  function handleGoToTransactionsSection() {
-    setActiveView("transactions");
   }
 
   async function handleAddGoal(input: Parameters<typeof addGoal>[0]) {
@@ -618,30 +629,49 @@ export default function HomePage() {
   }
 
   function handleOpenGoalProgress(goal: Goal) {
+    goalEditTriggerRef.current = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-goal-menu]")).find(button => button.dataset.goalMenu === goal.id) ?? null;
+    setGoalProgressMode("edit");
+    setSelectedGoal(goal);
+  }
+
+  function handleOpenGoalContribution(goal: Goal) {
+    setGoalProgressMode("add");
     setSelectedGoal(goal);
   }
 
   async function handleSaveGoalProgress(input: { id: string; currentAmount: number }) {
-    await updateGoalProgressUnified(input);
+    const oldAmount = goals.find(goal => goal.id === input.id)?.currentAmount ?? selectedGoal?.currentAmount ?? input.currentAmount;
+    const nextAmount = goalProgressMode === "add" ? oldAmount + input.currentAmount : input.currentAmount;
+    await updateGoalProgressUnified({ id: input.id, currentAmount: nextAmount });
+    rememberContribution(input.id, nextAmount - oldAmount);
     setWriteModeMessage(null);
   }
 
+  async function handleAddGoalContribution(goal: Goal, amount: number) {
+    if (contributionPending.current || !Number.isFinite(amount) || amount <= 0) return;
+    contributionPending.current = true;
+    try {
+      const latest = goals.find(item => item.id === goal.id);
+      if (!latest) throw new Error("Meta indisponível.");
+      await updateGoalProgressUnified({ id: goal.id, currentAmount: latest.currentAmount + amount });
+      rememberContribution(goal.id, amount);
+      setWriteModeMessage(null);
+    } finally { contributionPending.current = false; }
+  }
+
   function handleRemoveGoal(id: string) {
-    setPendingGoalDeletionId(id);
+    goalDeleteTriggerRef.current = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-goal-menu]")).find(button => button.dataset.goalMenu === id) ?? null;
+    setPendingGoalDeletion(goals.find(goal => goal.id === id) ?? null);
   }
 
   async function handleConfirmRemoveGoal() {
-    if (!pendingGoalDeletionId) {
+    if (!pendingGoalDeletion) {
       return;
     }
 
-    try {
-      await deleteGoalUnified(pendingGoalDeletionId);
-      setWriteModeMessage(null);
-      setPendingGoalDeletionId(null);
-    } catch {
-      // A mensagem de erro e tratada na pagina principal.
-    }
+    await deleteGoalUnified(pendingGoalDeletion.id);
+    goalDeleteTriggerRef.current = null;
+    setWriteModeMessage(null);
   }
 
   useEffect(() => {
@@ -658,7 +688,8 @@ export default function HomePage() {
     );
   }
 
-  if (!financeData.isLoaded || !goalsData.isLoaded) {
+  // Keep the goal dialog mounted while its save refreshes the API data.
+  if ((!financeData.isLoaded || !goalsData.isLoaded) && !selectedGoal && !editingTransaction && !isCalendarModalOpen && !pendingGoalDeletion && !isFabGoalOpen && !isFabTransactionOpen) {
     return (
       <PageContainer>
         <div className="flex min-h-[40vh] items-center justify-center rounded-[2rem] border border-border/70 bg-card/60">
@@ -670,9 +701,14 @@ export default function HomePage() {
 
   const homeView = (
     <DashboardHomeView
-      onGoToTransactions={handleGoToTransactionsSection}
-      onOpenCalendar={() => setIsCalendarModalOpen(true)}
-      onOpenStatementProjection={() => setIsStatementProjectionModalOpen(true)}
+      currentBalance={currentBalance}
+      postedTransactions={postedTransactions}
+      goals={goals}
+      errorMessage={financeData.errorMessage ?? goalsData.errorMessage}
+      onRetry={() => { financeData.retry(); goalsData.retry(); }}
+      onViewTransactions={() => setActiveView("transactions")}
+      onViewGoals={() => setActiveView("goals")}
+      onViewInsights={() => setActiveView("insights")}
     />
   );
 
@@ -706,7 +742,9 @@ export default function HomePage() {
       getNextRecurringOccurrence={getNextRecurringOccurrence}
       emptyStateTitle={emptyStateTitle}
       emptyStateDescription={emptyStateDescription}
-      onOpenCalendar={() => setIsCalendarModalOpen(true)}
+      calendarTransactions={projectionTransactions}
+      createErrorMessage={createTransactionErrorMessage}
+      onOpenCalendar={(date) => { setCalendarInitialDate(date); setIsCalendarModalOpen(true); }}
       onOpenStatementProjection={() => setIsStatementProjectionModalOpen(true)}
       initialBalance={initialBalance}
       totalIncome={totalIncome}
@@ -723,13 +761,14 @@ export default function HomePage() {
   const goalsView = (
     <DashboardGoalsView
       isSubmitting={isCreatingGoal}
+      createErrorMessage={createGoalErrorMessage}
       areActionsDisabled={isCreatingGoal || isUpdatingGoalProgress || isDeletingGoal}
       goals={goals}
-      totalGoalProgress={totalGoalProgress}
-      remainingGoalAmount={remainingGoalAmount}
-      currencyFormatter={currencyFormatter}
       onAddGoal={handleAddGoal}
       onUpdateProgress={handleOpenGoalProgress}
+      onAddCustom={handleOpenGoalContribution}
+      onAddContribution={handleAddGoalContribution}
+      lastContributions={contributionScope === nextContributionScope ? lastContributions : {}}
       onRemoveGoal={handleRemoveGoal}
     />
   );
@@ -773,41 +812,19 @@ export default function HomePage() {
 
   const downloadView = <DashboardDownloadView />;
 
-  const accountView = <DashboardAccountView />;
-
-  const isLandingHome = activeView === "home";
-
   return (
     <>
-      <PageContainer variant={isLandingHome ? "landing" : "default"}>
-        <div className={isLandingHome ? "space-y-6" : "space-y-8 2xl:space-y-10"}>
+      <PageContainer>
+        <div className="space-y-8 2xl:space-y-10">
           <AppFloatingHeader
             activeView={activeView}
             onChangeView={setActiveView}
           />
 
           {writeModeMessage ? (
-            <section
-              className={
-                isLandingHome
-                  ? "mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8"
-                  : "px-4"
-              }
-            >
-              <div
-                className={
-                  isLandingHome
-                    ? "flex max-w-6xl flex-wrap gap-3"
-                    : "mx-auto max-w-6xl space-y-3"
-                }
-              >
-                <div
-                  className={
-                    isLandingHome
-                      ? "w-fit max-w-full rounded-full border border-white/80 bg-white/58 px-5 py-2.5 text-sm text-muted-foreground shadow-[0_14px_42px_-30px_rgba(3,21,51,0.32)] backdrop-blur-xl dark:border-white/10 dark:bg-[#0b275e]/58"
-                      : "rounded-2xl border border-border/70 bg-card/70 px-4 py-3 text-sm text-muted-foreground"
-                  }
-                >
+            <section className="px-4">
+              <div className="mx-auto max-w-6xl space-y-3">
+                <div className="rounded-2xl border border-border/70 bg-card/70 px-4 py-3 text-sm text-muted-foreground">
                   {writeModeMessage}
                 </div>
               </div>
@@ -823,20 +840,17 @@ export default function HomePage() {
             insightsView={insightsView}
             forumView={forumView}
             downloadView={downloadView}
-            accountView={accountView}
           />
         </div>
       </PageContainer>
 
-      {activeView !== "home" &&
-      activeView !== "download" &&
-      activeView !== "account" ? (
-        <div className="fixed bottom-6 right-6 z-40 flex flex-col-reverse items-end gap-3">
+      {activeView !== "home" && activeView !== "download" ? (
+        <div className={`fixed bottom-6 right-6 z-20 flex flex-col-reverse items-end gap-3 ${activeView === "goals" ? "pointer-events-none" : ""} ${activeView === "transactions" || activeView === "goals" ? "max-[1023px]:hidden" : ""}`}>
           <button
             type="button"
             onClick={() => setIsSpeedDialOpen((prev) => !prev)}
             aria-label={isSpeedDialOpen ? "Fechar menu" : "Novo lançamento"}
-            className="flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-all hover:scale-105 hover:shadow-xl active:scale-95"
+            className="pointer-events-auto flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-all hover:scale-105 hover:shadow-xl active:scale-95"
           >
             <Plus
               className={`size-6 transition-transform duration-200 ${isSpeedDialOpen ? "rotate-45" : ""}`}
@@ -852,6 +866,7 @@ export default function HomePage() {
           >
             <button
               type="button"
+              ref={fabTransactionTriggerRef}
               onClick={() => {
                 setIsSpeedDialOpen(false);
                 setIsFabTransactionOpen(true);
@@ -868,6 +883,7 @@ export default function HomePage() {
 
             <button
               type="button"
+              ref={fabGoalTriggerRef}
               onClick={() => {
                 setIsSpeedDialOpen(false);
                 setIsFabGoalOpen(true);
@@ -886,83 +902,35 @@ export default function HomePage() {
       ) : null}
 
       {isFabTransactionOpen ? (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 backdrop-blur-sm sm:items-center sm:px-4 sm:py-6"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setIsFabTransactionOpen(false);
+        <TransactionCreateDialog
+          triggerRef={fabTransactionTriggerRef}
+          isSubmitting={
+            isCreatingTransaction ||
+            isUpdatingInitialBalance ||
+            isUpdatingTransaction ||
+            isDeletingTransaction ||
+            isCancellingOccurrence
+          }
+          isPreviewActive={isPreviewActive}
+          errorMessage={createTransactionErrorMessage}
+          onAddTransaction={handleAddTransaction}
+          onPreviewTransaction={handlePreviewTransaction}
+          onClearPreview={handleClearPreview}
+          onClose={() => {
+            setIsFabTransactionOpen(false);
+            handleClearPreview();
           }}
-        >
-          <div className="flex max-h-[min(100dvh-0.5rem,96vh)] w-full flex-col overflow-hidden rounded-t-[1.75rem] border border-border/70 bg-card shadow-2xl sm:max-w-xl sm:rounded-[1.75rem]">
-            <div className="flex items-center justify-between border-b border-border/60 px-5 py-4 sm:px-6">
-              <p className="text-base font-semibold text-foreground">
-                Nova transação
-              </p>
-              <button
-                type="button"
-                onClick={() => setIsFabTransactionOpen(false)}
-                aria-label="Fechar"
-                className="flex size-8 items-center justify-center rounded-xl text-muted-foreground transition hover:bg-accent hover:text-foreground"
-              >
-                <X className="size-4" />
-              </button>
-            </div>
-
-            <div className="overflow-y-auto p-5 sm:p-6">
-              <TransactionForm
-                onAddTransaction={async (input) => {
-                  await handleAddTransaction(input);
-                  setIsFabTransactionOpen(false);
-                }}
-                onPreviewTransaction={handlePreviewTransaction}
-                onClearPreview={handleClearPreview}
-                isPreviewActive={isPreviewActive}
-                showPreviewNotice={false}
-                isSubmitting={
-                  isCreatingTransaction ||
-                  isUpdatingInitialBalance ||
-                  isUpdatingTransaction ||
-                  isDeletingTransaction ||
-                  isCancellingOccurrence
-                }
-              />
-            </div>
-          </div>
-        </div>
+        />
       ) : null}
 
       {isFabGoalOpen ? (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 backdrop-blur-sm sm:items-center sm:px-4 sm:py-6"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setIsFabGoalOpen(false);
-          }}
-        >
-          <div className="flex max-h-[min(100dvh-0.5rem,96vh)] w-full flex-col overflow-hidden rounded-t-[1.75rem] border border-border/70 bg-card shadow-2xl sm:max-w-xl sm:rounded-[1.75rem]">
-            <div className="flex items-center justify-between border-b border-border/60 px-5 py-4 sm:px-6">
-              <p className="text-base font-semibold text-foreground">
-                Nova meta
-              </p>
-              <button
-                type="button"
-                onClick={() => setIsFabGoalOpen(false)}
-                aria-label="Fechar"
-                className="flex size-8 items-center justify-center rounded-xl text-muted-foreground transition hover:bg-accent hover:text-foreground"
-              >
-                <X className="size-4" />
-              </button>
-            </div>
-
-            <div className="overflow-y-auto p-5 sm:p-6">
-              <GoalForm
-                onAddGoal={async (input) => {
-                  await handleAddGoal(input);
-                  setIsFabGoalOpen(false);
-                }}
-                isSubmitting={isCreatingGoal}
-              />
-            </div>
-          </div>
-        </div>
+        <GoalCreateDialog
+          triggerRef={fabGoalTriggerRef}
+          isSubmitting={isCreatingGoal}
+          errorMessage={createGoalErrorMessage}
+          onAddGoal={handleAddGoal}
+          onClose={() => setIsFabGoalOpen(false)}
+        />
       ) : null}
 
       <TransactionEditModal
@@ -981,10 +949,14 @@ export default function HomePage() {
         onRequestDeleteContract={handleRequestDeleteContract}
       />
 
+      {selectedGoal && goalProgressMode === "edit" && <GoalEditDialog key={selectedGoal.id} triggerRef={goalEditTriggerRef} goal={selectedGoal} onSave={saveGoal} onClose={() => setSelectedGoal(null)} />}
+
       <GoalProgressModal
-        key={selectedGoal?.id ?? "goal-progress-modal"}
+        key={`${selectedGoal?.id ?? "goal-progress-modal"}:${goalProgressMode}`}
         goal={selectedGoal}
-        open={Boolean(selectedGoal)}
+        mode={goalProgressMode}
+        errorMessage={updateGoalProgressErrorMessage}
+        open={Boolean(selectedGoal) && goalProgressMode === "add"}
         onOpenChange={handleGoalModalChange}
         isSubmitting={isUpdatingGoalProgress}
         onSave={handleSaveGoalProgress}
@@ -1004,41 +976,31 @@ export default function HomePage() {
         }}
       />
 
-      <ConfirmationModal
-        open={Boolean(pendingContractDeletionId)}
-        title="Excluir toda a série"
-        description="Isso remove o lançamento inteiro e todas as suas parcelas ou competências, incluindo as já pagas. Essa ação não pode ser desfeita."
-        cancelLabel="Cancelar"
-        confirmLabel="Excluir toda a série"
-        onConfirm={handleConfirmDeleteContract}
-        onOpenChange={(open) => {
-          if (!open) {
-            setPendingContractDeletionId(null);
-          }
-        }}
-      />
+      {pendingContractDeletionId && <FinancialDialog title="Excluir toda a série" smooth onClose={() => setPendingContractDeletionId(null)}>
+        <p className="text-sm leading-6 text-muted-foreground">Isso remove o lançamento inteiro e todas as suas parcelas ou competências, incluindo as já pagas. Essa ação não pode ser desfeita.</p>
+        <div className="mt-6 flex justify-end gap-3">
+          <button type="button" className="rounded-xl border border-border px-4 py-2 text-sm" onClick={() => setPendingContractDeletionId(null)}>Cancelar</button>
+          <button type="button" className="rounded-xl bg-destructive/10 px-4 py-2 text-sm text-destructive" onClick={handleConfirmDeleteContract}>Excluir toda a série</button>
+        </div>
+      </FinancialDialog>}
 
-      <ConfirmationModal
-        open={Boolean(pendingGoalDeletionId)}
-        title="Remover meta"
-        description="Tem certeza que deseja remover esta meta? Essa ação não pode ser desfeita."
-        cancelLabel="Cancelar"
-        confirmLabel="Remover meta"
+      {pendingGoalDeletion && <GoalDeleteDialog
+        key={pendingGoalDeletion.id}
+        goal={pendingGoalDeletion}
+        triggerRef={goalDeleteTriggerRef}
+        isSubmitting={isDeletingGoal}
+        errorMessage={deleteGoalErrorMessage}
         onConfirm={handleConfirmRemoveGoal}
-        onOpenChange={(open) => {
-          if (!open) {
-            setPendingGoalDeletionId(null);
-          }
-        }}
-      />
+        onClose={() => setPendingGoalDeletion(null)}
+      />}
 
       <FinancialCalendarModal
+        initialDate={calendarInitialDate}
         open={isCalendarModalOpen}
         onClose={() => setIsCalendarModalOpen(false)}
         transactions={projectionTransactions}
         currentBalance={currentBalance}
         onEditTransaction={(transaction) => {
-          setIsCalendarModalOpen(false);
           handleOpenEditModal(transaction);
         }}
       />

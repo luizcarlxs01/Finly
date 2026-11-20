@@ -8,6 +8,8 @@ public class OccurrenceGenerationService : IOccurrenceGenerationService
 {
     public List<Occurrence> Generate(Transaction transaction)
     {
+        TransactionSchedule.ValidateAndNormalize(transaction);
+
         return transaction.TransactionKind switch
         {
             TransactionKind.Installment => GenerateInstallments(transaction),
@@ -43,12 +45,13 @@ public class OccurrenceGenerationService : IOccurrenceGenerationService
     {
         var startDate = transaction.RecurrenceStartDate ?? transaction.TransactionDate;
         var dayOfMonth = transaction.RecurrenceDay ?? startDate.Day;
-        var mode = transaction.RecurrenceMode ?? InferRecurrenceMode(transaction);
+        var mode = TransactionSchedule.ResolveMode(transaction);
 
         var occurrences = new List<Occurrence>();
         var monthOffset = 0;
 
-        while (true)
+        var availableMonths = (9999 - startDate.Year) * 12 + 13 - startDate.Month;
+        while (monthOffset < availableMonths)
         {
             var dueDate = BuildOccurrenceDate(startDate, dayOfMonth, monthOffset);
 
@@ -75,17 +78,6 @@ public class OccurrenceGenerationService : IOccurrenceGenerationService
         return occurrences;
     }
 
-    private static RecurrenceMode InferRecurrenceMode(Transaction transaction)
-    {
-        if (transaction.RecurrenceEndDate.HasValue)
-            return RecurrenceMode.UntilDate;
-
-        if (transaction.RecurrenceMonths.HasValue)
-            return RecurrenceMode.ForMonths;
-
-        return RecurrenceMode.Indefinite;
-    }
-
     private static Occurrence BuildOccurrence(Transaction transaction, DateOnly dueDate, int? installmentIndex)
     {
         var today = DateOnly.FromDateTime(DateTime.Today);
@@ -109,14 +101,16 @@ public class OccurrenceGenerationService : IOccurrenceGenerationService
         DateOnly fromDate,
         DateOnly horizonEnd)
     {
-        var dayOfMonth = transaction.RecurrenceDay ?? fromDate.Day;
+        TransactionSchedule.ValidateAndNormalize(transaction);
+        var dayOfMonth = transaction.RecurrenceDay ?? (transaction.RecurrenceStartDate ?? transaction.TransactionDate).Day;
         var occurrences = new List<Occurrence>();
         var installmentIndex = nextInstallmentIndex;
 
         // fromDate já é o primeiro mês a gerar — iterar com offset 0, 1, 2...
         var monthOffset = 0;
 
-        while (true)
+        var availableMonths = (9999 - fromDate.Year) * 12 + 13 - fromDate.Month;
+        while (monthOffset < availableMonths)
         {
             var dueDate = BuildOccurrenceDate(fromDate, dayOfMonth, monthOffset);
 

@@ -13,7 +13,7 @@ function applyTheme(theme: ThemeMode) {
   document.documentElement.classList.toggle("dark", theme === "dark");
 }
 
-export function ThemeToggle() {
+export function ThemeToggle({ showLabel = false }: { showLabel?: boolean }) {
   const [theme, setTheme] = useState<ThemeMode>(() => {
     if (typeof window === "undefined") {
       return "light";
@@ -40,10 +40,10 @@ export function ThemeToggle() {
     <Button
       type="button"
       variant="outline"
-      size="icon-sm"
-      className="rounded-2xl"
+      size={showLabel ? "default" : "icon-sm"}
+      className={showLabel ? "h-11 w-full min-w-0 gap-2 rounded-xl px-2 text-xs sm:text-sm" : "rounded-2xl"}
       onClick={handleToggleTheme}
-      aria-label={theme === "dark" ? "Ativar modo claro" : "Ativar modo escuro"}
+      aria-label={showLabel ? "Tema" : theme === "dark" ? "Ativar modo claro" : "Ativar modo escuro"}
       title={theme === "dark" ? "Ativar modo claro" : "Ativar modo escuro"}
       suppressHydrationWarning
     >
@@ -52,6 +52,7 @@ export function ThemeToggle() {
       ) : (
         <Moon className="size-4" />
       )}
+      {showLabel && <span>Tema</span>}
     </Button>
   );
 }

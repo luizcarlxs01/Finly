@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 vi.mock("@/utils/recurring-transactions", async () => {
@@ -16,6 +16,14 @@ vi.mock("@/utils/recurring-transactions", async () => {
 
 import { TransactionEditModal } from "@/components/dashboard/transaction-edit-modal";
 import type { Transaction } from "@/types/finance";
+
+beforeEach(() => {
+  HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
+  HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };
+  const original = window.matchMedia;
+  vi.spyOn(window, "matchMedia").mockImplementation(query => ({ ...original(query), matches: true }));
+});
+afterEach(() => vi.restoreAllMocks());
 
 function createTransaction(overrides: Partial<Transaction> = {}): Transaction {
   return {
@@ -63,18 +71,40 @@ function renderTransactionEditModal(
 }
 
 describe("TransactionEditModal", () => {
+  it("fecha pelo fundo sem salvar o rascunho", async () => {
+    const { props } = renderTransactionEditModal();
+    await userEvent.clear(screen.getByLabelText("Titulo"));
+    await userEvent.type(screen.getByLabelText("Titulo"), "Rascunho");
+    fireEvent.click(screen.getByRole("dialog"), { clientX: -1, clientY: -1 });
+    expect(props.onOpenChange).toHaveBeenCalledWith(false);
+    expect(props.onSave).not.toHaveBeenCalled();
+  });
+
+  it("preserva salvar ocorrência, marcar paga e solicitar a exclusão da série", async () => {
+    const saveOccurrence = vi.fn(), markPaid = vi.fn(), deleteSeries = vi.fn();
+    renderTransactionEditModal({ transaction: createTransaction({ transactionKind: "recurring-instance", occurrenceId: "occ-1", occurrenceDate: "2026-04-10", occurrenceStatus: "pending", sourceId: "series-1" }), onSaveOccurrence: saveOccurrence, onMarkOccurrencePaid: markPaid, onRequestDeleteContract: deleteSeries });
+    await userEvent.clear(screen.getByLabelText("Valor desta ocorrência"));
+    await userEvent.type(screen.getByLabelText("Valor desta ocorrência"), "300");
+    await userEvent.click(screen.getByRole("button", { name: "Salvar esta ocorrência" }));
+    expect(saveOccurrence).toHaveBeenCalledWith({ id: "occ-1", dueDate: "2026-04-10", amount: 300 });
+    await userEvent.click(screen.getByRole("button", { name: "Marcar como paga" }));
+    expect(markPaid).toHaveBeenCalledWith("occ-1");
+    await userEvent.click(screen.getByRole("button", { name: "Excluir toda a série" }));
+    expect(deleteSeries).toHaveBeenCalledWith("series-1");
+  });
+
   it("deve renderizar o modal aberto e preencher os campos iniciais da transacao", () => {
     renderTransactionEditModal();
 
-    expect(screen.getByText("Atualizar transacao")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Editar lançamento" })).toBeInTheDocument();
     expect(screen.getByLabelText("Titulo")).toHaveValue("Mercado");
-    expect(screen.getByLabelText("Valor")).toHaveValue(250);
+    expect(screen.getByLabelText("Valor")).toHaveValue("250");
     expect(screen.getByLabelText("Tipo")).toHaveValue("expense");
     expect(screen.getByLabelText("Categoria")).toHaveValue("alimentacao");
     expect(screen.getByLabelText("Data")).toHaveValue("2026-04-01");
     expect(screen.getByRole("button", { name: "Fechar" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Cancelar" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Salvar alteracoes" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Salvar alterações" })).toBeInTheDocument();
   });
 
   it("nao deve renderizar conteudo relevante quando estiver fechado", () => {
@@ -99,7 +129,7 @@ describe("TransactionEditModal", () => {
     await user.selectOptions(screen.getByLabelText("Categoria"), "salario");
     await user.clear(screen.getByLabelText("Data"));
     await user.type(screen.getByLabelText("Data"), "2026-04-15");
-    await user.click(screen.getByRole("button", { name: "Salvar alteracoes" }));
+    await user.click(screen.getByRole("button", { name: "Salvar alterações" }));
 
     expect(onSave).toHaveBeenCalledWith({
       id: "tx-1",
@@ -125,7 +155,7 @@ describe("TransactionEditModal", () => {
 
     await user.click(screen.getByRole("button", { name: "Cancelar" }));
     await user.click(screen.getByRole("button", { name: "Fechar" }));
-    window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    fireEvent(screen.getByRole("dialog", { name: "Editar lançamento" }), new Event("cancel", { cancelable: true }));
 
     expect(onOpenChange).toHaveBeenNthCalledWith(1, false);
     expect(onOpenChange).toHaveBeenNthCalledWith(2, false);
@@ -164,7 +194,7 @@ describe("TransactionEditModal", () => {
       screen.getByLabelText("Data da primeira parcela"),
       "2026-06-10",
     );
-    await user.click(screen.getByRole("button", { name: "Salvar alteracoes" }));
+    await user.click(screen.getByRole("button", { name: "Salvar alterações" }));
 
     expect(onSave).toHaveBeenCalledWith({
       id: "installment-1",
@@ -220,7 +250,7 @@ describe("TransactionEditModal", () => {
     await user.type(screen.getByLabelText("Data de inicio"), "2026-04-20");
     await user.clear(screen.getByLabelText("Data final"));
     await user.type(screen.getByLabelText("Data final"), "2026-04-15");
-    await user.click(screen.getByRole("button", { name: "Salvar alteracoes" }));
+    await user.click(screen.getByRole("button", { name: "Salvar alterações" }));
 
     expect(onSave).not.toHaveBeenCalled();
 
@@ -236,7 +266,7 @@ describe("TransactionEditModal", () => {
     await user.type(screen.getByLabelText("Quantidade de meses"), "8");
     await user.clear(screen.getByLabelText("Dia da recorrencia"));
     await user.type(screen.getByLabelText("Dia da recorrencia"), "12");
-    await user.click(screen.getByRole("button", { name: "Salvar alteracoes" }));
+    await user.click(screen.getByRole("button", { name: "Salvar alterações" }));
 
     expect(onSave).toHaveBeenCalledWith({
       id: "recurring-1",
@@ -290,7 +320,7 @@ describe("TransactionEditModal", () => {
     await user.clear(screen.getByLabelText("Valor"));
     await user.type(screen.getByLabelText("Valor"), "650");
     await user.selectOptions(screen.getByLabelText("Tipo"), "income");
-    await user.click(screen.getByRole("button", { name: "Salvar alteracoes" }));
+    await user.click(screen.getByRole("button", { name: "Salvar alterações" }));
 
     expect(onSave).toHaveBeenCalledWith({
       id: "generated-1",
