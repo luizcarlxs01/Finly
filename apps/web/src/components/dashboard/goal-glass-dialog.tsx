@@ -17,6 +17,14 @@ type Props = {
   children: (requestClose: () => void) => React.ReactNode;
 };
 
+function getFocusableElements(dialog: HTMLDivElement) {
+  return Array.from(dialog.querySelectorAll<HTMLElement>(
+    'a[href], button, input:not([type="hidden"]), select, textarea, [tabindex]',
+  )).filter(element => element.tabIndex >= 0 && !element.matches(':disabled') &&
+    !element.closest('[hidden], [inert]') &&
+    getComputedStyle(element).display !== 'none' && getComputedStyle(element).visibility !== 'hidden');
+}
+
 export function GoalGlassDialog({ triggerRef, title, onClose, children, animation = "genie", dialogClassName, panelClassName, surfaceClassName, contentClassName, onClosing }: Props) {
   const backdropRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -87,8 +95,19 @@ export function GoalGlassDialog({ triggerRef, title, onClose, children, animatio
   }, [getOrigin, triggerRef, animation]);
 
   useEffect(() => {
-    const trigger = triggerRef.current;
-    return () => trigger?.focus();
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    const trigger = triggerRef.current ?? document.activeElement as HTMLElement | null;
+    const focusInside = () => (getFocusableElements(dialog)[0] ?? dialog).focus({ preventScroll: true });
+    if (!dialog.contains(document.activeElement)) focusInside();
+    const keepFocusInside = (event: FocusEvent) => {
+      if (!closingRef.current && event.target instanceof Node && !dialog.contains(event.target)) focusInside();
+    };
+    document.addEventListener('focusin', keepFocusInside);
+    return () => {
+      document.removeEventListener('focusin', keepFocusInside);
+      trigger?.focus({ preventScroll: true });
+    };
   }, [triggerRef]);
 
   useEffect(() => {
@@ -99,14 +118,17 @@ export function GoalGlassDialog({ triggerRef, title, onClose, children, animatio
 
   const trapFocus = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.key !== "Tab") return;
-    const items = Array.from(dialogRef.current?.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), select:not([disabled])') ?? []);
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    const items = getFocusableElements(dialog);
     const first = items[0], last = items[items.length - 1];
-    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+    if (!first) { event.preventDefault(); dialog.focus(); }
+    else if (event.shiftKey && (document.activeElement === first || document.activeElement === dialog)) { event.preventDefault(); last?.focus(); }
     else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
   };
 
   return <div ref={backdropRef} className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-3 backdrop-blur-sm" onMouseDown={event => { if (event.target === event.currentTarget) { event.preventDefault(); requestClose(); } }}>
-    <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={title} onKeyDown={trapFocus} className={`w-full ${dialogClassName ?? "max-w-xl"}`}>
+    <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={title} tabIndex={-1} onKeyDown={trapFocus} className={`w-full ${dialogClassName ?? "max-w-xl"}`}>
       <div className={`${styles.panel} ${panelClassName ?? ""}`}>
         <div ref={surfaceRef} aria-hidden="true" className={`${styles.surface} ${surfaceClassName ?? ""}`} />
         {/* The render callback only passes requestClose to event handlers; it does not read refs. */}

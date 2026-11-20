@@ -68,11 +68,11 @@ describe("DashboardHomeView", () => {
     expect(screen.getByRole("region", { name: "Fluxo de Caixa" })).toBeInTheDocument();
   });
 
-  it("mostra o saldo até hoje, exclui futuras e ordena transações pagas", () => {
+  it("usa o saldo consolidado e mantém a lista recente ordenada", () => {
     renderHome();
     const home = screen.getByRole("region", { name: "Início" });
     expect(within(home).getByRole("heading", { name: "Visão geral" })).toBeInTheDocument();
-    expect(home.textContent).toContain("R$ 570,00");
+    expect(home.textContent).toContain("R$ 370,00");
     expect(home.textContent).toContain("R$ 500,00");
     expect(within(home).getByText("25%")).toBeInTheDocument();
     const recent = screen.getByRole("region", { name: "Transações Recentes" });
@@ -82,6 +82,15 @@ describe("DashboardHomeView", () => {
       expect.stringContaining("Mercado"),
       expect.stringContaining("Receita antiga"),
     ]);
+  });
+
+  it.each([
+    { type: "expense" as const, balance: 900, label: "R$ 900,00" },
+    { type: "income" as const, balance: 1100, label: "R$ 1.100,00" },
+  ])("preserva no saldo o pagamento antecipado de $type", ({ type, balance, label }) => {
+    renderHome({ currentBalance: balance, postedTransactions: [transaction("early", "Pagamento antecipado", 100, type, "2026-10-02")] });
+    const sphere = screen.getByRole("button", { name: "Saldo atual. Mostrar resultado do mês" });
+    expect(sphere.textContent).toContain(label);
   });
 
   it("mostra o insight positivo somente quando o saldo cobre ao menos o dobro das despesas do mês", () => {
@@ -122,7 +131,7 @@ describe("DashboardHomeView", () => {
     const user = userEvent.setup();
     renderHome({ postedTransactions: [...entries, transaction("sep-expense", "Conta", 125, "expense", "2026-09-25")] });
     const sphere = screen.getByRole("button", { name: "Saldo atual. Mostrar resultado do mês" });
-    expect(sphere.textContent).toContain("R$ 570,00");
+    expect(sphere.textContent).toContain("R$ 370,00");
     await user.click(screen.getByTestId("balance-orb"));
     expect(sphere).toHaveAttribute("aria-pressed", "true");
     expect(sphere.textContent).toContain("Resultado do mês");
@@ -132,7 +141,7 @@ describe("DashboardHomeView", () => {
     sphere.focus();
     await user.keyboard("{Enter}");
     expect(sphere).toHaveAttribute("aria-pressed", "false");
-    expect(sphere.textContent).toContain("R$ 570,00");
+    expect(sphere.textContent).toContain("R$ 370,00");
   });
 
   it("mantém o resultado mensal oculto ao alternar a esfera com privacidade ativa", async () => {
@@ -151,7 +160,7 @@ describe("DashboardHomeView", () => {
     const firstRender = renderHome();
     expect(screen.queryByTestId("cashflow-data")).not.toBeInTheDocument();
     expect(screen.getByRole("img", { name: "Gráfico com valores ocultos" })).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "Início" }).textContent).not.toContain("R$ 570,00");
+    expect(screen.getByRole("region", { name: "Início" }).textContent).not.toContain("R$ 370,00");
     expect(screen.queryByText("25%")).not.toBeInTheDocument();
     expect(screen.getByRole("progressbar", { name: "Progresso de Reserva" })).not.toHaveAttribute("aria-valuenow");
     firstRender.unmount();

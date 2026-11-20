@@ -125,20 +125,16 @@ export function DashboardHomeView({ currentBalance, postedTransactions, goals, o
   const todayKey = getTodayDateValue();
   const today = useMemo(() => new Date(`${todayKey}T12:00:00`), [todayKey]);
 
-  const { recent, futureAdjustment } = useMemo(() => {
+  const recent = useMemo(() => {
     const recent: { transaction: Transaction; date: string }[] = [];
-    let futureAdjustment = 0;
     for (const transaction of postedTransactions) {
       const date = effectiveDate(transaction);
       if (!date) continue;
-      if (date > todayKey) {
-        futureAdjustment += transaction.type === "income" ? -transaction.amount : transaction.amount;
-        continue;
-      }
+      if (date > todayKey) continue;
       recent.push({ transaction, date });
     }
     recent.sort((a, b) => b.date.localeCompare(a.date) || b.transaction.createdAt.localeCompare(a.transaction.createdAt));
-    return { recent, futureAdjustment };
+    return recent;
   }, [postedTransactions, todayKey]);
 
   const chart = useMemo(() => {
@@ -154,7 +150,7 @@ export function DashboardHomeView({ currentBalance, postedTransactions, goals, o
   const hasChartValues = chart.some((item) => item.income || item.expense);
   const currentMonth = chart.at(-1);
   const monthlyResult = (currentMonth?.income ?? 0) - (currentMonth?.expense ?? 0);
-  const availableBalance = currentBalance + futureAdjustment;
+  const availableBalance = currentBalance;
   const monthExpenses = currentMonth?.expense ?? 0;
   const healthyBalance = monthExpenses > 0 && availableBalance >= monthExpenses * 2;
   const insightTitle = healthyBalance ? "Saldo saudável" : monthExpenses === 0 ? "Saldo sem comparação" : "Acompanhe o saldo";
@@ -173,7 +169,7 @@ export function DashboardHomeView({ currentBalance, postedTransactions, goals, o
         <p className="mt-2 text-sm text-muted-foreground sm:text-base">Suas finanças em um só lugar</p>
       </div>
     </div>;
-  const activeBalanceLabel = money.format(showMonthlyResult ? monthlyResult : currentBalance + futureAdjustment);
+  const activeBalanceLabel = money.format(showMonthlyResult ? monthlyResult : currentBalance);
   const balanceTooltip = !hidden && activeBalanceLabel.length > 18 ? activeBalanceLabel : undefined;
 
   return <section aria-label="Início" className={`${styles.overview} w-full min-w-0`}>
@@ -232,7 +228,7 @@ export function DashboardHomeView({ currentBalance, postedTransactions, goals, o
                 const active = showMonthlyResult === isResult;
                 return <span key={String(isResult)} aria-hidden={!active} data-active={active} className={styles.balanceFace}>
                   <span className="block text-sm font-medium text-foreground sm:text-base">{isResult ? "Resultado do mês" : "Saldo atual"}</span>
-                  <TruncatedValue className="text-2xl font-semibold tracking-tight text-primary tabular-nums sm:text-3xl" value={hidden ? "••••••" : money.format(isResult ? monthlyResult : currentBalance + futureAdjustment)} focusOnOverflow={false} />
+                  <TruncatedValue className="text-2xl font-semibold tracking-tight text-primary tabular-nums sm:text-3xl" value={hidden ? "••••••" : money.format(isResult ? monthlyResult : currentBalance)} focusOnOverflow={false} />
                 </span>;
               })}
             </span>

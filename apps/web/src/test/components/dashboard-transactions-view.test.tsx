@@ -1,5 +1,5 @@
 ﻿import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Transaction } from "@/types/finance";
 import { getTodayDateValue } from "@/utils/recurring-transactions";
@@ -192,8 +192,10 @@ describe("Lançamentos redesenhado", () => {
     const dialog = screen.getByRole("dialog", { name: "Novo lançamento" });
     for (const name of ["Único", "Parcelado", "Recorrente"]) expect(within(dialog).getByRole("button", { name })).toBeInTheDocument();
     expect(within(dialog).getByRole("button", { name: "Simular impacto" })).toBeInTheDocument();
-    await user.click(within(dialog).getByRole("button", { name: "Fechar" }));
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(within(dialog).getByLabelText("Título")).toHaveFocus();
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(screen.getByRole("button", { name: "Novo lançamento" })).toHaveFocus();
   });
 });
 
