@@ -32,6 +32,11 @@ public class OccurrenceService : IOccurrenceService
         UpdateOccurrenceRequestDto request,
         CancellationToken cancellationToken = default)
     {
+        if (request.Amount <= 0)
+            throw new InvalidOperationException("O valor da ocorrência deve ser maior que zero.");
+        if (request.DueDate == default)
+            throw new InvalidOperationException("Informe uma data válida para a ocorrência.");
+
         var occurrence = await GetOwnedOccurrenceAsync(userId, occurrenceId, cancellationToken);
 
         occurrence.DueDate = request.DueDate;

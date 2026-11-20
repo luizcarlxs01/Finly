@@ -301,7 +301,7 @@ function extendIndefiniteRecurrencesIfNeeded(profile: LocalFinanceProfile): Loca
 
   if (indefiniteContracts.length === 0) return profile;
 
-  let newOccurrences: typeof profile.occurrences = [];
+  const newOccurrences: typeof profile.occurrences = [];
 
   for (const contract of indefiniteContracts) {
     const activeOccurrences = profile.occurrences.filter(

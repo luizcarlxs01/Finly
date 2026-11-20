@@ -24,7 +24,7 @@ function getProjectedBalanceTone(projectedBalance: number) {
       container: "border-accent/60 bg-accent/25",
       value: "text-foreground",
       badge: "bg-accent/55 text-foreground",
-      label: "AtenÃ§Ã£o",
+      label: "Atenção",
     };
   }
 
@@ -91,10 +91,10 @@ export function FinancialForecastCard({
       <CardHeader className="space-y-1 pb-4">
         <div className="space-y-1">
           <CardTitle className="text-xl font-semibold tracking-tight">
-            PrÃ³ximo perÃ­odo
+            Próximo período
           </CardTitle>
           <p className="text-sm text-muted-foreground">
-            Um olhar rÃ¡pido para o que pode vir pela frente.
+            Um olhar rápido para o que pode vir pela frente.
           </p>
         </div>
       </CardHeader>
@@ -140,7 +140,7 @@ export function FinancialForecastCard({
           <div className="rounded-[1.25rem] border border-accent/60 bg-accent/25 p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
-                <p className="text-xs text-muted-foreground">SaÃ­das</p>
+                <p className="text-xs text-muted-foreground">Saídas</p>
                 <TruncatedValue className="mt-1 text-lg font-semibold text-foreground" value={formatCurrency(totalExpense)} />
               </div>
 

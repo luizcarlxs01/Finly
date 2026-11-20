@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 const mockUseLocalFinance = vi.fn();
@@ -489,6 +489,28 @@ describe("HomePage", () => {
     expect(screen.getByRole("dialog", { name: "Editar meta" })).toBe(dialog);
     expect(screen.queryByText("Carregando dados...")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Cancelar" }));
+  });
+
+  it("preserva o formulário de nova meta durante a recarga e respeita o fechamento", async () => {
+    const user = userEvent.setup();
+    const { finance, goals } = setupLoadedMocks();
+    const { rerender } = render(<HomePage />);
+    await user.click(screen.getByRole("button", { name: /^Insights$/i }));
+    await user.click(screen.getByRole("button", { name: "Novo lançamento", exact: true }));
+    await user.click(screen.getByRole("button", { name: "Nova meta", exact: true }));
+    const dialog = screen.getByRole("dialog", { name: "Nova meta", exact: true });
+
+    mockUseLocalFinance.mockReturnValue({ ...finance, isLoaded: false });
+    mockUseLocalGoals.mockReturnValue({ ...goals, isLoaded: false });
+    rerender(<HomePage />);
+    expect(screen.getByRole("dialog", { name: "Nova meta", exact: true })).toBe(dialog);
+    expect(screen.queryByText("Carregando dados...")).not.toBeInTheDocument();
+
+    await user.keyboard("{Escape}");
+    mockUseLocalFinance.mockReturnValue(finance);
+    mockUseLocalGoals.mockReturnValue(goals);
+    rerender(<HomePage />);
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Nova meta", exact: true })).not.toBeInTheDocument());
   });
 
   it("deve permitir cancelar uma remocao pendente sem excluir a transacao", async () => {

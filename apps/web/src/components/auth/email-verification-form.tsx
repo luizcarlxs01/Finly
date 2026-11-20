@@ -96,13 +96,13 @@ export function EmailVerificationForm({
           </div>
 
           {errorMessage ? (
-            <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <div role="alert" className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
               {errorMessage}
             </div>
           ) : null}
 
           {resendMessage ? (
-            <div className="rounded-md border border-primary/30 bg-primary/10 px-3 py-2 text-sm text-primary">
+            <div role="status" className="rounded-md border border-primary/30 bg-primary/10 px-3 py-2 text-sm text-primary">
               {resendMessage}
             </div>
           ) : null}

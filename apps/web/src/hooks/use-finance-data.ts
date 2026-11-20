@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useFinanceSource } from "@/contexts/finance-source-context";
 import { useAuthSession } from "@/hooks/use-auth-session";
 import { useLocalFinance } from "@/hooks/use-local-finance";
@@ -27,6 +27,7 @@ import {
 } from "@/utils/spending-profile";
 
 type FinanceDataState = {
+  retry: () => void;
   apiContractTransactions: ApiTransaction[];
   currentBalance: number;
   dashboard: DashboardSummary | null;
@@ -78,6 +79,7 @@ export function useFinanceData(
   const [isApiLoading, setIsApiLoading] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const token = session?.token ?? null;
+  const retry = useCallback(() => setReloadKey(current => current + 1), []);
 
   useEffect(() => {
     function handleRulesProcessed() {
@@ -218,6 +220,7 @@ export function useFinanceData(
 
   if (source === "local") {
     return {
+      retry,
       apiContractTransactions: [],
       currentBalance: localFinance.currentBalance,
       source,
@@ -240,6 +243,7 @@ export function useFinanceData(
   }
 
   return {
+    retry,
     apiContractTransactions,
     currentBalance: apiDashboard?.currentBalance ?? 0,
     source,

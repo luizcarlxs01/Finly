@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { Loader2, Play, Plus, Save, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { ApiFinancialRule } from "@/types/api-financial-rule";
@@ -229,23 +229,12 @@ export function FinancialRulesManager({
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
   const [formState, setFormState] = useState<FinancialRuleFormState>(defaultFormState);
 
-  const editingRule = useMemo(
-    () => rules.find((rule) => rule.id === editingRuleId) ?? null,
-    [editingRuleId, rules],
-  );
   const isRecurring = isRecurringRule(formState.ruleType);
   const shouldShowEndDate = isRecurring && formState.recurrenceMode === "UntilDate";
   const shouldShowTotalMonths =
     formState.ruleType === "InstallmentExpense" ||
     (isRecurring && formState.recurrenceMode === "ForMonths");
 
-  useEffect(() => {
-    if (!editingRule) {
-      return;
-    }
-
-    setFormState(buildFormState(editingRule));
-  }, [editingRule]);
 
   function resetForm() {
     setEditingRuleId(null);
@@ -648,6 +637,7 @@ export function FinancialRulesManager({
                       disabled={isSubmitting}
                       onClick={() => {
                         setEditingRuleId(rule.id);
+                        setFormState(buildFormState(rule));
                         setFormState(buildFormState(rule));
                       }}
                     >

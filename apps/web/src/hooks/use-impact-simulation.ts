@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import type { FinanceSource } from "@/contexts/finance-source-context";
 import {
   isValidTransactionInput,
@@ -99,9 +99,11 @@ export function useImpactSimulation({
   const [previewTransactions, setPreviewTransactions] =
     useState<Transaction[] | null>(null);
 
-  useEffect(() => {
+  const [previewSource, setPreviewSource] = useState(source);
+  if (previewSource !== source) {
+    setPreviewSource(source);
     setPreviewTransactions(null);
-  }, [source]);
+  }
 
   const clearSimulation = useCallback(() => {
     setPreviewTransactions(null);

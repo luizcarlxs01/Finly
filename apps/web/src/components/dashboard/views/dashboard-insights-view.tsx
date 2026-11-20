@@ -160,6 +160,7 @@ export function DashboardInsightsView({
     return () => { observer.disconnect(); window.removeEventListener("resize", resize); };
   }, []);
   return (
+    <>
     <div ref={rootRef} className={styles.insights}>
       <div data-eclipse-anchor="insights" className={styles.eclipseAnchor} aria-hidden="true" />
       <section className={styles.profile} aria-label="Perfil de gastos">
@@ -178,7 +179,6 @@ export function DashboardInsightsView({
             projectedBalance={forecastProjectedBalance}
           />
         </div>
-      {accountAutomationView}
         <section className={styles.readings} aria-label="Leituras rápidas">
           <DashboardInsights insights={insights} />
         </section>
@@ -188,5 +188,7 @@ export function DashboardInsightsView({
         </section>
       </div>
     </div>
+    {accountAutomationView && <section aria-label="Regras financeiras da conta" className="mt-6">{accountAutomationView}</section>}
+    </>
   );
 }

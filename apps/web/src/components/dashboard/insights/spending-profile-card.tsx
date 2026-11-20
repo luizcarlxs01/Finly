@@ -113,7 +113,10 @@ export function SpendingProfileCard({
     if (isCollapsed) collapsedButtonRef.current?.focus({ preventScroll: true });
   }, [animateLayout, isCollapsed]);
 
-  useEffect(() => {
+  const settingsKey = JSON.stringify([settings.id, settings.customGoodThreshold, settings.customOkThreshold]);
+  const [previousSettingsKey, setPreviousSettingsKey] = useState(settingsKey);
+  if (previousSettingsKey !== settingsKey) {
+    setPreviousSettingsKey(settingsKey);
     setDraftId(settings.id);
     const good = settings.customGoodThreshold ?? null;
     const ok = settings.customOkThreshold ?? null;
@@ -130,7 +133,7 @@ export function SpendingProfileCard({
     } else {
       setPersonalizadoMode("auto");
     }
-  }, [settings.id, settings.customGoodThreshold, settings.customOkThreshold]);
+  }
 
   useEffect(() => {
     if (!customPanelOpen) return;

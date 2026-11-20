@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useFinanceSource } from "@/contexts/finance-source-context";
 import { useAuthSession } from "@/hooks/use-auth-session";
 import { useLocalGoals } from "@/hooks/use-local-goals";
@@ -13,6 +13,7 @@ import type { Goal } from "@/types/goal";
 import type { Profile } from "@/types/profile";
 
 type GoalsDataState = {
+  retry: () => void;
   errorMessage: string | null;
   goals: Goal[];
   isLoaded: boolean;
@@ -66,6 +67,7 @@ export function useGoalsData(
   const [isApiLoading, setIsApiLoading] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const token = session?.token ?? null;
+  const retry = useCallback(() => setReloadKey(current => current + 1), []);
 
   useEffect(() => {
     function handleGoalWritten() {
@@ -155,6 +157,7 @@ export function useGoalsData(
   );
 
   return {
+    retry,
     source,
     isLoaded:
       source === "local"

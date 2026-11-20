@@ -166,7 +166,7 @@ function ResetPasswordCard({ token }: { token: string | null }) {
           </div>
 
           {errorMessage ? (
-            <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <div role="alert" className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
               {errorMessage}
             </div>
           ) : null}

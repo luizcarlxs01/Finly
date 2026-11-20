@@ -689,7 +689,7 @@ export default function HomePage() {
   }
 
   // Keep the goal dialog mounted while its save refreshes the API data.
-  if ((!financeData.isLoaded || !goalsData.isLoaded) && !selectedGoal && !editingTransaction && !isCalendarModalOpen) {
+  if ((!financeData.isLoaded || !goalsData.isLoaded) && !selectedGoal && !editingTransaction && !isCalendarModalOpen && !pendingGoalDeletion && !isFabGoalOpen && !isFabTransactionOpen) {
     return (
       <PageContainer>
         <div className="flex min-h-[40vh] items-center justify-center rounded-[2rem] border border-border/70 bg-card/60">
@@ -705,6 +705,7 @@ export default function HomePage() {
       postedTransactions={postedTransactions}
       goals={goals}
       errorMessage={financeData.errorMessage ?? goalsData.errorMessage}
+      onRetry={() => { financeData.retry(); goalsData.retry(); }}
       onViewTransactions={() => setActiveView("transactions")}
       onViewGoals={() => setActiveView("goals")}
       onViewInsights={() => setActiveView("insights")}

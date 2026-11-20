@@ -71,7 +71,6 @@ public class RuleProcessingService : IRuleProcessingService
                 }
 
                 _context.Occurrences.Add(occurrence);
-                transaction.Occurrences.Add(occurrence);
                 createdOccurrenceCount++;
             }
 

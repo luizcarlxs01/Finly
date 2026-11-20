@@ -53,7 +53,7 @@ public class TransactionService : ITransactionService
         var indefiniteTransactions = transactions
             .Where(t =>
                 t.TransactionKind == TransactionKind.Recurring &&
-                (t.RecurrenceMode == null || t.RecurrenceMode == RecurrenceMode.Indefinite))
+                TransactionSchedule.ResolveMode(t) == RecurrenceMode.Indefinite)
             .ToList();
 
         if (indefiniteTransactions.Count == 0)
@@ -78,7 +78,9 @@ public class TransactionService : ITransactionService
 
             var maxInstallmentIndex = activeOccurrences
                 .Where(o => o.InstallmentIndex.HasValue)
-                .Max(o => o.InstallmentIndex!.Value);
+                .Select(o => o.InstallmentIndex!.Value)
+                .DefaultIfEmpty(0)
+                .Max();
 
             // Primeiro mês a gerar = mês seguinte ao último existente
             var fromDate = maxDueDate.AddMonths(1);
@@ -90,7 +92,7 @@ public class TransactionService : ITransactionService
                 horizonEnd: horizonEnd);
 
             // Dedup por InstallmentIndex — mesma estratégia do RuleProcessingService
-            var existingIndexes = activeOccurrences
+            var existingIndexes = transaction.Occurrences
                 .Where(o => o.InstallmentIndex.HasValue)
                 .Select(o => o.InstallmentIndex!.Value)
                 .ToHashSet();
@@ -102,7 +104,6 @@ public class TransactionService : ITransactionService
                     continue;
 
                 _context.Occurrences.Add(occurrence);
-                transaction.Occurrences.Add(occurrence);
                 needsSave = true;
             }
         }
@@ -150,10 +151,10 @@ public class TransactionService : ITransactionService
         if (string.IsNullOrWhiteSpace(category))
             throw new InvalidOperationException("A categoria da transação é obrigatória.");
 
-        if (!Enum.TryParse<TransactionType>(request.Type, true, out var transactionType))
+        if (!Enum.TryParse<TransactionType>(request.Type, true, out var transactionType) || !Enum.IsDefined(transactionType))
             throw new InvalidOperationException("O tipo da transação é inválido.");
 
-        if (!Enum.TryParse<TransactionKind>(request.TransactionKind, true, out var transactionKind))
+        if (!Enum.TryParse<TransactionKind>(request.TransactionKind, true, out var transactionKind) || !Enum.IsDefined(transactionKind))
             throw new InvalidOperationException("O tipo estrutural da transação é inválido.");
 
         var transaction = new Transaction
@@ -174,13 +175,11 @@ public class TransactionService : ITransactionService
             RecurrenceMonths = request.RecurrenceMonths
         };
 
-        _context.Transactions.Add(transaction);
-
         var occurrences = _occurrenceGenerationService.Generate(transaction);
+        _context.Transactions.Add(transaction);
         foreach (var occurrence in occurrences)
         {
             _context.Occurrences.Add(occurrence);
-            transaction.Occurrences.Add(occurrence);
         }
 
         await _context.SaveChangesAsync(cancellationToken);
@@ -224,11 +223,38 @@ public class TransactionService : ITransactionService
         if (string.IsNullOrWhiteSpace(category))
             throw new InvalidOperationException("A categoria da transação é obrigatória.");
 
-        if (!Enum.TryParse<TransactionType>(request.Type, true, out var transactionType))
+        if (!Enum.TryParse<TransactionType>(request.Type, true, out var transactionType) || !Enum.IsDefined(transactionType))
             throw new InvalidOperationException("O tipo da transação é inválido.");
 
-        if (!Enum.TryParse<TransactionKind>(request.TransactionKind, true, out var transactionKind))
+        if (!Enum.TryParse<TransactionKind>(request.TransactionKind, true, out var transactionKind) || !Enum.IsDefined(transactionKind))
             throw new InvalidOperationException("O tipo estrutural da transação é inválido.");
+
+        // Generate and validate before mutating the tracked contract. A rejected
+        // update must leave both the schedule and its financial history intact.
+        var requestedSchedule = new Transaction
+        {
+            Id = transaction.Id,
+            TransactionKind = transactionKind,
+            TransactionDate = request.TransactionDate,
+            Amount = request.Amount,
+            InstallmentCount = request.InstallmentCount,
+            RecurrenceStartDate = request.RecurrenceStartDate,
+            RecurrenceEndDate = request.RecurrenceEndDate,
+            RecurrenceDay = request.RecurrenceDay,
+            RecurrenceMonths = request.RecurrenceMonths
+        };
+        var desiredOccurrences = _occurrenceGenerationService.Generate(requestedSchedule);
+        var horizonEnd = DateOnly.FromDateTime(DateTime.Today).AddMonths(12);
+        if (requestedSchedule.RecurrenceMode == RecurrenceMode.Indefinite &&
+            desiredOccurrences.Count > 0 && desiredOccurrences[^1].DueDate < horizonEnd)
+        {
+            // An older indefinite contract may already have been extended well
+            // past its first 12 months. Reconcile its current future horizon too.
+            desiredOccurrences = _occurrenceGenerationService.GenerateExtension(
+                requestedSchedule, 1,
+                requestedSchedule.RecurrenceStartDate ?? requestedSchedule.TransactionDate,
+                horizonEnd);
+        }
 
         transaction.FinancialProfileId = request.FinancialProfileId;
         transaction.Title = title;
@@ -239,26 +265,50 @@ public class TransactionService : ITransactionService
         transaction.TransactionDate = request.TransactionDate;
         transaction.SourceId = request.SourceId;
         transaction.InstallmentCount = request.InstallmentCount;
-        transaction.IsRecurring = request.IsRecurring;
+        transaction.IsRecurring = requestedSchedule.IsRecurring;
         transaction.RecurrenceStartDate = request.RecurrenceStartDate;
         transaction.RecurrenceEndDate = request.RecurrenceEndDate;
         transaction.RecurrenceDay = request.RecurrenceDay;
         transaction.RecurrenceMonths = request.RecurrenceMonths;
-
-        if (transactionKind == TransactionKind.Single)
-        {
-            var occurrence = transaction.Occurrences.FirstOrDefault();
-
-            if (occurrence is not null)
-            {
-                occurrence.Amount = request.Amount;
-                occurrence.DueDate = request.TransactionDate;
-            }
-        }
+        transaction.RecurrenceMode = requestedSchedule.RecurrenceMode;
+        ReconcileFutureOccurrences(transaction, desiredOccurrences);
 
         await _context.SaveChangesAsync(cancellationToken);
 
         return MapToResponse(transaction);
+    }
+
+    private void ReconcileFutureOccurrences(Transaction transaction, List<Occurrence> desiredOccurrences)
+    {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var existing = transaction.Occurrences.ToList();
+        var editable = existing
+            .Where(o => o.Status == OccurrenceStatus.Pending && !o.IsCustomized && o.DueDate > today)
+            .ToList();
+        var protectedIndexes = existing.Except(editable).Select(o => o.InstallmentIndex).ToHashSet();
+        var desiredByIndex = desiredOccurrences.ToDictionary(o => o.InstallmentIndex ?? 0);
+
+        foreach (var occurrence in editable)
+        {
+            if (desiredByIndex.Remove(occurrence.InstallmentIndex ?? 0, out var desired))
+            {
+                occurrence.Amount = desired.Amount;
+                occurrence.DueDate = desired.DueDate;
+            }
+            else
+            {
+                // Retain an audit trail when the series is shortened or changes kind.
+                occurrence.Status = OccurrenceStatus.Cancelled;
+            }
+        }
+
+        foreach (var desired in desiredByIndex.Values)
+        {
+            if (desired.DueDate <= today || protectedIndexes.Contains(desired.InstallmentIndex))
+                continue;
+            // Adding to the tracked DbSet also updates the navigation collection.
+            _context.Occurrences.Add(desired);
+        }
     }
 
     public async Task DeleteAsync(

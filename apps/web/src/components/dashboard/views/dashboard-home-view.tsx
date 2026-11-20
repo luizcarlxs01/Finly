@@ -26,6 +26,7 @@ type Props = {
   onViewGoals: () => void;
   onViewInsights: () => void;
   errorMessage?: string | null;
+  onRetry?: () => void;
 };
 
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -88,7 +89,7 @@ function months(period: Period, today: Date) {
   });
 }
 
-export function DashboardHomeView({ currentBalance, postedTransactions, goals, onViewTransactions, onViewGoals, onViewInsights, errorMessage }: Props) {
+export function DashboardHomeView({ currentBalance, postedTransactions, goals, onViewTransactions, onViewGoals, onViewInsights, errorMessage, onRetry }: Props) {
   const hidden = useSyncExternalStore(subscribeToPrivacyPreference, getPrivacyPreference, getServerPrivacyPreference);
   const reducedMotion = useSyncExternalStore(subscribeToMotionPreference, getMotionPreference, getServerMotionPreference);
   const [period, setPeriod] = useState<Period>("6M");
@@ -173,7 +174,7 @@ export function DashboardHomeView({ currentBalance, postedTransactions, goals, o
   const balanceTooltip = !hidden && activeBalanceLabel.length > 18 ? activeBalanceLabel : undefined;
 
   return <section aria-label="Início" className={`${styles.overview} w-full min-w-0`}>
-    {errorMessage ? <>{heading}<p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">{errorMessage}</p></> : <>
+    {errorMessage ? <>{heading}<p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">{errorMessage}</p>{onRetry && <button type="button" className="mt-3 rounded-xl bg-primary px-4 py-2 text-primary-foreground" onClick={onRetry}>Tentar novamente</button>}</> : <>
       <div className={styles.hero} data-eclipse-anchor="home">
         {heading}
 

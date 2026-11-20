@@ -51,7 +51,7 @@ describe("AccountAccessCard", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     const user = await openAccount();
     expect(screen.getByRole("dialog", { name: "Acesse sua conta" })).toBeVisible();
-    expect(screen.getByText("Você também pode usar o Finly sem conta.")).toBeVisible();
+    expect(screen.getByText("Modo sem conta — dados salvos neste navegador")).toBeVisible();
 
     await user.click(screen.getByRole("button", { name: "Conta" }));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -97,7 +97,7 @@ describe("AccountAccessCard", () => {
     expect(screen.getByRole("button", { name: "Entrando..." })).toBeDisabled();
   });
 
-  it("permite navegar entre login e cadastro por teclado e pelo link", async () => {
+  it("permite navegar entre login e cadastro por teclado e pelas abas", async () => {
     render(<AccountAccessCard />);
     const user = await openAccount();
     screen.getByRole("tab", { name: "Entrar" }).focus();
@@ -106,7 +106,7 @@ describe("AccountAccessCard", () => {
     await user.keyboard("{Enter}");
     expect(screen.getByLabelText("Nome")).toBeVisible();
     await user.click(screen.getByRole("tab", { name: "Entrar" }));
-    await user.click(screen.getByRole("button", { name: "Criar conta" }));
+    await user.click(screen.getByRole("tab", { name: "Cadastrar" }));
     expect(screen.getByLabelText("Nome")).toBeVisible();
   });
 
@@ -115,7 +115,7 @@ describe("AccountAccessCard", () => {
     mockUseAuthSession.mockReturnValue(auth);
     render(<AccountAccessCard />);
     const user = await openAccount();
-    await user.click(screen.getByRole("button", { name: "Esqueceu?" }));
+    await user.click(screen.getByRole("button", { name: /Esqueceu a senha/ }));
     await user.type(screen.getByLabelText("E-mail"), identity.email);
     await user.click(screen.getByRole("button", { name: "Enviar link de redefinição" }));
     expect(auth.forgotPassword).toHaveBeenCalledWith(identity.email);

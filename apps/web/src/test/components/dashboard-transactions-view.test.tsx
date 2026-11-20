@@ -1,4 +1,4 @@
-﻿import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
+﻿import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Transaction } from "@/types/finance";
@@ -7,11 +7,7 @@ import { DashboardTransactionsView } from "@/components/dashboard/views/dashboar
 
 beforeEach(() => {
   window.localStorage.clear();
-  vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
-  HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
-  HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };
 });
-afterEach(() => vi.unstubAllGlobals());
 function createTransaction(overrides: Partial<Transaction> = {}): Transaction {
   return {
     id: "tx-1",
@@ -143,7 +139,7 @@ describe("Lançamentos redesenhado", () => {
     const calendar = screen.getByRole("region", { name: "Calendário compacto" });
     expect(calendar.querySelector('[data-kind="both"]')).toBeInTheDocument();
     expect(within(calendar).getAllByRole("listitem")).toHaveLength(2);
-    expect(within(calendar).getByRole("button", { name: "+1 lançamento · Ver todos" })).toBeInTheDocument();
+    expect(within(calendar).getByRole("button", { name: "Ver todos" })).toBeInTheDocument();
     expect(within(calendar).queryByText("Saída B")).not.toBeInTheDocument();
     const anotherDay = Number(date.slice(-2)) === 1 ? 2 : 1;
     const otherButton = within(calendar).getByRole("button", { name: new RegExp("^" + anotherDay + " de ") });
@@ -194,6 +190,12 @@ describe("Lançamentos redesenhado", () => {
     expect(within(dialog).getByRole("button", { name: "Simular impacto" })).toBeInTheDocument();
     expect(within(dialog).getByLabelText("Título")).toHaveFocus();
     await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(screen.getByRole("button", { name: "Novo lançamento" })).toHaveFocus();
+
+    await user.click(screen.getByRole("button", { name: "Novo lançamento" }));
+    const reopenedDialog = screen.getByRole("dialog", { name: "Novo lançamento" });
+    await user.click(reopenedDialog.parentElement!);
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(screen.getByRole("button", { name: "Novo lançamento" })).toHaveFocus();
   });
