@@ -5,12 +5,16 @@ import { useEffect, useRef, useSyncExternalStore } from 'react';
 import styles from './orb.module.css';
 
 const motionQuery = '(prefers-reduced-motion: reduce)';
+const desktopQuery = '(min-width: 921px)';
 function subscribeMotion(callback: () => void) {
-  const media = window.matchMedia(motionQuery);
-  media.addEventListener('change', callback);
-  return () => media.removeEventListener('change', callback);
+  const media = [window.matchMedia(motionQuery), window.matchMedia(desktopQuery)];
+  media.forEach(query => query.addEventListener('change', callback));
+  return () => media.forEach(query => query.removeEventListener('change', callback));
 }
-function motionSnapshot() { return window.matchMedia(motionQuery).matches; }
+function motionSnapshot() {
+  // Match the former Home: desktop effects run regardless of the OS preference.
+  return window.matchMedia(motionQuery).matches && !window.matchMedia(desktopQuery).matches;
+}
 function serverMotionSnapshot() { return true; }
 
 interface OrbProps {
