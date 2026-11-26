@@ -59,8 +59,8 @@ class _FinanceSummaryCardState extends ConsumerState<FinanceSummaryCard> {
             children: [
               const Expanded(
                 child: Text('Resumo financeiro',
-                    style: TextStyle(
-                        fontSize: 17, fontWeight: FontWeight.w700)),
+                    style:
+                        TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
               ),
               IconButton(
                 tooltip: _hidden ? 'Mostrar valores' : 'Ocultar valores',
@@ -94,7 +94,9 @@ class _FinanceSummaryCardState extends ConsumerState<FinanceSummaryCard> {
                           await ref
                               .read(financeControllerProvider.notifier)
                               .updateInitialBalance(value);
-                          ref.read(simulationControllerProvider.notifier).clear();
+                          ref
+                              .read(simulationControllerProvider.notifier)
+                              .clear();
                         } catch (e) {
                           if (context.mounted) showErrorSnack(context, e);
                         }
@@ -204,8 +206,7 @@ class _FinanceSummaryCardState extends ConsumerState<FinanceSummaryCard> {
             child: TextButton.icon(
               onPressed: () => setState(() => _expanded = !_expanded),
               icon: Text(_expanded ? 'Mostrar menos' : 'Mostrar mais'),
-              label: Icon(
-                  _expanded ? Icons.expand_less : Icons.expand_more,
+              label: Icon(_expanded ? Icons.expand_less : Icons.expand_more,
                   size: 18),
             ),
           ),
@@ -234,8 +235,8 @@ class _BalanceEditor extends StatelessWidget {
           child: AppTextField(
             controller: controller,
             hint: 'Ex.: 1500.00',
-            keyboardType:
-                const TextInputType.numberWithOptions(decimal: true, signed: true),
+            keyboardType: const TextInputType.numberWithOptions(
+                decimal: true, signed: true),
             inputFormatters: [
               FilteringTextInputFormatter.allow(RegExp(r'[0-9.,-]')),
             ],
@@ -281,7 +282,8 @@ class _SimulationBanner extends StatelessWidget {
             children: [
               const Expanded(
                 child: Text('Simulação ativa',
-                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                    style:
+                        TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
               ),
               Icon(Icons.auto_awesome, size: 18, color: scheme.primary),
             ],
@@ -290,7 +292,8 @@ class _SimulationBanner extends StatelessWidget {
           Text('O impacto abaixo ainda não foi salvo.',
               style: TextStyle(fontSize: 12, color: context.mutedForeground)),
           const SizedBox(height: 12),
-          _MiniStat(label: 'Saldo projetado', value: mask(forecast.projectedBalance)),
+          _MiniStat(
+              label: 'Saldo projetado', value: mask(forecast.projectedBalance)),
           const SizedBox(height: 8),
           Row(
             children: [

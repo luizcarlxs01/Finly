@@ -86,17 +86,17 @@ class _TransactionEditSheetState extends ConsumerState<_TransactionEditSheet> {
   }
 
   Future<void> _saveOccurrence() async {
-    final amount =
-        parseAmount(_occAmount.text) ?? 0;
+    final amount = parseAmount(_occAmount.text) ?? 0;
     if (amount <= 0) {
       showInfoSnack(context, 'Informe um valor válido para a ocorrência.');
       return;
     }
-    await _run(() => ref.read(financeControllerProvider.notifier).saveOccurrence(
-          widget.item.occurrenceId,
-          dueDate: _occDueDateValue,
-          amount: amount,
-        ));
+    await _run(
+        () => ref.read(financeControllerProvider.notifier).saveOccurrence(
+              widget.item.occurrenceId,
+              dueDate: _occDueDateValue,
+              amount: amount,
+            ));
   }
 
   Future<void> _toggleStatus() async {
@@ -157,14 +157,15 @@ class _TransactionEditSheetState extends ConsumerState<_TransactionEditSheet> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text('Lançamento gerado automaticamente',
-                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                    style:
+                        TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
                 const SizedBox(height: 4),
                 Text(
                   item.displayKind == DisplayKind.installmentInstance
                       ? 'Esta transação veio de um parcelamento. Ajuste a série no item original.'
                       : 'Esta transação veio de uma recorrência. Ajuste a série no item original.',
-                  style: TextStyle(
-                      fontSize: 12.5, color: context.mutedForeground),
+                  style:
+                      TextStyle(fontSize: 12.5, color: context.mutedForeground),
                 ),
               ],
             ),
@@ -195,12 +196,13 @@ class _TransactionEditSheetState extends ConsumerState<_TransactionEditSheet> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text('Esta ocorrência',
-                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                    style:
+                        TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
                 const SizedBox(height: 4),
                 Text(
                   'Data e valor apenas desta parcela ou competência, sem afetar as demais da série.',
-                  style: TextStyle(
-                      fontSize: 12.5, color: context.mutedForeground),
+                  style:
+                      TextStyle(fontSize: 12.5, color: context.mutedForeground),
                 ),
                 const SizedBox(height: 12),
                 LabeledField(

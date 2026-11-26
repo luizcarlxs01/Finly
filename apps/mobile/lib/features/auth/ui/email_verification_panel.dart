@@ -19,7 +19,8 @@ class EmailVerificationPanel extends ConsumerStatefulWidget {
       _EmailVerificationPanelState();
 }
 
-class _EmailVerificationPanelState extends ConsumerState<EmailVerificationPanel> {
+class _EmailVerificationPanelState
+    extends ConsumerState<EmailVerificationPanel> {
   final _code = TextEditingController();
   String? _error;
   String? _resendMessage;
@@ -42,7 +43,9 @@ class _EmailVerificationPanelState extends ConsumerState<EmailVerificationPanel>
       _resendMessage = null;
     });
     try {
-      await ref.read(authControllerProvider.notifier).verifyCode(_code.text.trim());
+      await ref
+          .read(authControllerProvider.notifier)
+          .verifyCode(_code.text.trim());
       if (mounted) Navigator.of(context).maybePop();
     } catch (error) {
       setState(() => _error = error.toString());
@@ -56,7 +59,8 @@ class _EmailVerificationPanelState extends ConsumerState<EmailVerificationPanel>
     });
     try {
       await ref.read(authControllerProvider.notifier).resendCode();
-      setState(() => _resendMessage = 'Enviamos um novo código para o seu e-mail.');
+      setState(
+          () => _resendMessage = 'Enviamos um novo código para o seu e-mail.');
     } catch (error) {
       setState(() => _error = error.toString());
     }
@@ -124,7 +128,8 @@ class _EmailVerificationPanelState extends ConsumerState<EmailVerificationPanel>
                   ),
                   child: Text(
                     _resendMessage!,
-                    style: TextStyle(fontSize: 13, color: context.scheme.primary),
+                    style:
+                        TextStyle(fontSize: 13, color: context.scheme.primary),
                   ),
                 ),
               ],
@@ -133,7 +138,8 @@ class _EmailVerificationPanelState extends ConsumerState<EmailVerificationPanel>
                 onPressed: isSubmitting || _code.text.trim().length != 6
                     ? null
                     : _verify,
-                child: Text(isSubmitting ? 'Confirmando...' : 'Confirmar código'),
+                child:
+                    Text(isSubmitting ? 'Confirmando...' : 'Confirmar código'),
               ),
               const SizedBox(height: 12),
               Row(

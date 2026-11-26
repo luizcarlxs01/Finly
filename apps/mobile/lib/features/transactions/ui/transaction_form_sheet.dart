@@ -37,7 +37,9 @@ class _TransactionFormSheetState extends ConsumerState<_TransactionFormSheet> {
     }
     setState(() => _submitting = true);
     try {
-      await ref.read(financeControllerProvider.notifier).createTransaction(input);
+      await ref
+          .read(financeControllerProvider.notifier)
+          .createTransaction(input);
       ref.read(simulationControllerProvider.notifier).clear();
       if (mounted) Navigator.of(context).pop();
     } catch (e) {

@@ -184,7 +184,8 @@ class _AdminTopicRowState extends ConsumerState<_AdminTopicRow> {
               controller: _replyController,
               maxLines: 3,
               decoration: const InputDecoration(
-                hintText: 'Escreva a resposta que vai aparecer no tópico e por e-mail...',
+                hintText:
+                    'Escreva a resposta que vai aparecer no tópico e por e-mail...',
               ),
             ),
             const SizedBox(height: 8),

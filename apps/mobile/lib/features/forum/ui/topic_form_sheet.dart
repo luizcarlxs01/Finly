@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme.dart';
@@ -14,21 +15,26 @@ Future<void> showTopicFormSheet(BuildContext context) {
   return showFinlySheet(
     context: context,
     title: 'Novo tópico',
-    builder: (_) => const _TopicFormSheet(),
+    builder: (_) => const TopicForm(),
   );
 }
 
-class _TopicFormSheet extends ConsumerStatefulWidget {
-  const _TopicFormSheet();
+/// Formulário do tópico. `inline` = card dentro da tela (como na web); senão
+/// vive numa folha e fecha ao publicar.
+class TopicForm extends ConsumerStatefulWidget {
+  const TopicForm({super.key, this.inline = false});
+  final bool inline;
 
   @override
-  ConsumerState<_TopicFormSheet> createState() => _TopicFormSheetState();
+  ConsumerState<TopicForm> createState() => _TopicFormSheetState();
 }
 
-class _TopicFormSheetState extends ConsumerState<_TopicFormSheet> {
+class _TopicFormSheetState extends ConsumerState<TopicForm> {
   final _title = TextEditingController();
   final _body = TextEditingController();
   bool _busy = false;
+  String? _error;
+  String? _success;
 
   @override
   void dispose() {
@@ -41,8 +47,13 @@ class _TopicFormSheetState extends ConsumerState<_TopicFormSheet> {
     final title = _title.text.trim();
     final body = _body.text.trim();
 
+    setState(() {
+      _error = null;
+      _success = null;
+    });
+
     if (title.isEmpty || body.isEmpty) {
-      showInfoSnack(context, 'Preencha todos os campos antes de publicar.');
+      setState(() => _error = 'Preencha todos os campos antes de publicar.');
       return;
     }
 
@@ -52,16 +63,25 @@ class _TopicFormSheetState extends ConsumerState<_TopicFormSheet> {
           .read(forumControllerProvider.notifier)
           .submitTopic(CreateTopicRequest(title: title, body: body));
       if (mounted) {
-        Navigator.of(context).pop();
-        showInfoSnack(
-          context,
-          created.status.apiValue == 'Published'
-              ? 'Tópico publicado! Já aparece na lista.'
-              : 'Recebemos seu tópico. Ele passou por uma checagem automática e vai aparecer assim que for aprovado.',
-        );
+        final message = created.status.apiValue == 'Published'
+            ? 'Tópico publicado! Já aparece na lista abaixo.'
+            : 'Recebemos seu tópico. Ele passou por uma checagem automática e vai aparecer assim que for aprovado.';
+        if (widget.inline) {
+          _title.clear();
+          _body.clear();
+          setState(() => _success = message);
+        } else {
+          Navigator.of(context).pop();
+          showInfoSnack(context, message);
+        }
       }
     } catch (e) {
-      if (mounted) showErrorSnack(context, e);
+      if (mounted) {
+        final text = e.toString().replaceFirst('Exception: ', '').trim();
+        setState(() => _error = text.isNotEmpty
+            ? text
+            : 'Não foi possível publicar seu tópico agora. Tente novamente.');
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -71,9 +91,14 @@ class _TopicFormSheetState extends ConsumerState<_TopicFormSheet> {
   Widget build(BuildContext context) {
     final session = ref.watch(authControllerProvider).session;
 
-    return Column(
+    final form = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (widget.inline) ...[
+          const Text('Novo tópico',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 4),
+        ],
         Text(
           'Deixe sua dúvida, reclamação ou sugestão. Respondemos por aqui e por e-mail.',
           style: TextStyle(fontSize: 13, color: context.mutedForeground),
@@ -85,6 +110,7 @@ class _TopicFormSheetState extends ConsumerState<_TopicFormSheet> {
             controller: _title,
             hint: 'Ex.: Não consigo editar uma parcela',
             textInputAction: TextInputAction.next,
+            inputFormatters: [LengthLimitingTextInputFormatter(150)],
           ),
         ),
         const SizedBox(height: 14),
@@ -94,13 +120,15 @@ class _TopicFormSheetState extends ConsumerState<_TopicFormSheet> {
             controller: _body,
             hint: 'Descreva com detalhes...',
             maxLines: 5,
+            inputFormatters: [LengthLimitingTextInputFormatter(2000)],
           ),
         ),
         const SizedBox(height: 14),
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: context.scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+            color:
+                context.scheme.surfaceContainerHighest.withValues(alpha: 0.5),
             borderRadius: BorderRadius.circular(14),
           ),
           child: Text.rich(
@@ -118,12 +146,21 @@ class _TopicFormSheetState extends ConsumerState<_TopicFormSheet> {
                   style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
                 const TextSpan(
-                  text: ') — os dados da sua conta, usamos o e-mail só para avisar quando alguém responder.',
+                  text:
+                      ') — os dados da sua conta, usamos o e-mail só para avisar quando alguém responder.',
                 ),
               ],
             ),
           ),
         ),
+        if (_error != null) ...[
+          const SizedBox(height: 14),
+          _FormMessage(text: _error!, color: context.scheme.error),
+        ],
+        if (_success != null) ...[
+          const SizedBox(height: 14),
+          _FormMessage(text: _success!, color: context.scheme.primary),
+        ],
         const SizedBox(height: 20),
         ElevatedButton(
           onPressed: _busy ? null : _submit,
@@ -131,5 +168,23 @@ class _TopicFormSheetState extends ConsumerState<_TopicFormSheet> {
         ),
       ],
     );
+    return widget.inline ? FinlyCard(child: form) : form;
   }
+}
+
+class _FormMessage extends StatelessWidget {
+  const _FormMessage({required this.text, required this.color});
+  final String text;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
+        ),
+        child: Text(text, style: TextStyle(fontSize: 13, color: color)),
+      );
 }

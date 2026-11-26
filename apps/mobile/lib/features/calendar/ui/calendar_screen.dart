@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme.dart';
 import '../../../core/format/formatters.dart';
+import '../../../core/privacy/value_privacy.dart';
 import '../../../core/widgets/widgets.dart';
 import '../../../shared/models/categories.dart';
 import '../../../shared/models/enums.dart';
@@ -42,11 +43,12 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final hidden = ref.watch(valuePrivacyProvider);
     final financeAsync = ref.watch(financeControllerProvider);
     final finance = financeAsync.valueOrNull ?? FinanceData.empty;
     final now = DateTime.now();
-    final isCurrentMonth = _visibleMonth.year == now.year &&
-        _visibleMonth.month == now.month;
+    final isCurrentMonth =
+        _visibleMonth.year == now.year && _visibleMonth.month == now.month;
 
     final month = getCalendarMonthData(
       transactions: finance.lineItems,
@@ -100,17 +102,20 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   children: [
                     _SummaryBox(
                         label: 'Entradas previstas',
-                        value: Fmt.currency(month.summary.totalIncome),
+                        value: Fmt.maskedCurrency(month.summary.totalIncome,
+                            hidden: hidden),
                         color: context.scheme.primary),
                     const SizedBox(width: 8),
                     _SummaryBox(
                         label: 'Saídas previstas',
-                        value: Fmt.currency(month.summary.totalExpense),
+                        value: Fmt.maskedCurrency(month.summary.totalExpense,
+                            hidden: hidden),
                         color: context.scheme.onSurface),
                     const SizedBox(width: 8),
                     _SummaryBox(
                       label: 'Saldo projetado',
-                      value: Fmt.currency(month.summary.cumulativeBalance),
+                      value: Fmt.maskedCurrency(month.summary.cumulativeBalance,
+                          hidden: hidden),
                       color: month.summary.cumulativeBalance < 0
                           ? context.scheme.error
                           : context.scheme.onSurface,
@@ -123,7 +128,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(AppColors.fieldRadius),
+                      borderRadius:
+                          BorderRadius.circular(AppColors.fieldRadius),
                       border: Border.all(color: context.scheme.outline),
                     ),
                     child: Text('Nenhum lançamento neste mês.',
@@ -138,6 +144,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                 ),
                 const SizedBox(height: 16),
                 _DayPanel(
+                  hidden: hidden,
                   day: selectedDay,
                   onEdit: (item) => showTransactionEditSheet(context, item),
                 ),
@@ -171,8 +178,7 @@ class _SummaryBox extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(label,
-                style: TextStyle(
-                    fontSize: 10, color: context.mutedForeground)),
+                style: TextStyle(fontSize: 10, color: context.mutedForeground)),
             const SizedBox(height: 4),
             Text(value,
                 maxLines: 1,
@@ -213,7 +219,7 @@ class _CalendarGrid extends StatelessWidget {
         _DayCell(
           day: day,
           selected: day.dateValue == selectedDate,
-          onTap: day.occurrences.isEmpty ? null : () => onSelect(day.dateValue),
+          onTap: () => onSelect(day.dateValue),
         ),
     ];
 
@@ -347,7 +353,9 @@ class _LegendDot extends StatelessWidget {
 }
 
 class _DayPanel extends StatelessWidget {
-  const _DayPanel({required this.day, required this.onEdit});
+  const _DayPanel(
+      {required this.day, required this.onEdit, this.hidden = false});
+  final bool hidden;
   final CalendarDay? day;
   final void Function(LineItem item) onEdit;
 
@@ -386,7 +394,7 @@ class _DayPanel extends StatelessWidget {
                   const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
           const SizedBox(height: 4),
           Text(
-            '${d.occurrences.length} lançamento${d.occurrences.length == 1 ? '' : 's'} · entradas ${Fmt.currency(income)} · saídas ${Fmt.currency(expense)}',
+            '${d.occurrences.length} lançamento${d.occurrences.length == 1 ? '' : 's'} · entradas ${Fmt.maskedCurrency(income, hidden: hidden)} · saídas ${Fmt.maskedCurrency(expense, hidden: hidden)}',
             style: TextStyle(fontSize: 12, color: context.mutedForeground),
           ),
           const SizedBox(height: 12),
@@ -410,11 +418,12 @@ class _DayPanel extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                                fontSize: 13.5,
-                                fontWeight: FontWeight.w700)),
+                                fontSize: 13.5, fontWeight: FontWeight.w700)),
                       ),
                       Text(
-                        '${isIncome ? '+' : '-'}${Fmt.currency(o.amount)}',
+                        hidden
+                            ? '••••••'
+                            : '${isIncome ? '+' : '−'} ${Fmt.currency(o.amount)}',
                         style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
@@ -431,18 +440,17 @@ class _DayPanel extends StatelessWidget {
                         label: o.isPaid ? 'Pago' : 'Pendente',
                         leadingDot: o.isPaid
                             ? context.success
-                            : context.mutedForeground
-                                .withValues(alpha: 0.45),
+                            : context.mutedForeground.withValues(alpha: 0.45),
                       ),
                       PillBadge(
-                        label: o.displayKind == DisplayKind.installmentInstance &&
+                        label: o.displayKind ==
+                                    DisplayKind.installmentInstance &&
                                 o.installmentIndex != null &&
                                 o.installmentCount != null
                             ? 'Parcela ${o.installmentIndex}/${o.installmentCount}'
                             : kindLabel(o.displayKind),
                       ),
-                      PillBadge(
-                          label: TransactionCategories.label(o.category)),
+                      PillBadge(label: TransactionCategories.label(o.category)),
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -451,8 +459,7 @@ class _DayPanel extends StatelessWidget {
                     child: OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
                           minimumSize: const Size(0, 34),
-                          padding:
-                              const EdgeInsets.symmetric(horizontal: 12)),
+                          padding: const EdgeInsets.symmetric(horizontal: 12)),
                       onPressed: () => onEdit(o),
                       icon: const Icon(Icons.edit_outlined, size: 14),
                       label: const Text('Editar'),

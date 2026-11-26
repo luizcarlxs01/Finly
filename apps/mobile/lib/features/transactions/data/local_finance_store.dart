@@ -12,8 +12,7 @@ import 'transaction_form_input.dart';
 
 const _uuid = Uuid();
 
-String _fmt(DateTime d) =>
-    '${d.year.toString().padLeft(4, '0')}-'
+String _fmt(DateTime d) => '${d.year.toString().padLeft(4, '0')}-'
     '${d.month.toString().padLeft(2, '0')}-'
     '${d.day.toString().padLeft(2, '0')}';
 
@@ -62,7 +61,8 @@ class LocalContract {
         amount: (json['amount'] as num?)?.toDouble() ?? 0,
         type: TransactionType.fromApi(json['type'] as String? ?? 'Expense'),
         category: (json['category'] as String? ?? 'geral').toLowerCase(),
-        kind: ContractKind.fromApi(json['transactionKind'] as String? ?? 'Single'),
+        kind: ContractKind.fromApi(
+            json['transactionKind'] as String? ?? 'Single'),
         transactionDate:
             (json['transactionDate'] as String? ?? '').split('T').first,
         sourceId: json['sourceId'] as String?,
@@ -138,14 +138,15 @@ class LocalFinanceProfile {
   final double? customOkThreshold;
   final double? customGoodThreshold;
 
-  SpendingProfileSettings get spendingProfileSettings => SpendingProfileSettings(
+  SpendingProfileSettings get spendingProfileSettings =>
+      SpendingProfileSettings(
         id: spendingProfile,
         customOkThreshold: customOkThreshold,
         customGoodThreshold: customGoodThreshold,
       );
 
-  static LocalFinanceProfile get empty =>
-      LocalFinanceProfile(initialBalance: 0, contracts: const [], occurrences: const []);
+  static LocalFinanceProfile get empty => LocalFinanceProfile(
+      initialBalance: 0, contracts: const [], occurrences: const []);
 
   LocalFinanceProfile copyWith({
     double? initialBalance,
@@ -170,7 +171,8 @@ class LocalFinanceProfile {
         occurrences: (json['occurrences'] as List<dynamic>? ?? [])
             .map((e) => Occurrence.fromJson(e as Map<String, dynamic>))
             .toList(),
-        spendingProfile: SpendingProfileId.fromLocalName(json['spendingProfile'] as String?),
+        spendingProfile:
+            SpendingProfileId.fromLocalName(json['spendingProfile'] as String?),
         customOkThreshold: (json['customOkThreshold'] as num?)?.toDouble(),
         customGoodThreshold: (json['customGoodThreshold'] as num?)?.toDouble(),
       );
@@ -241,7 +243,8 @@ class LocalFinanceStore extends AsyncNotifier<LocalFinanceProfile> {
       occurrences: p.occurrences,
       spendingProfile: settings.id,
       customOkThreshold: isPersonalizado ? settings.customOkThreshold : null,
-      customGoodThreshold: isPersonalizado ? settings.customGoodThreshold : null,
+      customGoodThreshold:
+          isPersonalizado ? settings.customGoodThreshold : null,
     ));
   }
 
@@ -258,8 +261,7 @@ class LocalFinanceStore extends AsyncNotifier<LocalFinanceProfile> {
               installmentIndex: g.installmentIndex,
               dueDate: _fmt(g.dueDate),
               amount: g.amount,
-              status:
-                  g.paid ? OccurrenceStatus.paid : OccurrenceStatus.pending,
+              status: g.paid ? OccurrenceStatus.paid : OccurrenceStatus.pending,
               paidAt: g.paid ? now : null,
               isCustomized: false,
             ))
@@ -319,8 +321,7 @@ class LocalFinanceStore extends AsyncNotifier<LocalFinanceProfile> {
     await _save(_p.copyWith(
       occurrences: _p.occurrences
           .map((o) => o.id == occurrenceId
-              ? o.copyWith(
-                  amount: amount, dueDate: dueDate, isCustomized: true)
+              ? o.copyWith(amount: amount, dueDate: dueDate, isCustomized: true)
               : o)
           .toList(),
     ));
@@ -405,8 +406,7 @@ class LocalFinanceStore extends AsyncNotifier<LocalFinanceProfile> {
     for (final c in indefinite) {
       final active = p.occurrences
           .where((o) =>
-              o.transactionId == c.id &&
-              o.status != OccurrenceStatus.cancelled)
+              o.transactionId == c.id && o.status != OccurrenceStatus.cancelled)
           .toList();
       if (active.isEmpty) continue;
 
@@ -420,9 +420,10 @@ class LocalFinanceStore extends AsyncNotifier<LocalFinanceProfile> {
       final indexed = active.where((o) => o.installmentIndex != null);
       final maxIndex = indexed.isEmpty
           ? 0
-          : indexed.map((o) => o.installmentIndex!).reduce((a, b) => a > b ? a : b);
-      final existing =
-          indexed.map((o) => o.installmentIndex!).toSet();
+          : indexed
+              .map((o) => o.installmentIndex!)
+              .reduce((a, b) => a > b ? a : b);
+      final existing = indexed.map((o) => o.installmentIndex!).toSet();
 
       final fromDate =
           DateTime(maxDueDate.year, maxDueDate.month + 1, maxDueDate.day, 12);

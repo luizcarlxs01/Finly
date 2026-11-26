@@ -4,8 +4,8 @@ import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-heade
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-const APP_VERSION = "1.00.000";
-const APK_SIZE_MB = "54";
+const APP_VERSION = "1.00.001";
+const APK_SIZE_MB = "55";
 
 export function DashboardDownloadView() {
   return (

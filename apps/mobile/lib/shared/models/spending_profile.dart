@@ -23,8 +23,10 @@ enum SpendingProfileId {
       };
 
   String get description => switch (this) {
-        SpendingProfileId.economico => 'Sobra menor já conta como uma boa notícia.',
-        SpendingProfileId.gastao => 'Precisa de uma folga maior pra ser considerada boa.',
+        SpendingProfileId.economico =>
+          'Sobra menor já conta como uma boa notícia.',
+        SpendingProfileId.gastao =>
+          'Precisa de uma folga maior pra ser considerada boa.',
         SpendingProfileId.padrao => 'Faixas de referência para o padrão médio.',
         SpendingProfileId.personalizado =>
           'Você define os valores que fazem sentido pra você.',
@@ -55,7 +57,8 @@ enum SpendingProfileId {
   }
 }
 
-const Map<SpendingProfileId, ({double ok, double good})> spendingProfilePresets = {
+const Map<SpendingProfileId, ({double ok, double good})>
+    spendingProfilePresets = {
   SpendingProfileId.economico: (ok: 200, good: 800),
   SpendingProfileId.padrao: (ok: 500, good: 2000),
   SpendingProfileId.gastao: (ok: 2000, good: 8000),
@@ -83,12 +86,14 @@ class SpendingProfileSettings {
   static const defaults = SpendingProfileSettings(id: SpendingProfileId.padrao);
 }
 
-({double ok, double good}) resolveSpendingThresholds(SpendingProfileSettings settings) {
+({double ok, double good}) resolveSpendingThresholds(
+    SpendingProfileSettings settings) {
   if (settings.id != SpendingProfileId.personalizado) {
     return spendingProfilePresets[settings.id]!;
   }
 
-  final good = (settings.customGoodThreshold != null && settings.customGoodThreshold! > 0)
+  final good = (settings.customGoodThreshold != null &&
+          settings.customGoodThreshold! > 0)
       ? settings.customGoodThreshold!
       : spendingProfilePresets[SpendingProfileId.padrao]!.good;
   final ok = settings.customOkThreshold ?? deriveCustomOkThreshold(good);

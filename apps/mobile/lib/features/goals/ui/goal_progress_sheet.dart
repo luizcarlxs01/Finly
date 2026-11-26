@@ -72,8 +72,8 @@ class _GoalProgressSheetState extends ConsumerState<_GoalProgressSheet> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('Meta',
-                  style: TextStyle(
-                      fontSize: 12, color: context.mutedForeground)),
+                  style:
+                      TextStyle(fontSize: 12, color: context.mutedForeground)),
               const SizedBox(height: 2),
               Text(widget.goal.title,
                   style: const TextStyle(

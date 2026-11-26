@@ -34,7 +34,8 @@ class Occurrence {
         installmentIndex: _toInt(json['installmentIndex']),
         dueDate: (json['dueDate'] as String).split('T').first,
         amount: _toDouble(json['amount']),
-        status: OccurrenceStatus.fromApi(json['status'] as String? ?? 'Pending'),
+        status:
+            OccurrenceStatus.fromApi(json['status'] as String? ?? 'Pending'),
         paidAt: json['paidAt'] == null
             ? null
             : DateTime.tryParse(json['paidAt'] as String),
@@ -130,7 +131,8 @@ class TransactionContract {
       amount: _toDouble(json['amount']),
       type: TransactionType.fromApi(json['type'] as String? ?? 'Expense'),
       category: (json['category'] as String? ?? 'geral').toLowerCase(),
-      kind: ContractKind.fromApi(json['transactionKind'] as String? ?? 'Single'),
+      kind:
+          ContractKind.fromApi(json['transactionKind'] as String? ?? 'Single'),
       transactionDate:
           (json['transactionDate'] as String? ?? '').split('T').first,
       sourceId: json['sourceId'] as String?,
@@ -142,8 +144,8 @@ class TransactionContract {
           (json['recurrenceEndDate'] as String?)?.split('T').first,
       recurrenceDay: _toInt(json['recurrenceDay']),
       recurrenceMonths: _toInt(json['recurrenceMonths']),
-      createdAt:
-          DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
+      createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ??
+          DateTime.now(),
       occurrences: rawOccurrences,
     );
   }

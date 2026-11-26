@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'theme.dart';
+
 /// Casca das 5 abas — adaptação de plataforma do AppFloatingHeader do web
 /// (PASSO 8 do briefing: bottom nav é o padrão mobile idiomático). O ícone de
 /// conta fica no `AppBar` de cada tela, acessível de qualquer lugar.
@@ -13,39 +15,56 @@ class AppShell extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: shell,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: shell.currentIndex,
-        onDestinationSelected: (index) => shell.goBranch(
-          index,
-          initialLocation: index == shell.currentIndex,
+      bottomNavigationBar: Container(
+        margin: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: context.scheme.surface.withValues(alpha: 0.94),
+          borderRadius: BorderRadius.circular(24),
+          border:
+              Border.all(color: context.scheme.outline.withValues(alpha: 0.65)),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF031533).withValues(alpha: 0.13),
+              blurRadius: 28,
+              offset: const Offset(0, 8),
+            )
+          ],
         ),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home_rounded),
-            label: 'Início',
+        child: NavigationBar(
+          selectedIndex: shell.currentIndex,
+          onDestinationSelected: (index) => shell.goBranch(
+            index,
+            initialLocation: index == shell.currentIndex,
           ),
-          NavigationDestination(
-            icon: Icon(Icons.account_balance_wallet_outlined),
-            selectedIcon: Icon(Icons.account_balance_wallet_rounded),
-            label: 'Lançamentos',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.flag_outlined),
-            selectedIcon: Icon(Icons.flag_rounded),
-            label: 'Metas',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.lightbulb_outline),
-            selectedIcon: Icon(Icons.lightbulb_rounded),
-            label: 'Insights',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.forum_outlined),
-            selectedIcon: Icon(Icons.forum_rounded),
-            label: 'Fórum',
-          ),
-        ],
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.home_outlined),
+              selectedIcon: Icon(Icons.home_rounded),
+              label: 'Início',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.account_balance_wallet_outlined),
+              selectedIcon: Icon(Icons.account_balance_wallet_rounded),
+              label: 'Lançamentos',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.flag_outlined),
+              selectedIcon: Icon(Icons.flag_rounded),
+              label: 'Metas',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.lightbulb_outline),
+              selectedIcon: Icon(Icons.lightbulb_rounded),
+              label: 'Insights',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.forum_outlined),
+              selectedIcon: Icon(Icons.forum_rounded),
+              label: 'Fórum',
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -60,22 +79,40 @@ class FinlyAppBar extends StatelessWidget implements PreferredSizeWidget {
   final Widget? themeToggle;
 
   @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+  Size get preferredSize => const Size.fromHeight(70);
 
   @override
   Widget build(BuildContext context) {
-    return AppBar(
-      title: Text(title,
-          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
-      actions: [
-        if (themeToggle != null) themeToggle!,
-        IconButton(
-          tooltip: 'Conta',
-          icon: const Icon(Icons.person_outline),
-          onPressed: () => context.push('/account'),
-        ),
-        const SizedBox(width: 4),
-      ],
+    return Container(
+      margin: const EdgeInsets.fromLTRB(12, 8, 12, 2),
+      decoration: BoxDecoration(
+        color: context.scheme.surface.withValues(alpha: 0.9),
+        borderRadius: BorderRadius.circular(22),
+        border:
+            Border.all(color: context.scheme.outline.withValues(alpha: 0.7)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF031533).withValues(alpha: 0.09),
+            blurRadius: 24,
+            offset: const Offset(0, 6),
+          )
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: AppBar(
+        backgroundColor: Colors.transparent,
+        title: Text(title,
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
+        actions: [
+          if (themeToggle != null) themeToggle!,
+          IconButton(
+            tooltip: 'Conta',
+            icon: const Icon(Icons.person_outline),
+            onPressed: () => context.push('/account'),
+          ),
+          const SizedBox(width: 4),
+        ],
+      ),
     );
   }
 }

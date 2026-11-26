@@ -26,16 +26,22 @@ class ForumScreen extends ConsumerWidget {
     return Scaffold(
       appBar:
           const FinlyAppBar(title: 'Fórum', themeToggle: ThemeToggleButton()),
-      floatingActionButton: authenticated
-          ? FloatingActionButton(
-              onPressed: () => showTopicFormSheet(context),
-              child: const Icon(Icons.add),
-            )
-          : null,
       body: RefreshIndicator(
-        onRefresh: () => ref.read(forumControllerProvider.notifier).refreshTopics(),
+        onRefresh: () =>
+            ref.read(forumControllerProvider.notifier).refreshTopics(),
         child: forumAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => ListView(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 28),
+            children: [
+              const SectionHeader(
+                  subtitle:
+                      'Dúvidas, reclamações e sugestões da comunidade Finly.'),
+              const SizedBox(height: 14),
+              Text('Carregando tópicos...',
+                  style:
+                      TextStyle(fontSize: 13, color: context.mutedForeground)),
+            ],
+          ),
           error: (e, _) => ListView(
             padding: const EdgeInsets.all(16),
             children: [
@@ -46,32 +52,13 @@ class ForumScreen extends ConsumerWidget {
             ],
           ),
           data: (state) => ListView(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 96),
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 28),
             children: [
               const SectionHeader(
                 subtitle:
                     'Dúvidas, reclamações e sugestões da comunidade Finly.',
               ),
               const SizedBox(height: 14),
-              if (!authenticated) ...[
-                FinlyCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Entre para publicar',
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Só quem tem uma conta no Finly pode criar tópicos. Abra a aba Conta para entrar ou criar a sua.',
-                        style: TextStyle(fontSize: 12.5, color: context.mutedForeground),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ],
               if (state.isAdmin && state.adminTopics != null) ...[
                 ForumAdminPanel(
                   topics: state.adminTopics!,
@@ -79,10 +66,45 @@ class ForumScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 16),
               ],
+              if (!authenticated) ...[
+                FinlyCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Entre para publicar',
+                        style: TextStyle(
+                            fontSize: 15, fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Só quem tem uma conta no Finly pode criar tópicos. Abra a área Conta pelo ícone no topo para entrar ou criar a sua.',
+                        style: TextStyle(
+                            fontSize: 12.5, color: context.mutedForeground),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ] else ...[
+                const TopicForm(inline: true),
+                const SizedBox(height: 16),
+              ],
               if (state.topics.isEmpty)
-                const EmptyState(
-                  title: 'Nenhum tópico por aqui ainda',
-                  description: 'Seja o primeiro a publicar um tópico.',
+                Container(
+                  padding: const EdgeInsets.all(28),
+                  decoration: BoxDecoration(
+                    color: context.scheme.surface.withValues(alpha: 0.6),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                        color: context.scheme.outline.withValues(alpha: 0.7)),
+                  ),
+                  child: Text(
+                    'Nenhum tópico por aqui ainda. Seja o primeiro a publicar.',
+                    textAlign: TextAlign.center,
+                    style:
+                        TextStyle(fontSize: 13, color: context.mutedForeground),
+                  ),
                 )
               else
                 ...state.topics.map(
@@ -130,25 +152,33 @@ class _TopicCard extends StatelessWidget {
                     const SizedBox(width: 8),
                     PillBadge(
                       label: topic.status.label,
-                      background: topic.status == TopicStatus.published
-                          ? context.success.withValues(alpha: 0.12)
-                          : Colors.amber.withValues(alpha: 0.12),
-                      foreground: topic.status == TopicStatus.published
-                          ? context.success
-                          : Colors.amber.shade800,
+                      background: switch (topic.status) {
+                        TopicStatus.published =>
+                          context.success.withValues(alpha: 0.12),
+                        TopicStatus.hidden =>
+                          context.scheme.surfaceContainerHighest,
+                        _ => Colors.amber.withValues(alpha: 0.12),
+                      },
+                      foreground: switch (topic.status) {
+                        TopicStatus.published => context.success,
+                        TopicStatus.hidden => context.mutedForeground,
+                        _ => Colors.amber.shade800,
+                      },
                     ),
                   ],
                 ),
                 const SizedBox(height: 4),
                 Text(
                   '${topic.authorName} · ${DateFormat('dd/MM/yyyy', 'pt_BR').format(topic.createdAt)}',
-                  style: TextStyle(fontSize: 11.5, color: context.mutedForeground),
+                  style:
+                      TextStyle(fontSize: 11.5, color: context.mutedForeground),
                 ),
                 if (topic.moderationReason != null) ...[
                   const SizedBox(height: 2),
                   Text(
                     topic.moderationReason!,
-                    style: TextStyle(fontSize: 11.5, color: Colors.amber.shade800),
+                    style:
+                        TextStyle(fontSize: 11.5, color: Colors.amber.shade800),
                   ),
                 ],
               ],

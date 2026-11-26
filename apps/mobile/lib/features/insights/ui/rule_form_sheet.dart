@@ -96,8 +96,9 @@ class _RuleFormSheetState extends ConsumerState<_RuleFormSheet> {
     final title = _title.text.trim();
     final amount = parseAmount(_amount.text) ?? 0;
     final day = int.tryParse(_dayOfMonth.text) ?? 0;
-    final totalMonths =
-        _totalMonths.text.trim().isEmpty ? null : int.tryParse(_totalMonths.text);
+    final totalMonths = _totalMonths.text.trim().isEmpty
+        ? null
+        : int.tryParse(_totalMonths.text);
 
     if (title.isEmpty ||
         amount <= 0 ||
@@ -189,6 +190,7 @@ class _RuleFormSheetState extends ConsumerState<_RuleFormSheet> {
                 label: 'Dia do mês',
                 child: AppTextField(
                   controller: _dayOfMonth,
+                  hint: 'Ex.: 5',
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 ),
@@ -236,17 +238,29 @@ class _RuleFormSheetState extends ConsumerState<_RuleFormSheet> {
                 : 'Quantidade de meses',
             child: AppTextField(
               controller: _totalMonths,
+              hint: 'Ex.: 12',
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             ),
           ),
         ],
-        const SizedBox(height: 8),
-        SwitchListTile.adaptive(
-          contentPadding: EdgeInsets.zero,
-          value: _isActive,
-          onChanged: (v) => setState(() => _isActive = v),
-          title: const Text('Regra ativa'),
+        const SizedBox(height: 14),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+                color: Theme.of(context)
+                    .colorScheme
+                    .outline
+                    .withValues(alpha: 0.6)),
+          ),
+          child: SwitchListTile.adaptive(
+            contentPadding: EdgeInsets.zero,
+            value: _isActive,
+            onChanged: (v) => setState(() => _isActive = v),
+            title: const Text('Regra ativa'),
+          ),
         ),
         const SizedBox(height: 12),
         ElevatedButton(

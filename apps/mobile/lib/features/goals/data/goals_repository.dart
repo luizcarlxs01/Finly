@@ -43,7 +43,8 @@ class GoalsRepository {
     );
   }
 
-  Future<void> deleteGoal(String goalId) => _client.delete('/api/Goals/$goalId');
+  Future<void> deleteGoal(String goalId) =>
+      _client.delete('/api/Goals/$goalId');
 }
 
 final goalsRepositoryProvider = Provider<GoalsRepository>(

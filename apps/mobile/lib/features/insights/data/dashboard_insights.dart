@@ -46,8 +46,9 @@ class DashboardInsight {
       .where((g) => g.targetAmount > 0)
       .map((g) => (
             goal: g,
-            percentage:
-                ((g.currentAmount / g.targetAmount) * 100).clamp(0, 100).toDouble(),
+            percentage: ((g.currentAmount / g.targetAmount) * 100)
+                .clamp(0, 100)
+                .toDouble(),
           ))
       .where((e) => e.percentage < 100)
       .toList()
@@ -73,20 +74,23 @@ class DashboardInsight {
   if (currentBalance >= thresholds.good) {
     return (
       label: 'Saldo saudável',
-      description: 'Seu saldo atual mantém uma folga confortável para o seu perfil de gastos.',
+      description:
+          'Seu saldo atual mantém uma folga confortável para o seu perfil de gastos.',
       tone: InsightTone.positive,
     );
   }
   if (currentBalance >= thresholds.ok) {
     return (
       label: 'Saldo em atenção',
-      description: 'Seu saldo está numa faixa intermediária para o seu perfil — dá pra melhorar.',
+      description:
+          'Seu saldo está numa faixa intermediária para o seu perfil — dá pra melhorar.',
       tone: InsightTone.neutral,
     );
   }
   return (
     label: 'Saldo baixo',
-    description: 'Seu saldo está abaixo do esperado para o seu perfil de gastos.',
+    description:
+        'Seu saldo está abaixo do esperado para o seu perfil de gastos.',
     tone: InsightTone.warning,
   );
 }

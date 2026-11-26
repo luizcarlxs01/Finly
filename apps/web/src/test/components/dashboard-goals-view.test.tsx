@@ -69,7 +69,7 @@ describe("DashboardGoalsView", () => {
       expect(screen.getAllByRole("heading", { level: 3 })).toHaveLength(size);
     }
     await user.click(screen.getByRole("button", { name: "Metas por página" }));
-    await user.click(screen.getByRole("option", { name: "Todas", exact: true }));
+    await user.click(screen.getByRole("option", { name: "Todas" }));
     expect(screen.getAllByRole("heading", { level: 3 })).toHaveLength(17);
     expect(screen.getByText("1–17")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Próxima página" })).not.toBeInTheDocument();
@@ -105,7 +105,7 @@ describe("DashboardGoalsView", () => {
     await user.click(screen.getByRole("button", { name: "Aplicar filtros" }));
     expect(screen.getByText("Meta 4")).toBeInTheDocument();
     await user.click(filterButton);
-    await user.click(screen.getByRole("button", { name: "Limpar", exact: true }));
+    await user.click(screen.getByRole("button", { name: "Limpar" }));
     expect(screen.getByLabelText("Categoria")).toHaveValue("");
     await user.click(screen.getByRole("button", { name: "Fechar filtros" }));
     expect(filterButton.querySelector("span")).toBeNull();
@@ -235,7 +235,7 @@ describe("DashboardGoalsView", () => {
     await user.selectOptions(screen.getByLabelText("Categoria"), "alimentacao");
     await user.click(screen.getByRole("button", { name: "Aplicar filtros" }));
     await user.click(filterButton);
-    await user.click(screen.getByRole("button", { name: "Limpar", exact: true }));
+    await user.click(screen.getByRole("button", { name: "Limpar" }));
     expect(filterButton.querySelector("span")).toBeNull();
   });
 

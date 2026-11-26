@@ -36,10 +36,11 @@ class Goal {
         currentAmount: (json['currentAmount'] as num?)?.toDouble() ?? 0,
         deadline: (json['deadline'] as String?)?.split('T').first,
         status: json['status'] as String? ?? '',
-        category: (json['category'] as String?)?.trim().toLowerCase().isNotEmpty ==
-                true
-            ? (json['category'] as String).trim().toLowerCase()
-            : 'general',
+        category:
+            (json['category'] as String?)?.trim().toLowerCase().isNotEmpty ==
+                    true
+                ? (json['category'] as String).trim().toLowerCase()
+                : 'general',
         createdAt: DateTime.tryParse(json['createdAt'] as String? ?? ''),
       );
 
