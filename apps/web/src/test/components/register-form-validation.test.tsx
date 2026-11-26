@@ -8,7 +8,7 @@ it("rejects a whitespace-only name before requesting registration", async () => 
   fireEvent.change(screen.getByLabelText("Nome"), { target: { value: "   " } });
   fireEvent.change(screen.getByLabelText("E-mail"), { target: { value: "qa@example.invalid" } });
   fireEvent.change(screen.getByLabelText("Senha"), { target: { value: "Synthetic123!" } });
-  fireEvent.submit(screen.getByRole("button", { name: "Criar conta", exact: true }).closest("form")!);
+  fireEvent.submit(screen.getByRole("button", { name: "Criar conta" }).closest("form")!);
   expect(await screen.findByRole("alert")).toHaveTextContent("nome");
   expect(onSubmit).not.toHaveBeenCalled();
   expect(screen.getByLabelText("Senha")).toHaveValue("Synthetic123!");
