@@ -15,6 +15,7 @@ import '../state/rules_controller.dart';
 import 'financial_rules_manager.dart';
 import 'forecast_card.dart';
 import 'spending_analysis_panel.dart';
+import 'speed_dial_fab.dart';
 import 'spending_profile_card.dart';
 
 /// Espelha apps/web/src/components/dashboard/views/dashboard-insights-view.tsx.
@@ -40,7 +41,8 @@ class InsightsScreen extends ConsumerWidget {
         finance.profile != null;
 
     final paid = finance.lineItems.where((i) => i.isPaid).toList();
-    final spendingThresholds = resolveSpendingThresholds(finance.spendingProfileSettings);
+    final spendingThresholds =
+        resolveSpendingThresholds(finance.spendingProfileSettings);
     final insights = buildDashboardInsights(
       paidTransactions: paid,
       goals: goals,
@@ -60,8 +62,9 @@ class InsightsScreen extends ConsumerWidget {
     final showError = financeAsync.hasError && !financeAsync.hasValue;
 
     return Scaffold(
-      appBar:
-          const FinlyAppBar(title: 'Insights', themeToggle: ThemeToggleButton()),
+      appBar: const FinlyAppBar(
+          title: 'Insights', themeToggle: ThemeToggleButton()),
+      floatingActionButton: const FinlySpeedDial(),
       body: RefreshIndicator(
         onRefresh: () async {
           await ref.read(financeControllerProvider.notifier).refresh();
@@ -70,17 +73,10 @@ class InsightsScreen extends ConsumerWidget {
         },
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 28),
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 96),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: SectionHeader(
-                  subtitle: 'Veja leituras rápidas sobre sua vida financeira.',
-                ),
-              ),
-              const SizedBox(height: 16),
               if (showFirstLoad)
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 64),
@@ -95,32 +91,24 @@ class InsightsScreen extends ConsumerWidget {
               else ...[
                 SpendingProfileCard(settings: finance.spendingProfileSettings),
                 const SizedBox(height: 12),
-                FinlyCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Leituras rápidas',
-                          style: TextStyle(
-                              fontSize: 17, fontWeight: FontWeight.w700)),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Sinais simples para te ajudar a entender o momento atual.',
-                        style: TextStyle(
-                            fontSize: 12.5, color: context.mutedForeground),
-                      ),
-                      const SizedBox(height: 12),
-                      ...insights.map((i) => Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
-                            child: _InsightTile(insight: i),
-                          )),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
                 ForecastCard(
                   totalIncome: forecast.totalIncome,
                   totalExpense: forecast.totalExpense,
                   projectedBalance: forecast.projectedBalance,
+                ),
+                const SizedBox(height: 12),
+                Semantics(
+                  label: 'Leituras rápidas',
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      for (final i in insights)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: _InsightTile(insight: i),
+                        ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 12),
                 SpendingAnalysisPanel(lineItems: paid),
@@ -141,26 +129,22 @@ class _InsightTile extends StatelessWidget {
   const _InsightTile({required this.insight});
   final DashboardInsight insight;
 
-  ({Color bg, Color border, Color badge, String label}) _tone(
-      BuildContext context) {
+  ({Color bg, Color fg, String label}) _badge(BuildContext context) {
     final scheme = context.scheme;
     return switch (insight.tone) {
       InsightTone.positive => (
           bg: scheme.primary.withValues(alpha: 0.10),
-          border: scheme.primary.withValues(alpha: 0.20),
-          badge: scheme.primary,
+          fg: scheme.primary,
           label: 'Bom sinal',
         ),
       InsightTone.warning => (
           bg: scheme.tertiary.withValues(alpha: 0.25),
-          border: scheme.tertiary.withValues(alpha: 0.6),
-          badge: scheme.onSurface,
+          fg: scheme.onSurface,
           label: 'Vale atenção',
         ),
       InsightTone.neutral => (
-          bg: scheme.surface,
-          border: scheme.outline,
-          badge: context.mutedForeground,
+          bg: scheme.surfaceContainerHighest,
+          fg: context.mutedForeground,
           label: 'No radar',
         ),
     };
@@ -168,32 +152,52 @@ class _InsightTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tone = _tone(context);
+    final badge = _badge(context);
+    final scheme = context.scheme;
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: tone.bg,
-        borderRadius: BorderRadius.circular(AppColors.fieldRadius),
-        border: Border.all(color: tone.border),
+        color: scheme.surface.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: scheme.outline.withValues(alpha: 0.5)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF031533).withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 3),
+          )
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Text(insight.title,
-                    style: const TextStyle(
-                        fontSize: 13.5, fontWeight: FontWeight.w700)),
-              ),
-              const SizedBox(width: 8),
-              PillBadge(label: tone.label, foreground: tone.badge),
-            ],
-          ),
-          const SizedBox(height: 6),
+          Text(insight.title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                  fontSize: 13, fontWeight: FontWeight.w600, height: 1.25)),
+          const SizedBox(height: 4),
           Text(insight.description,
-              style: const TextStyle(fontSize: 13, height: 1.4)),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                  fontSize: 13,
+                  height: 1.4,
+                  color: scheme.onSurface.withValues(alpha: 0.85))),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                  color: badge.bg, borderRadius: BorderRadius.circular(99)),
+              child: Text(badge.label,
+                  style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: badge.fg)),
+            ),
+          ),
         ],
       ),
     );

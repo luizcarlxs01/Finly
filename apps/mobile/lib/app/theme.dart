@@ -16,7 +16,8 @@ class AppColors {
   static const surfaceLight = Color(0xFFFFFFFF); // --card / --popover
   static const surfaceForegroundLight = Color(0xFF031533); // --card-foreground
   static const primaryLight = Color(0xFF1A75FF); // --primary
-  static const primaryForegroundLight = Color(0xFFFFFFFF); // --primary-foreground
+  static const primaryForegroundLight =
+      Color(0xFFFFFFFF); // --primary-foreground
   static const secondaryLight = Color(0xFF7EB0F2); // --secondary
   static const secondaryForegroundLight = Color(0xFF031533);
   static const mutedLight = Color(0xFFD0DFF2); // --muted
@@ -47,7 +48,8 @@ class AppColors {
   // ---- Auxiliares (classes Tailwind do web) ---------------------------
   static const successLight = Color(0xFF10B981); // emerald-500 — "Pago"
   static const successDark = Color(0xFF34D399); // emerald-400 — "Pago" (dark)
-  static const warning = Color(0xFFEAB308); // yellow-500 — "Senha média" / pendente
+  static const warning =
+      Color(0xFFEAB308); // yellow-500 — "Senha média" / pendente
   static const passwordWeak = Color(0xFFEF4444); // red-500 — "Senha fraca"
 
   // ---- Paleta de gráficos (globals.css --chart-1..5) --------------------
@@ -116,14 +118,19 @@ class AppTheme {
       onSurface: isDark
           ? AppColors.surfaceForegroundDark
           : AppColors.surfaceForegroundLight,
-      surfaceContainerHighest: isDark ? AppColors.mutedDark : AppColors.mutedLight,
+      surfaceContainerHighest:
+          isDark ? AppColors.mutedDark : AppColors.mutedLight,
       onSurfaceVariant: mutedFg,
       outline: border,
       outlineVariant: border,
     );
 
-    final baseText = (isDark ? Typography.whiteMountainView : Typography.blackMountainView)
-        .apply(fontFamily: 'Roboto', bodyColor: foreground, displayColor: foreground);
+    final baseText =
+        (isDark ? Typography.whiteMountainView : Typography.blackMountainView)
+            .apply(
+                fontFamily: 'Roboto',
+                bodyColor: foreground,
+                displayColor: foreground);
 
     return ThemeData(
       useMaterial3: true,
@@ -179,9 +186,7 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: isDark
-            ? AppColors.surfaceDark
-            : AppColors.backgroundLight,
+        fillColor: isDark ? AppColors.surfaceDark : AppColors.backgroundLight,
         hintStyle: TextStyle(color: mutedFg),
         labelStyle: TextStyle(color: mutedFg),
         contentPadding:
@@ -222,7 +227,8 @@ class AppTheme {
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        backgroundColor: isDark ? AppColors.surfaceDark : AppColors.foregroundLight,
+        backgroundColor:
+            isDark ? AppColors.surfaceDark : AppColors.foregroundLight,
         contentTextStyle: TextStyle(
           color: isDark ? AppColors.foregroundDark : Colors.white,
         ),
@@ -242,7 +248,8 @@ extension AppColorsX on BuildContext {
       isDark ? AppColors.mutedForegroundDark : AppColors.mutedForegroundLight;
   Color get success => isDark ? AppColors.successDark : AppColors.successLight;
   Color get warning => AppColors.warning;
-  List<Color> get chartColors => isDark ? AppColors.chartDark : AppColors.chartLight;
+  List<Color> get chartColors =>
+      isDark ? AppColors.chartDark : AppColors.chartLight;
 
   /// Cor de um valor monetário conforme a natureza (mesma regra do web:
   /// entrada usa a primária, saída usa o foreground neutro).

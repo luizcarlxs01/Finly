@@ -25,10 +25,13 @@ class ApiException implements Exception {
     // Mensagem vinda do corpo `{ message }` — preferida, igual ao web.
     final data = response?.data;
     String? bodyMessage;
-    if (data is Map && data['message'] is String &&
+    if (data is Map &&
+        data['message'] is String &&
         (data['message'] as String).trim().isNotEmpty) {
       bodyMessage = (data['message'] as String).trim();
-    } else if (data is String && data.trim().isNotEmpty && data.trim().startsWith('{')) {
+    } else if (data is String &&
+        data.trim().isNotEmpty &&
+        data.trim().startsWith('{')) {
       // 429 do rate limiter é escrito como string JSON crua.
       final m = RegExp(r'"message"\s*:\s*"([^"]+)"').firstMatch(data);
       bodyMessage = m?.group(1);
@@ -47,13 +50,18 @@ class ApiException implements Exception {
     }
 
     final fallback = switch (status) {
-      400 => 'Não foi possível concluir a operação. Revise os dados e tente novamente.',
+      400 =>
+        'Não foi possível concluir a operação. Revise os dados e tente novamente.',
       403 => 'Você não tem permissão para acessar este recurso.',
       404 => 'Não encontramos o que você procura.',
       409 => 'Este registro entra em conflito com outro já existente.',
       422 => 'Alguns campos não passaram na validação.',
-      429 => 'Muitas tentativas em pouco tempo. Aguarde um instante e tente de novo.',
-      500 || 502 || 503 => 'O servidor teve um problema. Tente novamente em alguns minutos.',
+      429 =>
+        'Muitas tentativas em pouco tempo. Aguarde um instante e tente de novo.',
+      500 ||
+      502 ||
+      503 =>
+        'O servidor teve um problema. Tente novamente em alguns minutos.',
       _ => switch (error.type) {
           DioExceptionType.connectionTimeout ||
           DioExceptionType.sendTimeout ||

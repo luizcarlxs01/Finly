@@ -25,8 +25,7 @@ class GoalsState {
 class GoalsController extends AsyncNotifier<GoalsState> {
   GoalsRepository get _repo => ref.read(goalsRepositoryProvider);
 
-  bool get _isLocal =>
-      ref.read(financeSourceProvider) == FinanceSource.local;
+  bool get _isLocal => ref.read(financeSourceProvider) == FinanceSource.local;
 
   LocalGoalsStore get _local => ref.read(localGoalsStoreProvider.notifier);
 

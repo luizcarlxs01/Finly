@@ -58,7 +58,8 @@ enum OccurrenceStatus {
   paid,
   cancelled;
 
-  static OccurrenceStatus fromApi(String value) => switch (value.trim().toLowerCase()) {
+  static OccurrenceStatus fromApi(String value) =>
+      switch (value.trim().toLowerCase()) {
         'paid' => OccurrenceStatus.paid,
         'cancelled' => OccurrenceStatus.cancelled,
         _ => OccurrenceStatus.pending,

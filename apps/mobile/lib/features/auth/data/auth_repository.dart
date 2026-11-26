@@ -36,7 +36,8 @@ class AuthRepository {
     return AuthSession.fromJson(json);
   }
 
-  Future<void> resendVerificationCode(ResendVerificationCodeRequest request) async {
+  Future<void> resendVerificationCode(
+      ResendVerificationCodeRequest request) async {
     await _client.post<Map<String, dynamic>>(
       '/api/Auth/resend-code',
       body: request.toJson(),

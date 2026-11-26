@@ -23,8 +23,8 @@ class FinanceRepository {
   }
 
   Future<DashboardSummary> getDashboard(String profileId) async {
-    final json = await _client
-        .get<Map<String, dynamic>>('/api/Dashboard/$profileId');
+    final json =
+        await _client.get<Map<String, dynamic>>('/api/Dashboard/$profileId');
     return DashboardSummary.fromJson(json);
   }
 
@@ -79,9 +79,8 @@ class FinanceRepository {
     );
   }
 
-  Future<void> markOccurrencePaid(String occurrenceId) =>
-      _client.patch<Map<String, dynamic>>(
-          '/api/Occurrences/$occurrenceId/mark-paid');
+  Future<void> markOccurrencePaid(String occurrenceId) => _client
+      .patch<Map<String, dynamic>>('/api/Occurrences/$occurrenceId/mark-paid');
 
   Future<void> markOccurrencePending(String occurrenceId) =>
       _client.patch<Map<String, dynamic>>(
@@ -107,7 +106,8 @@ class FinanceRepository {
   /// Reenvia nome/descrição/saldo atuais junto — o backend trata
   /// `spendingProfile` ausente como "mantém o perfil atual, não reseta", mas
   /// aqui sempre mandamos o valor novo explicitamente.
-  Future<void> updateSpendingProfile(Profile profile, SpendingProfileSettings settings) {
+  Future<void> updateSpendingProfile(
+      Profile profile, SpendingProfileSettings settings) {
     final isPersonalizado = settings.id == SpendingProfileId.personalizado;
     return _client.put<Map<String, dynamic>>(
       '/api/Profiles/${profile.id}',
@@ -116,8 +116,10 @@ class FinanceRepository {
         'description': profile.description,
         'initialBalance': profile.initialBalance,
         'spendingProfile': settings.id.apiValue,
-        'customOkThreshold': isPersonalizado ? settings.customOkThreshold : null,
-        'customGoodThreshold': isPersonalizado ? settings.customGoodThreshold : null,
+        'customOkThreshold':
+            isPersonalizado ? settings.customOkThreshold : null,
+        'customGoodThreshold':
+            isPersonalizado ? settings.customGoodThreshold : null,
       },
     );
   }
@@ -141,15 +143,15 @@ class FinanceRepository {
           kind == ContractKind.installment ? input.installmentCount : null,
       'isRecurring': isRecurring,
       'recurrenceStartDate': isRecurring ? input.recurrenceStartDate : null,
-      'recurrenceEndDate': isRecurring &&
-              input.recurrenceMode == RecurrenceMode.untilDate
-          ? input.recurrenceEndDate
-          : null,
+      'recurrenceEndDate':
+          isRecurring && input.recurrenceMode == RecurrenceMode.untilDate
+              ? input.recurrenceEndDate
+              : null,
       'recurrenceDay': isRecurring ? input.recurrenceDay : null,
-      'recurrenceMonths': isRecurring &&
-              input.recurrenceMode == RecurrenceMode.forMonths
-          ? input.recurrenceMonths
-          : null,
+      'recurrenceMonths':
+          isRecurring && input.recurrenceMode == RecurrenceMode.forMonths
+              ? input.recurrenceMonths
+              : null,
     };
   }
 }

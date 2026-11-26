@@ -49,8 +49,8 @@ class TransactionFormFieldsState extends State<TransactionFormFields> {
     super.initState();
     final i = widget.initial;
     _title = TextEditingController(text: i?.title ?? '');
-    _amount = TextEditingController(
-        text: i != null ? _trimAmount(i.amount) : '');
+    _amount =
+        TextEditingController(text: i != null ? _trimAmount(i.amount) : '');
     _installmentCount =
         TextEditingController(text: (i?.installmentCount ?? 2).toString());
     _recurrenceDay = TextEditingController(
@@ -144,8 +144,7 @@ class TransactionFormFieldsState extends State<TransactionFormFields> {
           child: AppTextField(
             controller: _amount,
             hint: 'Ex.: 250.00',
-            keyboardType:
-                const TextInputType.numberWithOptions(decimal: true),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: [
               FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
             ],

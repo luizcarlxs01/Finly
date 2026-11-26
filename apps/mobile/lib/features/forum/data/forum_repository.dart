@@ -28,7 +28,8 @@ class ForumRepository {
   }
 
   Future<TopicDetail> getTopic(String id) async {
-    final json = await _client.get<Map<String, dynamic>>('/api/forum/topics/$id');
+    final json =
+        await _client.get<Map<String, dynamic>>('/api/forum/topics/$id');
     return TopicDetail.fromJson(json);
   }
 

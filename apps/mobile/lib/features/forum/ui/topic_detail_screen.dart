@@ -24,16 +24,17 @@ class _TopicDetailScreenState extends ConsumerState<TopicDetailScreen> {
   @override
   void initState() {
     super.initState();
-    _future = ref.read(forumControllerProvider.notifier).openTopic(widget.topicId);
+    _future =
+        ref.read(forumControllerProvider.notifier).openTopic(widget.topicId);
   }
 
   String _formatDateTime(DateTime value) =>
-      DateFormat("dd/MM/yyyy 'às' HH:mm", 'pt_BR').format(value);
+      DateFormat('dd/MM/yyyy HH:mm', 'pt_BR').format(value);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Tópico')),
+      appBar: AppBar(title: const Text('Fórum')),
       body: FutureBuilder<TopicDetail>(
         future: _future,
         builder: (context, snapshot) {
@@ -53,6 +54,15 @@ class _TopicDetailScreenState extends ConsumerState<TopicDetailScreen> {
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
             children: [
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: () => Navigator.of(context).maybePop(),
+                  icon: const Icon(Icons.arrow_back, size: 16),
+                  label: const Text('Voltar para o fórum'),
+                ),
+              ),
+              const SizedBox(height: 4),
               FinlyCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -75,7 +85,8 @@ class _TopicDetailScreenState extends ConsumerState<TopicDetailScreen> {
               if (topic.replies.isEmpty)
                 Text(
                   'Ainda sem respostas.',
-                  style: TextStyle(fontSize: 13, color: context.mutedForeground),
+                  style:
+                      TextStyle(fontSize: 13, color: context.mutedForeground),
                 )
               else
                 ...topic.replies.map(
@@ -122,7 +133,8 @@ class _TopicDetailScreenState extends ConsumerState<TopicDetailScreen> {
                             ],
                           ),
                           const SizedBox(height: 8),
-                          Text(reply.body, style: const TextStyle(fontSize: 14)),
+                          Text(reply.body,
+                              style: const TextStyle(fontSize: 14)),
                         ],
                       ),
                     ),

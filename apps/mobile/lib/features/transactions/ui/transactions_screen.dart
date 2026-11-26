@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../../app/app.dart';
 import '../../../app/shell.dart';
 import '../../../app/theme.dart';
+import '../../../core/format/formatters.dart';
 import '../../../core/finance_source.dart';
+import '../../../core/privacy/value_privacy.dart';
 import '../../../core/widgets/widgets.dart';
 import '../../../shared/models/categories.dart';
 import '../../../shared/models/enums.dart';
 import '../../../shared/models/transaction.dart';
-import '../../goals/ui/goal_form_sheet.dart';
+import '../../calendar/ui/compact_calendar.dart';
 import '../state/finance_controller.dart';
 import 'finance_summary_card.dart';
 import 'transaction_edit_sheet.dart';
@@ -22,6 +25,8 @@ enum _TypeFilter { all, income, expense }
 enum _SortOption { newest, oldest, highest, lowest, titleAsc, titleDesc }
 
 /// Espelha apps/web/src/components/dashboard/views/dashboard-transactions-view.tsx.
+/// Na web (< 1024px) o FAB não aparece nesta aba: o botão "Novo lançamento"
+/// fica dentro do Extrato.
 class TransactionsScreen extends ConsumerStatefulWidget {
   const TransactionsScreen({super.key});
 
@@ -30,8 +35,8 @@ class TransactionsScreen extends ConsumerStatefulWidget {
 }
 
 class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
-  bool _listOpen = false;
-  bool _fabOpen = false;
+  String? _statementMonth =
+      '${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}';
   _TypeFilter _typeFilter = _TypeFilter.all;
   String _categoryFilter = 'all';
   _SortOption _sort = _SortOption.newest;
@@ -42,6 +47,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     _search.dispose();
     super.dispose();
   }
+
+  bool get _hasAdvancedFilters =>
+      _categoryFilter != 'all' || _sort != _SortOption.newest;
 
   List<LineItem> _apply(List<LineItem> items) {
     final term = _search.text.trim().toLowerCase();
@@ -54,6 +62,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       final matchesCategory =
           _categoryFilter == 'all' || t.category == _categoryFilter;
       if (!matchesType || !matchesCategory) return false;
+      if (_statementMonth != null && !t.dueDate.startsWith(_statementMonth!)) {
+        return false;
+      }
       if (term.isEmpty) return true;
       final haystack = [
         t.title,
@@ -111,28 +122,151 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     }
   }
 
+  Future<void> _selectMonth() async {
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: _statementMonth == null
+          ? DateTime.now()
+          : DateTime.tryParse('$_statementMonth-01') ?? DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+      helpText: 'Selecione o mês de referência',
+    );
+    if (selected == null) return;
+    setState(() => _statementMonth =
+        '${selected.year}-${selected.month.toString().padLeft(2, '0')}');
+  }
+
+  void _openFilters() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) {
+          void update(VoidCallback fn) {
+            setState(fn);
+            setSheet(() {});
+          }
+
+          return SafeArea(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(
+                  16, 0, 16, 16 + MediaQuery.of(ctx).viewInsets.bottom),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Filtros do extrato',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 14),
+                  const Text('Categoria',
+                      style: TextStyle(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 6),
+                  DropdownButtonFormField<String>(
+                    initialValue: _categoryFilter,
+                    isExpanded: true,
+                    items: [
+                      const DropdownMenuItem(
+                          value: 'all', child: Text('Todas as categorias')),
+                      ...TransactionCategories.all.map((c) => DropdownMenuItem(
+                          value: c,
+                          child: Text(TransactionCategories.label(c)))),
+                    ],
+                    onChanged: (v) =>
+                        update(() => _categoryFilter = v ?? 'all'),
+                  ),
+                  const SizedBox(height: 14),
+                  const Text('Ordenação',
+                      style: TextStyle(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 6),
+                  DropdownButtonFormField<_SortOption>(
+                    initialValue: _sort,
+                    isExpanded: true,
+                    items: const [
+                      DropdownMenuItem(
+                          value: _SortOption.newest,
+                          child: Text('Mais recentes')),
+                      DropdownMenuItem(
+                          value: _SortOption.oldest,
+                          child: Text('Mais antigas')),
+                      DropdownMenuItem(
+                          value: _SortOption.highest,
+                          child: Text('Maior valor')),
+                      DropdownMenuItem(
+                          value: _SortOption.lowest,
+                          child: Text('Menor valor')),
+                      DropdownMenuItem(
+                          value: _SortOption.titleAsc,
+                          child: Text('Título A–Z')),
+                      DropdownMenuItem(
+                          value: _SortOption.titleDesc,
+                          child: Text('Título Z–A')),
+                    ],
+                    onChanged: (v) =>
+                        update(() => _sort = v ?? _SortOption.newest),
+                  ),
+                  const Divider(height: 28),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          _openSummary();
+                        },
+                        child: const Text('Resumo financeiro'),
+                      ),
+                      TextButton(
+                        onPressed: () => update(() {
+                          _categoryFilter = 'all';
+                          _sort = _SortOption.newest;
+                          _statementMonth = null;
+                        }),
+                        child: const Text('Limpar filtros'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _openSummary() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) => const SafeArea(
+          child: SingleChildScrollView(
+        padding: EdgeInsets.all(16),
+        child: FinanceSummaryCard(),
+      )),
+    );
+  }
+
+  String _monthLabel() {
+    if (_statementMonth == null) return 'Todos os meses';
+    final date = DateTime.tryParse('$_statementMonth-01');
+    if (date == null) return _statementMonth!;
+    return DateFormat('MMMM yyyy', 'pt_BR').format(date);
+  }
+
   @override
   Widget build(BuildContext context) {
     final financeAsync = ref.watch(financeControllerProvider);
+    final hidden = ref.watch(valuePrivacyProvider);
 
     return Scaffold(
       appBar: const FinlyAppBar(
           title: 'Lançamentos', themeToggle: ThemeToggleButton()),
-      floatingActionButton: _SpeedDial(
-        open: _fabOpen,
-        onToggle: () => setState(() => _fabOpen = !_fabOpen),
-        onNewTransaction: () {
-          setState(() => _fabOpen = false);
-          showTransactionFormSheet(context);
-        },
-        onNewGoal: () {
-          setState(() => _fabOpen = false);
-          showGoalFormSheet(context);
-        },
-      ),
       body: RefreshIndicator(
-        onRefresh: () =>
-            ref.read(financeControllerProvider.notifier).refresh(),
+        onRefresh: () => ref.read(financeControllerProvider.notifier).refresh(),
         child: financeAsync.when(
           loading: () => const _CenteredLoader(),
           error: (e, _) => ListView(
@@ -146,160 +280,167 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
           data: (data) {
             final all = data.lineItems;
             final visible = _apply(all);
+            final now = DateTime.now();
+            final currentMonth =
+                '${now.year}-${now.month.toString().padLeft(2, '0')}';
+            final monthPaid = all.where(
+                (item) => item.isPaid && item.dueDate.startsWith(currentMonth));
+            final monthIncome = monthPaid
+                .where((item) => item.type == TransactionType.income)
+                .fold<double>(0, (sum, item) => sum + item.amount);
+            final monthExpense = monthPaid
+                .where((item) => item.type == TransactionType.expense)
+                .fold<double>(0, (sum, item) => sum + item.amount);
+            String mask(double v) => Fmt.maskedCurrency(v, hidden: hidden);
+            final footerMonth = _statementMonth == null
+                ? ''
+                : ' · ${_statementMonth!.split('-').reversed.join('/')}';
+
             return ListView(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 96),
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 28),
               children: [
-                const SectionHeader(
-                  subtitle: 'Cadastre e acompanhe suas movimentações.',
-                ),
-                const SizedBox(height: 12),
-                const FinanceSummaryCard(),
-                const SizedBox(height: 12),
-                Row(
+                const SizedBox(height: 8),
+                GridView.count(
+                  crossAxisCount: 2,
+                  childAspectRatio: 1.75,
+                  mainAxisSpacing: 10,
+                  crossAxisSpacing: 10,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
                   children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () => context.push('/calendar'),
-                        icon: const Icon(Icons.calendar_month_outlined, size: 18),
-                        label: const Text('Calendário'),
+                    _Indicator(
+                      label: 'Saldo atual',
+                      value: mask(data.currentBalance),
+                      trailing: InkResponse(
+                        onTap: () =>
+                            ref.read(valuePrivacyProvider.notifier).toggle(),
+                        radius: 16,
+                        child: Icon(
+                            hidden
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined,
+                            size: 16,
+                            semanticLabel:
+                                hidden ? 'Mostrar valores' : 'Ocultar valores'),
                       ),
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => context.push('/statement'),
-                        icon: const Icon(Icons.receipt_long_outlined, size: 18),
-                        label: const Text('Extrato'),
-                      ),
-                    ),
+                    _Indicator(label: 'Entradas', value: mask(monthIncome)),
+                    _Indicator(label: 'Saídas', value: mask(monthExpense)),
+                    _Indicator(
+                        label: 'Resultado do mês',
+                        value: mask(monthIncome - monthExpense)),
                   ],
+                ),
+                const SizedBox(height: 16),
+                CompactCalendar(
+                  items: all,
+                  onOpenFull: () => context.push('/calendar'),
                 ),
                 const SizedBox(height: 16),
                 FinlyCard(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      InkWell(
-                        onTap: () => setState(() => _listOpen = !_listOpen),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                _listOpen
-                                    ? 'Ocultar lançamentos'
-                                    : 'Visualizar lançamentos',
-                                style: const TextStyle(
-                                    fontSize: 16, fontWeight: FontWeight.w700),
-                              ),
-                            ),
-                            AnimatedRotation(
-                              turns: _listOpen ? 0.5 : 0,
-                              duration: const Duration(milliseconds: 180),
-                              child: Icon(Icons.expand_more,
-                                  color: context.mutedForeground),
-                            ),
-                          ],
+                      Row(children: [
+                        const Expanded(
+                          child: Text('Extrato',
+                              style: TextStyle(
+                                  fontSize: 20, fontWeight: FontWeight.w700)),
+                        ),
+                        FilledButton.icon(
+                          onPressed: () => showTransactionFormSheet(context),
+                          icon: const Icon(Icons.add, size: 18),
+                          label: const Text('Novo lançamento'),
+                        ),
+                      ]),
+                      const SizedBox(height: 14),
+                      _FilterTabs(
+                        value: _typeFilter,
+                        onChanged: (v) => setState(() => _typeFilter = v),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _search,
+                        onChanged: (_) => setState(() {}),
+                        decoration: const InputDecoration(
+                          hintText: 'Buscar lançamento',
+                          prefixIcon: Icon(Icons.search, size: 18),
                         ),
                       ),
-                      if (_listOpen) ...[
-                        const SizedBox(height: 12),
-                        _FilterTabs(
-                          value: _typeFilter,
-                          onChanged: (v) => setState(() => _typeFilter = v),
-                        ),
-                        const SizedBox(height: 12),
-                        TextField(
-                          controller: _search,
-                          onChanged: (_) => setState(() {}),
-                          decoration: const InputDecoration(
-                            hintText: 'Buscar por título, categoria ou valor',
-                            prefixIcon: Icon(Icons.search, size: 18),
+                      const SizedBox(height: 10),
+                      Row(children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: _selectMonth,
+                            icon: const Icon(Icons.calendar_month_outlined,
+                                size: 18),
+                            label: Text(_monthLabel(),
+                                overflow: TextOverflow.ellipsis),
                           ),
                         ),
-                        const SizedBox(height: 10),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: DropdownButtonFormField<String>(
-                                initialValue: _categoryFilter,
-                                isExpanded: true,
-                                items: [
-                                  const DropdownMenuItem(
-                                      value: 'all',
-                                      child: Text('Todas as categorias')),
-                                  ...TransactionCategories.all.map(
-                                    (c) => DropdownMenuItem(
-                                        value: c,
-                                        child: Text(
-                                            TransactionCategories.label(c))),
-                                  ),
-                                ],
-                                onChanged: (v) => setState(
-                                    () => _categoryFilter = v ?? 'all'),
+                        const SizedBox(width: 8),
+                        Stack(clipBehavior: Clip.none, children: [
+                          OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                                minimumSize: const Size(48, 48),
+                                padding: EdgeInsets.zero),
+                            onPressed: _openFilters,
+                            child: const Icon(Icons.tune, size: 18),
+                          ),
+                          if (_hasAdvancedFilters || _statementMonth != null)
+                            Positioned(
+                              right: -2,
+                              top: -2,
+                              child: Container(
+                                width: 9,
+                                height: 9,
+                                decoration: BoxDecoration(
+                                    color: context.scheme.primary,
+                                    shape: BoxShape.circle),
                               ),
                             ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: DropdownButtonFormField<_SortOption>(
-                                initialValue: _sort,
-                                isExpanded: true,
-                                items: const [
-                                  DropdownMenuItem(
-                                      value: _SortOption.newest,
-                                      child: Text('Mais recentes')),
-                                  DropdownMenuItem(
-                                      value: _SortOption.oldest,
-                                      child: Text('Mais antigas')),
-                                  DropdownMenuItem(
-                                      value: _SortOption.highest,
-                                      child: Text('Maior valor')),
-                                  DropdownMenuItem(
-                                      value: _SortOption.lowest,
-                                      child: Text('Menor valor')),
-                                  DropdownMenuItem(
-                                      value: _SortOption.titleAsc,
-                                      child: Text('Título A-Z')),
-                                  DropdownMenuItem(
-                                      value: _SortOption.titleDesc,
-                                      child: Text('Título Z-A')),
-                                ],
-                                onChanged: (v) => setState(
-                                    () => _sort = v ?? _SortOption.newest),
-                              ),
-                            ),
-                          ],
+                        ]),
+                      ]),
+                      const SizedBox(height: 8),
+                      if (visible.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: EmptyState(
+                            title: all.isEmpty
+                                ? 'Nenhuma transação cadastrada'
+                                : 'Nenhum resultado para os filtros aplicados',
+                            description: all.isEmpty
+                                ? 'Assim que você registrar movimentações, elas aparecerão organizadas aqui.'
+                                : 'Ajuste a busca, categoria, tipo ou ordenação para encontrar outras movimentações.',
+                          ),
+                        )
+                      else
+                        ...visible.map(
+                          (item) => TransactionTile(
+                            item: item,
+                            hidden: hidden,
+                            onEdit: () =>
+                                showTransactionEditSheet(context, item),
+                            onRemove: () => _confirmRemove(item),
+                          ),
                         ),
-                        const SizedBox(height: 8),
-                        Text('${visible.length} de ${all.length}',
-                            style: TextStyle(
-                                fontSize: 12, color: context.mutedForeground)),
-                      ],
+                      const SizedBox(height: 10),
+                      Row(children: [
+                        Expanded(
+                          child: Text(
+                              '${visible.length} de ${all.length} lançamentos$footerMonth',
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: context.mutedForeground)),
+                        ),
+                        TextButton(
+                          onPressed: () => context.push('/statement'),
+                          child: const Text('Ver projeção'),
+                        ),
+                      ]),
                     ],
                   ),
                 ),
-                if (_listOpen) ...[
-                  const SizedBox(height: 12),
-                  if (visible.isEmpty)
-                    EmptyState(
-                      title: all.isEmpty
-                          ? 'Nenhuma transação cadastrada'
-                          : 'Nenhum resultado para os filtros aplicados',
-                      description: all.isEmpty
-                          ? 'Assim que você registrar movimentações, elas aparecerão organizadas aqui.'
-                          : 'Ajuste a busca, categoria, tipo ou ordenação para encontrar outras movimentações.',
-                    )
-                  else
-                    ...visible.map(
-                      (item) => Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: TransactionTile(
-                          item: item,
-                          onEdit: () => showTransactionEditSheet(context, item),
-                          onRemove: () => _confirmRemove(item),
-                        ),
-                      ),
-                    ),
-                ],
                 if (ref.watch(financeSourceProvider) == FinanceSource.api &&
                     data.profile == null)
                   Padding(
@@ -330,6 +471,54 @@ class _CenteredLoader extends StatelessWidget {
       );
 }
 
+class _Indicator extends StatelessWidget {
+  const _Indicator({required this.label, required this.value, this.trailing});
+  final String label;
+  final String value;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: context.scheme.surface.withValues(alpha: 0.9),
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF031533).withValues(alpha: 0.07),
+              blurRadius: 20,
+              offset: const Offset(0, 6),
+            )
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(value,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                  )),
+            ),
+            const SizedBox(height: 5),
+            Row(children: [
+              Flexible(
+                child: Text(label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontSize: 12, color: context.mutedForeground)),
+              ),
+              if (trailing != null) ...[const SizedBox(width: 6), trailing!],
+            ]),
+          ],
+        ),
+      );
+}
+
 class _FilterTabs extends StatelessWidget {
   const _FilterTabs({required this.value, required this.onChanged});
   final _TypeFilter value;
@@ -338,33 +527,24 @@ class _FilterTabs extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = context.scheme;
-    Widget tab(_TypeFilter v, String label, IconData icon) {
+    Widget tab(_TypeFilter v, String label) {
       final selected = v == value;
       return Expanded(
         child: GestureDetector(
           onTap: () => onChanged(v),
           child: Container(
-            margin: const EdgeInsets.all(2),
+            margin: const EdgeInsets.all(3),
             padding: const EdgeInsets.symmetric(vertical: 9),
+            alignment: Alignment.center,
             decoration: BoxDecoration(
               color: selected ? scheme.primary : Colors.transparent,
               borderRadius: BorderRadius.circular(AppColors.fieldRadius),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(icon,
-                    size: 15,
-                    color: selected ? scheme.onPrimary : scheme.onSurface),
-                const SizedBox(width: 6),
-                Text(label,
-                    style: TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w600,
-                        color:
-                            selected ? scheme.onPrimary : scheme.onSurface)),
-              ],
-            ),
+            child: Text(label,
+                style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: selected ? scheme.onPrimary : scheme.onSurface)),
           ),
         ),
       );
@@ -372,110 +552,16 @@ class _FilterTabs extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: scheme.surface,
+        color: scheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(AppColors.fieldRadius),
-        border: Border.all(color: scheme.outline),
       ),
       child: Row(
         children: [
-          tab(_TypeFilter.all, 'Todas', Icons.list),
-          tab(_TypeFilter.income, 'Entradas', Icons.arrow_circle_up_outlined),
-          tab(_TypeFilter.expense, 'Saídas', Icons.arrow_circle_down_outlined),
+          tab(_TypeFilter.all, 'Todos'),
+          tab(_TypeFilter.income, 'Entradas'),
+          tab(_TypeFilter.expense, 'Saídas'),
         ],
       ),
-    );
-  }
-}
-
-/// FAB speed dial — "[+]" gira 45° e revela "Nova transação" / "Nova meta"
-/// (page.tsx do web).
-class _SpeedDial extends StatelessWidget {
-  const _SpeedDial({
-    required this.open,
-    required this.onToggle,
-    required this.onNewTransaction,
-    required this.onNewGoal,
-  });
-
-  final bool open;
-  final VoidCallback onToggle;
-  final VoidCallback onNewTransaction;
-  final VoidCallback onNewGoal;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        AnimatedSize(
-          duration: const Duration(milliseconds: 180),
-          child: open
-              ? Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    _MiniAction(
-                      label: 'Nova transação',
-                      icon: Icons.swap_vert,
-                      onTap: onNewTransaction,
-                    ),
-                    const SizedBox(height: 10),
-                    _MiniAction(
-                      label: 'Nova meta',
-                      icon: Icons.flag_outlined,
-                      onTap: onNewGoal,
-                    ),
-                    const SizedBox(height: 10),
-                  ],
-                )
-              : const SizedBox.shrink(),
-        ),
-        FloatingActionButton(
-          onPressed: onToggle,
-          child: AnimatedRotation(
-            turns: open ? 0.125 : 0,
-            duration: const Duration(milliseconds: 180),
-            child: const Icon(Icons.add),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _MiniAction extends StatelessWidget {
-  const _MiniAction(
-      {required this.label, required this.icon, required this.onTap});
-  final String label;
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.scheme;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: scheme.surface,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: scheme.outline),
-          ),
-          child: Text(label,
-              style: const TextStyle(
-                  fontSize: 13, fontWeight: FontWeight.w600)),
-        ),
-        const SizedBox(width: 10),
-        FloatingActionButton.small(
-          heroTag: label,
-          onPressed: onTap,
-          backgroundColor: scheme.surface,
-          foregroundColor: scheme.onSurface,
-          child: Icon(icon),
-        ),
-      ],
     );
   }
 }

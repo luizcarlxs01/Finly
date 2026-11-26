@@ -140,9 +140,8 @@ class AuthController extends Notifier<AuthState> {
 
     state = state.copyWith(isSubmitting: true);
     try {
-      await ref
-          .read(authRepositoryProvider)
-          .resendVerificationCode(ResendVerificationCodeRequest(email: pending.email));
+      await ref.read(authRepositoryProvider).resendVerificationCode(
+          ResendVerificationCodeRequest(email: pending.email));
     } finally {
       state = state.copyWith(isSubmitting: false);
     }

@@ -38,7 +38,8 @@ class LocalGoalsStore extends AsyncNotifier<List<Goal>> {
     _sort(next);
     state = AsyncData(next);
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_key, jsonEncode(next.map((g) => g.toJson()).toList()));
+    await prefs.setString(
+        _key, jsonEncode(next.map((g) => g.toJson()).toList()));
   }
 
   Future<void> addGoal({

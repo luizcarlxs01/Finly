@@ -94,7 +94,8 @@ class AppDropdown<T> extends StatelessWidget {
       initialValue: value,
       isExpanded: true,
       items: items
-          .map((e) => DropdownMenuItem<T>(value: e, child: Text(labelBuilder(e))))
+          .map((e) =>
+              DropdownMenuItem<T>(value: e, child: Text(labelBuilder(e))))
           .toList(),
       onChanged: (v) {
         if (v != null) onChanged(v);
@@ -180,8 +181,7 @@ class SegmentedSelector<T> extends StatelessWidget {
         return GestureDetector(
           onTap: () => onChanged(opt.value),
           child: Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
               color: selected
                   ? scheme.primary.withValues(alpha: 0.12)

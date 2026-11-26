@@ -34,8 +34,8 @@ class AccountScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text('Modo com conta ativo',
-                      style: TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.w700)),
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                   const SizedBox(height: 4),
                   Text(
                     'Seus dados estão sincronizados com a sua conta Finly.',

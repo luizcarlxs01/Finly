@@ -215,7 +215,8 @@ class _AccountAccessPanelState extends ConsumerState<AccountAccessPanel> {
                       onPressed: isSubmitting ? null : _forgotPassword,
                       child: const Text(
                         'Esqueci minha senha',
-                        style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                            fontSize: 12.5, fontWeight: FontWeight.w600),
                       ),
                     ),
                   ),
@@ -241,8 +242,8 @@ class _AccountAccessPanelState extends ConsumerState<AccountAccessPanel> {
                 isRegister
                     ? 'Sua sessão será criada automaticamente após o cadastro.'
                     : 'Seu acesso fica salvo com segurança neste aparelho.',
-                style: TextStyle(
-                    fontSize: 11.5, color: context.mutedForeground),
+                style:
+                    TextStyle(fontSize: 11.5, color: context.mutedForeground),
               ),
             ],
           ),

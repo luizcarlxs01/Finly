@@ -48,8 +48,7 @@ class FinanceData {
 class FinanceController extends AsyncNotifier<FinanceData> {
   FinanceRepository get _repo => ref.read(financeRepositoryProvider);
 
-  bool get _isLocal =>
-      ref.read(financeSourceProvider) == FinanceSource.local;
+  bool get _isLocal => ref.read(financeSourceProvider) == FinanceSource.local;
 
   @override
   Future<FinanceData> build() async {
@@ -117,8 +116,7 @@ class FinanceController extends AsyncNotifier<FinanceData> {
 
     final lineItems = <LineItem>[
       for (final c in contracts) ...LineItem.flatten(c),
-    ]..sort((a, b) =>
-        b.contract.createdAt.compareTo(a.contract.createdAt));
+    ]..sort((a, b) => b.contract.createdAt.compareTo(a.contract.createdAt));
 
     return FinanceData(
       profile: profile,
@@ -145,8 +143,7 @@ class FinanceController extends AsyncNotifier<FinanceData> {
     return profile.id;
   }
 
-  LocalFinanceStore get _local =>
-      ref.read(localFinanceStoreProvider.notifier);
+  LocalFinanceStore get _local => ref.read(localFinanceStoreProvider.notifier);
 
   // ---- Escritas (modo local persiste no aparelho e o build re-roda
   //      automaticamente; modo API chama o backend e recarrega) ---------
@@ -180,7 +177,8 @@ class FinanceController extends AsyncNotifier<FinanceData> {
       return _local.updateOccurrence(occurrenceId,
           dueDate: dueDate, amount: amount);
     }
-    await _repo.updateOccurrence(occurrenceId, dueDate: dueDate, amount: amount);
+    await _repo.updateOccurrence(occurrenceId,
+        dueDate: dueDate, amount: amount);
     await refresh();
   }
 
@@ -233,4 +231,5 @@ class FinanceController extends AsyncNotifier<FinanceData> {
 }
 
 final financeControllerProvider =
-    AsyncNotifierProvider<FinanceController, FinanceData>(FinanceController.new);
+    AsyncNotifierProvider<FinanceController, FinanceData>(
+        FinanceController.new);

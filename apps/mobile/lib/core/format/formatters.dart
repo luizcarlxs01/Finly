@@ -22,8 +22,7 @@ class Fmt {
   /// "YYYY-MM-DD" -> "DD/MM/YYYY" (formatBusinessDateBr do web).
   static String? businessDate(String? value) {
     if (value == null) return null;
-    final match =
-        RegExp(r'^(\d{4})-(\d{2})-(\d{2})').firstMatch(value.trim());
+    final match = RegExp(r'^(\d{4})-(\d{2})-(\d{2})').firstMatch(value.trim());
     if (match == null) return null;
     return '${match[3]}/${match[2]}/${match[1]}';
   }

@@ -37,7 +37,8 @@ List<GeneratedOccurrence> generateOccurrences(TransactionFormInput input) {
   final now = DateTime.now();
   final today = DateTime(now.year, now.month, now.day, 12);
 
-  GeneratedOccurrence build(DateTime dueDate, int? index) => GeneratedOccurrence(
+  GeneratedOccurrence build(DateTime dueDate, int? index) =>
+      GeneratedOccurrence(
         dueDate: dueDate,
         amount: input.amount,
         installmentIndex: index,

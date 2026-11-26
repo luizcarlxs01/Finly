@@ -59,7 +59,11 @@ class RegisterRequest {
 /// quando `true`, [session] vem nulo e é preciso confirmar o código antes de
 /// ter uma sessão de verdade.
 class AuthOutcome {
-  AuthOutcome({required this.requiresVerification, this.session, this.email, this.name});
+  AuthOutcome(
+      {required this.requiresVerification,
+      this.session,
+      this.email,
+      this.name});
 
   final bool requiresVerification;
   final AuthSession? session;
